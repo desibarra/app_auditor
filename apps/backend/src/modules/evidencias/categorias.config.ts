@@ -65,6 +65,13 @@ export const CATEGORIAS_POR_TIPO: Record<string, CategoriaEvidencia[]> = {
             requerido: true,
             icono: '💰',
         },
+        {
+            id: 'contrato_arrendamiento',
+            nombre: 'Contrato de Arrendamiento',
+            descripcion: 'Contrato de arrendamiento firmado (para gastos de renta)',
+            requerido: false,
+            icono: '🏢',
+        },
     ],
 
     // Tipo P: Pago

@@ -3,7 +3,13 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: true,
+  });
+
+  // Configurar límite de payload para archivos grandes
+  app.use(require('express').json({ limit: '20mb' }));
+  app.use(require('express').urlencoded({ limit: '20mb', extended: true }));
 
   // Configurar CORS
   app.enableCors({

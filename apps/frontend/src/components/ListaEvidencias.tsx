@@ -95,6 +95,7 @@ function ListaEvidencias({ cfdiUuid, onUpdate }: ListaEvidenciasProps) {
             'pago': 'Comprobante de Pago',
             'pedido': 'Orden de Compra',
             'entrega': 'Foto de Entrega',
+            'contrato_arrendamiento': 'Contrato de Arrendamiento',
             'estado_cuenta': 'Estado de Cuenta',
             'transferencia': 'Transferencia',
             'recibo': 'Recibo de Nómina',

@@ -25,7 +25,7 @@ export const BUCKET_NAME = process.env.S3_BUCKET || 'evidencias-fiscales';
  * Configuración de almacenamiento
  */
 export const STORAGE_CONFIG = {
-    maxFileSize: 10 * 1024 * 1024, // 10MB
+    maxFileSize: 20 * 1024 * 1024, // 20MB (aumentado para contratos de arrendamiento)
     allowedMimeTypes: [
         'application/pdf',
         'image/jpeg',
