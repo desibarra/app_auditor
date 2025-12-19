@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 interface Expediente {
@@ -12,6 +13,7 @@ interface Expediente {
 }
 
 function ExpedientesPage() {
+    const navigate = useNavigate();
     const [empresaActiva, setEmpresaActiva] = useState<string>('');
     const [expedientes, setExpedientes] = useState<Expediente[]>([]);
     const [loading, setLoading] = useState(true);
@@ -105,9 +107,20 @@ function ExpedientesPage() {
     return (
         <div className="card">
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">
-                    📁 Mis Expedientes de Devolución
-                </h1>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => navigate('/dashboard')}
+                        className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Volver al Dashboard
+                    </button>
+                    <h1 className="text-2xl font-bold text-gray-900">
+                        📁 Mis Expedientes de Devolución
+                    </h1>
+                </div>
                 <div className="text-sm text-gray-600">
                     {expedientes.length} expediente{expedientes.length !== 1 ? 's' : ''}
                 </div>

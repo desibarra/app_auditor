@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import TablaCfdiRecientes from '../components/TablaCfdiRecientes';
 import BotonCargarXml from '../components/BotonCargarXml';
@@ -36,6 +37,7 @@ interface DashboardData {
 }
 
 function DashboardPage() {
+    const navigate = useNavigate();
     const [data, setData] = useState<DashboardData | null>(null);
     const [health, setHealth] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -114,14 +116,26 @@ function DashboardPage() {
                                 </p>
                             )}
                         </div>
-                        {/* Selector de Empresa */}
-                        <SelectorEmpresa
-                            empresaSeleccionada={empresaSeleccionada}
-                            onSeleccionar={(id) => {
-                                setEmpresaSeleccionada(id);
-                                setRefreshKey(prev => prev + 1); // Refrescar CFDIs
-                            }}
-                        />
+                        <div className="flex items-center gap-4">
+                            {/* Botón Mis Expedientes */}
+                            <button
+                                onClick={() => navigate('/expedientes')}
+                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                            >
+                                <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                📁 Mis Expedientes
+                            </button>
+                            {/* Selector de Empresa */}
+                            <SelectorEmpresa
+                                empresaSeleccionada={empresaSeleccionada}
+                                onSeleccionar={(id) => {
+                                    setEmpresaSeleccionada(id);
+                                    setRefreshKey(prev => prev + 1); // Refrescar CFDIs
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
             </header>
