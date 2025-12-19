@@ -52,7 +52,7 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
     const [rfcEmpresa, setRfcEmpresa] = useState<string>('');
 
     // Ordenamiento (Sorting)
-    type SortColumn = 'materialidad' | 'fecha' | 'emisor' | 'tipo' | 'total' | 'estado' | null;
+    type SortColumn = 'materialidad' | 'fecha' | 'emisor' | 'rfc' | 'tipo' | 'total' | 'estado' | null;
     type SortDirection = 'asc' | 'desc';
     const [sortColumn, setSortColumn] = useState<SortColumn>(null);
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -319,6 +319,10 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
                     comparison = a.emisorNombre.localeCompare(b.emisorNombre);
                     break;
 
+                case 'rfc':
+                    comparison = a.emisorRfc.localeCompare(b.emisorRfc);
+                    break;
+
                 case 'tipo':
                     const tipoA = getTipoComprobanteLabel(a);
                     const tipoB = getTipoComprobanteLabel(b);
@@ -544,8 +548,14 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
                                                 <SortIcon column="emisor" />
                                             </div>
                                         </th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            RFC
+                                        <th
+                                            onClick={() => handleSort('rfc')}
+                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                                        >
+                                            <div className="flex items-center">
+                                                RFC
+                                                <SortIcon column="rfc" />
+                                            </div>
                                         </th>
                                         <th
                                             onClick={() => handleSort('tipo')}
