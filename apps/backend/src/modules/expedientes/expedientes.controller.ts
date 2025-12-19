@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Put, Body, Query, Param, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Query, Param, BadRequestException, Res, StreamableFile } from '@nestjs/common';
 import { ExpedientesService } from './expedientes.service';
+import { Response } from 'express';
 
 @Controller('expedientes')
 export class ExpedientesController {
@@ -58,6 +59,37 @@ export class ExpedientesController {
         }
 
         return await this.expedientesService.getDetalleExpediente(expedienteId);
+    }
+
+    /**
+     * GET /api/expedientes/:id/descargar-zip
+     * Descarga el legajo digital completo del expediente en formato ZIP
+     */
+    @Get(':id/descargar-zip')
+    async descargarZip(
+        @Param('id') id: string,
+        @Res({ passthrough: true }) res: Response
+    ) {
+        const expedienteId = parseInt(id, 10);
+
+        if (isNaN(expedienteId)) {
+            throw new BadRequestException('ID de expediente inválido');
+        }
+
+        // Obtener detalle para el nombre del archivo
+        const detalle = await this.expedientesService.getDetalleExpediente(expedienteId);
+        const nombreArchivo = `${detalle.expediente.folio}_Legajo_Digital.zip`;
+
+        // Generar ZIP
+        const zipStream = await this.expedientesService.generarZipExpediente(expedienteId);
+
+        // Configurar headers
+        res.set({
+            'Content-Type': 'application/zip',
+            'Content-Disposition': `attachment; filename="${nombreArchivo}"`,
+        });
+
+        return new StreamableFile(zipStream);
     }
 
     /**

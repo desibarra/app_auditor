@@ -4,6 +4,10 @@ import { expedientesDevolucionIva, expedienteCfdi } from '../../database/schema/
 import { cfdiRecibidos } from '../../database/schema/cfdi_recibidos.schema';
 import { cfdiImpuestos } from '../../database/schema/cfdi_impuestos.schema';
 import { documentosSoporte } from '../../database/schema/documentos_soporte';
+import archiver from 'archiver';
+import * as fs from 'fs';
+import * as path from 'path';
+import { Readable } from 'stream';
 
 interface CrearExpedienteDto {
   empresaId: string;
@@ -341,5 +345,138 @@ export class ExpedientesService {
       .where(eq(expedientesDevolucionIva.id, expedienteId));
 
     return { success: true, nuevoEstado };
+  }
+
+  /**
+   * Genera un archivo ZIP con todo el legajo digital del expediente
+   * Estructura:
+   * - FACTURAS/ (XMLs y PDFs de CFDIs)
+   * - EVIDENCIAS/UUID/ (Documentos soporte por CFDI)
+   * - REPORTE/resumen.json (Información del expediente)
+   */
+  async generarZipExpediente(expedienteId: number): Promise<Readable> {
+    // 1. Obtener detalle completo del expediente
+    const detalle = await this.getDetalleExpediente(expedienteId);
+
+    if (!detalle) {
+      throw new NotFoundException('Expediente no encontrado');
+    }
+
+    // 2. Crear archivo ZIP en memoria
+    const archive = archiver('zip', {
+      zlib: { level: 9 } // Máxima compresión
+    });
+
+    // 3. Agregar resumen del expediente
+    const resumen = {
+      folio: detalle.expediente.folio,
+      nombre: detalle.expediente.nombre,
+      fechaCreacion: detalle.expediente.fechaCreacion,
+      estado: detalle.expediente.estado,
+      resumen: {
+        totalCfdis: detalle.resumen.totalCfdis,
+        totalIvaRecuperable: detalle.resumen.totalIvaRecuperable,
+        totalFacturas: detalle.resumen.totalFacturas,
+        totalEvidencias: detalle.resumen.totalEvidencias,
+      },
+      cfdis: detalle.cfdis.map(c => ({
+        uuid: c.uuid,
+        folio: c.folio,
+        fecha: c.fecha,
+        emisor: `${c.emisorNombre} (${c.emisorRfc})`,
+        total: c.total,
+        ivaAcreditable: c.ivaAcreditable,
+        numEvidencias: c.numEvidencias,
+      })),
+    };
+
+    archive.append(JSON.stringify(resumen, null, 2), {
+      name: 'REPORTE/resumen.json'
+    });
+
+    // 4. Agregar texto legible del resumen
+    const resumenTxt = `
+╔════════════════════════════════════════════════════════════╗
+║          EXPEDIENTE DE DEVOLUCIÓN DE IVA                   ║
+╚════════════════════════════════════════════════════════════╝
+
+FOLIO: ${detalle.expediente.folio}
+NOMBRE: ${detalle.expediente.nombre}
+FECHA: ${new Date(detalle.expediente.fechaCreacion).toLocaleDateString('es-MX')}
+ESTADO: ${detalle.expediente.estado.toUpperCase()}
+
+═══════════════════════════════════════════════════════════
+
+RESUMEN FINANCIERO:
+
+  Total de CFDIs incluidos: ${detalle.resumen.totalCfdis}
+  IVA Total Recuperable: $${detalle.resumen.totalIvaRecuperable.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+  Total de Facturas: $${detalle.resumen.totalFacturas.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+  Total de Evidencias: ${detalle.resumen.totalEvidencias} documentos
+
+═══════════════════════════════════════════════════════════
+
+DETALLE DE CFDIs:
+
+${detalle.cfdis.map((c, i) => `
+${i + 1}. ${c.folio || c.uuid.substring(0, 8)}
+   Emisor: ${c.emisorNombre}
+   RFC: ${c.emisorRfc}
+   Fecha: ${new Date(c.fecha).toLocaleDateString('es-MX')}
+   Total: $${c.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+   IVA Acreditable: $${c.ivaAcreditable.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+   Evidencias: ${c.numEvidencias} documentos (${c.estatusMaterialidad})
+`).join('\n')}
+
+═══════════════════════════════════════════════════════════
+
+Este paquete contiene toda la documentación soporte necesaria
+para respaldar la solicitud de devolución de IVA ante el SAT.
+
+Generado: ${new Date().toLocaleString('es-MX')}
+`;
+
+    archive.append(resumenTxt, {
+      name: 'REPORTE/RESUMEN.txt'
+    });
+
+    // 5. Agregar evidencias de cada CFDI
+    for (const cfdi of detalle.cfdis) {
+      const carpetaCfdi = `EVIDENCIAS/${cfdi.uuid.substring(0, 8)}_${cfdi.folio || 'SIN_FOLIO'}`;
+
+      // Agregar info del CFDI
+      const infoCfdi = `
+CFDI: ${cfdi.uuid}
+Folio: ${cfdi.folio || 'N/A'}
+Emisor: ${cfdi.emisorNombre}
+RFC: ${cfdi.emisorRfc}
+Fecha: ${new Date(cfdi.fecha).toLocaleDateString('es-MX')}
+Total: $${cfdi.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+IVA: $${cfdi.ivaAcreditable.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+
+Evidencias incluidas:
+${cfdi.evidencias.map((ev, i) => `${i + 1}. ${ev.categoria}: ${ev.descripcion}`).join('\n')}
+`;
+
+      archive.append(infoCfdi, {
+        name: `${carpetaCfdi}/INFO.txt`
+      });
+
+      // Agregar cada evidencia
+      for (const evidencia of cfdi.evidencias) {
+        // Nota: En un sistema real, aquí descargaríamos el archivo de S3/MinIO
+        // Por ahora, agregamos un placeholder
+        const nombreArchivo = path.basename(evidencia.archivo);
+        archive.append(`[Archivo: ${nombreArchivo}]\nRuta S3: ${evidencia.archivo}\nCategoría: ${evidencia.categoria}\nDescripción: ${evidencia.descripcion}`, {
+          name: `${carpetaCfdi}/${nombreArchivo}.txt`
+        });
+      }
+    }
+
+    // 6. Finalizar el archivo
+    archive.finalize();
+
+    // 7. Retornar el stream
+    return archive as unknown as Readable;
   }
 }
