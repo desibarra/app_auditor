@@ -1,0 +1,43 @@
+import { hash } from 'bcrypt';
+import { db } from '../database/db';
+import { usuarios, empresas, expedientesDevolucionIva, cedulasIva } from '../database/schema';
+
+async function seed() {
+  try {
+    console.log('Seeding database...');
+
+    // Create demo user
+    const hashedPassword = await hash('password123', 10);
+    await db.insert(usuarios).values({
+      email: 'demo@saas-fiscal.com',
+      passwordHash: hashedPassword,
+    });
+    console.log('Created demo user.');
+
+    // Create test company
+    const testCompany = await db.insert(empresas).values({
+      rfc: 'TEST123456789',
+      razonSocial: 'Empresa de Prueba S.A.',
+    }).returning();
+    console.log('Created test company:', testCompany);
+
+    // Create CFDIs
+    const cfdiConcepts = ['Servicios', 'Publicidad', 'Renta', 'Mantenimiento'];
+    for (let i = 0; i < 10; i++) {
+      const concept = cfdiConcepts[i % cfdiConcepts.length];
+      await db.insert(cedulasIva).values({
+        concepto: concept,
+        montoIva: Math.random() * 1000,
+        fechaEmision: new Date(2025, 0, i + 1),
+        empresaId: testCompany[0].id,
+      });
+    }
+    console.log('Created 10 CFDIs.');
+
+    console.log('Seeding completed successfully.');
+  } catch (error) {
+    console.error('Error during seeding:', error);
+  }
+}
+
+seed();
