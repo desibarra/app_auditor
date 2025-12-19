@@ -90,12 +90,15 @@ function ListaEvidencias({ cfdiUuid, onUpdate }: ListaEvidenciasProps) {
 
     const getCategoriaLabel = (categoria: string) => {
         const labels: Record<string, string> = {
-            'contrato': 'Contrato',
+            'contrato': 'Contrato de Servicios',
             'entregable': 'Evidencia de Entrega',
             'pago': 'Comprobante de Pago',
             'pedido': 'Orden de Compra',
             'entrega': 'Foto de Entrega',
             'contrato_arrendamiento': 'Contrato de Arrendamiento',
+            'bitacora': 'Bitácora de Servicio',
+            'correos': 'Correos / Minutas',
+            'cotizacion': 'Cotización',
             'estado_cuenta': 'Estado de Cuenta',
             'transferencia': 'Transferencia',
             'recibo': 'Recibo de Nómina',
