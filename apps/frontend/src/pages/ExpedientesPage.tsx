@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useEmpresaContext } from '../context/EmpresaContext';
 
 interface Expediente {
     id: number;
@@ -13,21 +12,26 @@ interface Expediente {
 }
 
 function ExpedientesPage() {
-    const { empresaActiva } = useEmpresaContext();
+    const [empresaActiva, setEmpresaActiva] = useState<string>('');
     const [expedientes, setExpedientes] = useState<Expediente[]>([]);
     const [loading, setLoading] = useState(true);
     const [descargando, setDescargando] = useState<number | null>(null);
 
     useEffect(() => {
-        if (empresaActiva) {
-            fetchExpedientes();
+        // Obtener empresa activa del localStorage
+        const empresaId = localStorage.getItem('empresaActiva');
+        if (empresaId) {
+            setEmpresaActiva(empresaId);
+            fetchExpedientes(empresaId);
+        } else {
+            setLoading(false);
         }
-    }, [empresaActiva]);
+    }, []);
 
-    const fetchExpedientes = async () => {
+    const fetchExpedientes = async (empresaId: string) => {
         try {
             setLoading(true);
-            const response = await axios.get(`/api/expedientes?empresaId=${empresaActiva}`);
+            const response = await axios.get(`/api/expedientes?empresaId=${empresaId}`);
             setExpedientes(response.data);
         } catch (error) {
             console.error('Error al cargar expedientes:', error);
