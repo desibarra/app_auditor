@@ -53,10 +53,10 @@ function UploadEvidencia({ cfdiUuid, tipoComprobante, onSuccess }: UploadEvidenc
             return;
         }
 
-        // Validar tamaño (10MB)
-        const maxSize = 10 * 1024 * 1024;
+        // Validar tamaño (20MB)
+        const maxSize = 20 * 1024 * 1024;
         if (file.size > maxSize) {
-            setError('El archivo no debe superar los 10MB');
+            setError('El archivo no debe superar los 20MB');
             return;
         }
 
@@ -199,8 +199,8 @@ function UploadEvidencia({ cfdiUuid, tipoComprobante, onSuccess }: UploadEvidenc
                 </label>
                 <div
                     className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${dragActive
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-300 bg-gray-50'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-300 bg-gray-50'
                         } ${uploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-blue-400'}`}
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
@@ -264,7 +264,7 @@ function UploadEvidencia({ cfdiUuid, tipoComprobante, onSuccess }: UploadEvidenc
                                 </p>
                             </div>
                             <p className="text-xs text-gray-400">
-                                PDF, JPG o PNG (máx. 10MB)
+                                PDF, JPG o PNG (máx. 20MB)
                             </p>
                         </div>
                     )}
