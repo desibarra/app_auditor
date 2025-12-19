@@ -684,6 +684,7 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
             {selectedUuid && (
                 <DrawerMaterialidad
                     uuid={selectedUuid}
+                    empresaRfc={rfcEmpresa}
                     onClose={() => setSelectedUuid(null)}
                     onDelete={handleDeleteCfdi}
                 />

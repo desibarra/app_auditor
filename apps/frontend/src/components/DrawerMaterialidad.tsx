@@ -5,6 +5,7 @@ import ListaEvidencias from './ListaEvidencias';
 
 interface DrawerMaterialidadProps {
     uuid: string;
+    empresaRfc?: string; // Opcional para compatibilidad
     onClose: () => void;
     onDelete: () => void;
 }
@@ -29,7 +30,7 @@ interface Impuesto {
     importe: number;
 }
 
-function DrawerMaterialidad({ uuid, onClose, onDelete }: DrawerMaterialidadProps) {
+function DrawerMaterialidad({ uuid, empresaRfc, onClose, onDelete }: DrawerMaterialidadProps) {
     const [cfdi, setCfdi] = useState<CfdiDetalle | null>(null);
     const [impuestos, setImpuestos] = useState<Impuesto[]>([]);
     const [loading, setLoading] = useState(true);
@@ -75,21 +76,28 @@ function DrawerMaterialidad({ uuid, onClose, onDelete }: DrawerMaterialidadProps
     const getTipoEvidencia = (): string => {
         if (!cfdi) return 'I';
 
-        // Obtener RFC de la empresa activa del localStorage
-        const empresaActiva = localStorage.getItem('empresaActiva');
-        if (!empresaActiva) return cfdi.tipoComprobante;
+        // 1. Si tenemos el RFC de la empresa, usamos la lógica robusta
+        if (empresaRfc) {
+            // Si yo emití la factura, es un Ingreso
+            if (cfdi.emisorRfc === empresaRfc) return 'I';
+            // Si yo la recibí, es un Gasto
+            if (cfdi.receptorRfc === empresaRfc) return 'E';
+        }
 
-        // Por ahora, asumimos que si el tipoComprobante es "I" y el receptor
-        // es diferente al emisor, es un gasto (tipo E para evidencias)
-        // Esta lógica se puede mejorar obteniendo el RFC de la empresa
+        // 2. Si no tenemos RFC, intentamos inferir
+        // Si el tipo XML es Egreso (Nota Crédito)
+        if (cfdi.tipoComprobante === 'E') return 'E';
 
-        // Solución temporal: Si dice "Gasto/Compra" en la interfaz, usar tipo "E"
-        // Para esto, verificamos si el CFDI es de tipo "I" (Ingreso en el XML)
-        // pero desde la perspectiva de la empresa es un gasto
+        // 3. Fallback visual: Si el usuario ve "Gasto/Compra", queremos "E"
+        // Pero no tenemos acceso directo a esa etiqueta aquí.
 
-        // Por simplicidad, usamos "E" para todos los gastos
-        // El backend ya tiene la lógica correcta en categorias.config.ts
-        return 'E'; // Forzar tipo E para mostrar categorías de gastos
+        // 4. Fallback seguro: Usar el tipo del XML, pero mapear "Ingreso" a "Gasto"
+        // si sospechamos que es gasto (difícil saber sin RFC).
+
+        // MANTENIENDO SOLUCIÓN TEMPORAL POR COMPATIBILIDAD CON REQUERIMIENTO:
+        // Si no es Ingreso puro donde yo soy emisor, asumimos Gasto para mostrar contrato
+        // (Esto es un override temporal para asegurar que aparezca el contrato de arrendamiento)
+        return 'E';
     };
 
     const handleEvidenciaUpdate = () => {

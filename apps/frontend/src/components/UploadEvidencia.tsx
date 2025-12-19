@@ -53,10 +53,10 @@ function UploadEvidencia({ cfdiUuid, tipoComprobante, onSuccess }: UploadEvidenc
             return;
         }
 
-        // Validar tamaño (20MB)
-        const maxSize = 20 * 1024 * 1024;
+        // Validar tamaño (30MB)
+        const maxSize = 30 * 1024 * 1024;
         if (file.size > maxSize) {
-            setError('El archivo no debe superar los 20MB');
+            setError('El archivo no debe superar los 30MB');
             return;
         }
 
@@ -264,7 +264,7 @@ function UploadEvidencia({ cfdiUuid, tipoComprobante, onSuccess }: UploadEvidenc
                                 </p>
                             </div>
                             <p className="text-xs text-gray-400">
-                                PDF, JPG o PNG (máx. 20MB)
+                                PDF, JPG o PNG (máx. 30MB)
                             </p>
                         </div>
                     )}
