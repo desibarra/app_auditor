@@ -51,6 +51,12 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
     // RFC de la empresa para clasificación contable
     const [rfcEmpresa, setRfcEmpresa] = useState<string>('');
 
+    // Ordenamiento (Sorting)
+    type SortColumn = 'materialidad' | 'fecha' | 'emisor' | 'tipo' | 'total' | 'estado' | null;
+    type SortDirection = 'asc' | 'desc';
+    const [sortColumn, setSortColumn] = useState<SortColumn>(null);
+    const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
     const fetchCfdis = async () => {
         try {
             setLoading(true);
@@ -267,6 +273,102 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
         return 'bg-gray-100 text-gray-800';
     };
 
+    /**
+     * Función para manejar el click en los encabezados de la tabla
+     */
+    const handleSort = (column: SortColumn) => {
+        if (sortColumn === column) {
+            // Si ya está ordenado por esta columna, cambiar dirección
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            // Nueva columna, ordenar ascendente por defecto
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
+    /**
+     * Función para obtener el valor de materialidad (para ordenar)
+     */
+    const getMaterialidadValue = (uuid: string): number => {
+        const count = evidenciasCounts[uuid] || 0;
+        if (count >= 3) return 3; // 🟢
+        if (count >= 1) return 2; // 🟡
+        return 1; // 🔴
+    };
+
+    /**
+     * Función para aplicar ordenamiento a los CFDIs
+     */
+    const getSortedCfdis = (): CfdiReciente[] => {
+        if (!sortColumn) return cfdis;
+
+        const sorted = [...cfdis].sort((a, b) => {
+            let comparison = 0;
+
+            switch (sortColumn) {
+                case 'materialidad':
+                    comparison = getMaterialidadValue(a.uuid) - getMaterialidadValue(b.uuid);
+                    break;
+
+                case 'fecha':
+                    comparison = new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
+                    break;
+
+                case 'emisor':
+                    comparison = a.emisorNombre.localeCompare(b.emisorNombre);
+                    break;
+
+                case 'tipo':
+                    const tipoA = getTipoComprobanteLabel(a);
+                    const tipoB = getTipoComprobanteLabel(b);
+                    comparison = tipoA.localeCompare(tipoB);
+                    break;
+
+                case 'total':
+                    comparison = a.total - b.total;
+                    break;
+
+                case 'estado':
+                    comparison = a.estadoSat.localeCompare(b.estadoSat);
+                    break;
+
+                default:
+                    comparison = 0;
+            }
+
+            return sortDirection === 'asc' ? comparison : -comparison;
+        });
+
+        return sorted;
+    };
+
+    /**
+     * Componente de icono de ordenamiento
+     */
+    const SortIcon = ({ column }: { column: SortColumn }) => {
+        if (sortColumn !== column) {
+            return (
+                <svg className="w-4 h-4 ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+            );
+        }
+
+        return sortDirection === 'asc' ? (
+            <svg className="w-4 h-4 ml-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+        ) : (
+            <svg className="w-4 h-4 ml-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+        );
+    };
+
+    // Obtener CFDIs ordenados
+    const sortedCfdis = getSortedCfdis();
+
     if (loading && cfdis.length === 0) {
         return (
             <div className="card">
@@ -415,31 +517,67 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
                                                 title="Seleccionar todos los CFDIs con materialidad completa"
                                             />
                                         </th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Materialidad
+                                        <th
+                                            onClick={() => handleSort('materialidad')}
+                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                                        >
+                                            <div className="flex items-center">
+                                                Materialidad
+                                                <SortIcon column="materialidad" />
+                                            </div>
                                         </th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Fecha
+                                        <th
+                                            onClick={() => handleSort('fecha')}
+                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                                        >
+                                            <div className="flex items-center">
+                                                Fecha
+                                                <SortIcon column="fecha" />
+                                            </div>
                                         </th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Emisor
+                                        <th
+                                            onClick={() => handleSort('emisor')}
+                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                                        >
+                                            <div className="flex items-center">
+                                                Emisor
+                                                <SortIcon column="emisor" />
+                                            </div>
                                         </th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             RFC
                                         </th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Tipo
+                                        <th
+                                            onClick={() => handleSort('tipo')}
+                                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                                        >
+                                            <div className="flex items-center">
+                                                Tipo
+                                                <SortIcon column="tipo" />
+                                            </div>
                                         </th>
-                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Total
+                                        <th
+                                            onClick={() => handleSort('total')}
+                                            className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                                        >
+                                            <div className="flex items-center justify-end">
+                                                Total
+                                                <SortIcon column="total" />
+                                            </div>
                                         </th>
-                                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Estado
+                                        <th
+                                            onClick={() => handleSort('estado')}
+                                            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                                        >
+                                            <div className="flex items-center justify-center">
+                                                Estado
+                                                <SortIcon column="estado" />
+                                            </div>
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {cfdis.map((cfdi) => {
+                                    {sortedCfdis.map((cfdi) => {
                                         const numEvidencias = evidenciasCounts[cfdi.uuid] || 0;
                                         const esSeleccionable = numEvidencias >= 3;
                                         const estaSeleccionado = selectedCfdis.has(cfdi.uuid);
