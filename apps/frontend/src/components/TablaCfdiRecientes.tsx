@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import DrawerMaterialidad from './DrawerMaterialidad';
 import IndicadorMaterialidad from './IndicadorMaterialidad';
+import ModalExpediente from './ModalExpediente';
+import BarraSeleccion from './BarraSeleccion';
 
 interface CfdiReciente {
     uuid: string;
     emisorRfc: string;
     emisorNombre: string;
+    receptorRfc: string;
     fecha: string;
     tipoComprobante: string;
     total: number;
@@ -40,6 +43,13 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
 
     // Contadores de evidencias por UUID
     const [evidenciasCounts, setEvidenciasCounts] = useState<Record<string, number>>({});
+
+    // Selección múltiple para expedientes
+    const [selectedCfdis, setSelectedCfdis] = useState<Set<string>>(new Set());
+    const [showExpedienteModal, setShowExpedienteModal] = useState(false);
+
+    // RFC de la empresa para clasificación contable
+    const [rfcEmpresa, setRfcEmpresa] = useState<string>('');
 
     const fetchCfdis = async () => {
         try {
@@ -98,6 +108,7 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
 
     useEffect(() => {
         fetchCfdis();
+        fetchRfcEmpresa();
     }, [empresaId, page, fechaInicio, fechaFin, tipoComprobante]);
 
     // Búsqueda con debounce
@@ -144,22 +155,116 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
         }
     };
 
-    const formatearMoneda = (monto: number, moneda: string) => {
+    // Funciones de selección múltiple
+    const handleToggleSelect = (uuid: string) => {
+        const numEvidencias = evidenciasCounts[uuid] || 0;
+
+        // Solo permitir seleccionar CFDIs con 3+ evidencias (🟢)
+        if (numEvidencias < 3 && !selectedCfdis.has(uuid)) {
+            alert(`Este CFDI no puede ser incluido en un expediente. Requiere al menos 3 evidencias de materialidad (actualmente tiene ${numEvidencias}).`);
+            return;
+        }
+
+        const newSelected = new Set(selectedCfdis);
+        if (newSelected.has(uuid)) {
+            newSelected.delete(uuid);
+        } else {
+            newSelected.add(uuid);
+        }
+        setSelectedCfdis(newSelected);
+    };
+
+    const handleSelectAll = () => {
+        // Solo seleccionar CFDIs con 3+ evidencias
+        const cfdisValidos = cfdis.filter(cfdi => (evidenciasCounts[cfdi.uuid] || 0) >= 3);
+        if (selectedCfdis.size === cfdisValidos.length) {
+            setSelectedCfdis(new Set());
+        } else {
+            setSelectedCfdis(new Set(cfdisValidos.map(c => c.uuid)));
+        }
+    };
+
+    // Calcular IVA total de los CFDIs seleccionados
+    const calcularIvaTotal = () => {
+        let total = 0;
+        selectedCfdis.forEach(uuid => {
+            const cfdi = cfdis.find(c => c.uuid === uuid);
+            if (cfdi) {
+                // Estimación: IVA = 16% del total
+                total += cfdi.total * 0.16;
+            }
+        });
+        return total;
+    };
+
+    const formatearMoneda = (monto: number, moneda?: string) => {
         return new Intl.NumberFormat('es-MX', {
             style: 'currency',
             currency: moneda || 'MXN',
         }).format(monto);
     };
 
-    const getTipoComprobanteLabel = (tipo: string) => {
-        const tipos: Record<string, string> = {
-            'I': 'Ingreso',
-            'E': 'Egreso',
-            'P': 'Pago',
-            'N': 'Nómina',
-            'T': 'Traslado',
-        };
-        return tipos[tipo] || tipo;
+    // Obtener RFC de la empresa
+    const fetchRfcEmpresa = async () => {
+        try {
+            const response = await axios.get(`/api/empresas/${empresaId}`);
+            if (response.data) {
+                setRfcEmpresa(response.data.rfc);
+            }
+        } catch (err) {
+            console.error('Error al obtener RFC de empresa:', err);
+        }
+    };
+
+    /**
+     * Obtiene la etiqueta del tipo de comprobante con clasificación contable correcta
+     * LÓGICA CONTABLE:
+     * - Si emisor == empresa → Ingreso/Venta
+     * - Si receptor == empresa → Gasto/Compra
+     */
+    const getTipoComprobanteLabel = (cfdi: CfdiReciente) => {
+        const tipo = cfdi.tipoComprobante;
+        const emisor = cfdi.emisorRfc;
+        const receptor = cfdi.receptorRfc;
+
+        if (tipo === 'I') {
+            if (emisor === rfcEmpresa) {
+                return 'Ingreso/Venta';
+            } else if (receptor === rfcEmpresa) {
+                return 'Gasto/Compra';
+            }
+            return 'Ingreso';
+        } else if (tipo === 'E') {
+            return 'Nota de Crédito';
+        } else if (tipo === 'P') {
+            return 'Pago';
+        } else if (tipo === 'N') {
+            return 'Nómina';
+        } else if (tipo === 'T') {
+            return 'Traslado';
+        }
+        return tipo;
+    };
+
+    /**
+     * Obtiene el color del badge según la clasificación contable
+     */
+    const getTipoColor = (cfdi: CfdiReciente) => {
+        const tipo = cfdi.tipoComprobante;
+        const emisor = cfdi.emisorRfc;
+
+        if (tipo === 'I') {
+            if (emisor === rfcEmpresa) {
+                // Ingreso/Venta → Verde
+                return 'bg-green-100 text-green-800';
+            } else {
+                // Gasto/Compra → Rojo
+                return 'bg-red-100 text-red-800';
+            }
+        } else if (tipo === 'E') {
+            return 'bg-blue-100 text-blue-800';
+        }
+        return 'bg-gray-100 text-gray-800';
     };
 
     if (loading && cfdis.length === 0) {
@@ -301,6 +406,15 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
+                                        <th className="px-4 py-3 text-left">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedCfdis.size > 0 && selectedCfdis.size === cfdis.filter(c => (evidenciasCounts[c.uuid] || 0) >= 3).length}
+                                                onChange={handleSelectAll}
+                                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                title="Seleccionar todos los CFDIs con materialidad completa"
+                                            />
+                                        </th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Materialidad
                                         </th>
@@ -325,46 +439,64 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {cfdis.map((cfdi) => (
-                                        <tr
-                                            key={cfdi.uuid}
-                                            onClick={() => setSelectedUuid(cfdi.uuid)}
-                                            className="hover:bg-blue-50 cursor-pointer transition-colors"
-                                        >
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                <IndicadorMaterialidad numEvidencias={evidenciasCounts[cfdi.uuid] || 0} />
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                                {formatearFecha(cfdi.fecha)}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">
-                                                <div className="max-w-xs truncate" title={cfdi.emisorNombre}>
-                                                    {cfdi.emisorNombre}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 font-mono">
-                                                {cfdi.emisorRfc}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                                <span className={`px-2 py-1 rounded text-xs font-medium ${cfdi.tipoComprobante === 'I' ? 'bg-green-100 text-green-800' :
-                                                    cfdi.tipoComprobante === 'E' ? 'bg-blue-100 text-blue-800' :
-                                                        'bg-gray-100 text-gray-800'
-                                                    }`}>
-                                                    {getTipoComprobanteLabel(cfdi.tipoComprobante)}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-semibold text-gray-900">
-                                                {formatearMoneda(cfdi.total, cfdi.moneda)}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-center">
-                                                <span className={`px-2 py-1 rounded text-xs font-medium ${cfdi.estadoSat === 'Vigente' ? 'bg-green-100 text-green-800' :
-                                                    'bg-red-100 text-red-800'
-                                                    }`}>
-                                                    {cfdi.estadoSat}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {cfdis.map((cfdi) => {
+                                        const numEvidencias = evidenciasCounts[cfdi.uuid] || 0;
+                                        const esSeleccionable = numEvidencias >= 3;
+                                        const estaSeleccionado = selectedCfdis.has(cfdi.uuid);
+
+                                        return (
+                                            <tr
+                                                key={cfdi.uuid}
+                                                className={`hover:bg-blue-50 transition-colors ${estaSeleccionado ? 'bg-blue-50' : ''}`}
+                                            >
+                                                <td
+                                                    className="px-4 py-3 whitespace-nowrap"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={estaSeleccionado}
+                                                        onChange={() => handleToggleSelect(cfdi.uuid)}
+                                                        disabled={!esSeleccionable && !estaSeleccionado}
+                                                        className={`w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 ${!esSeleccionable ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                                        title={!esSeleccionable ? `Requiere 3+ evidencias (tiene ${numEvidencias})` : 'Seleccionar para expediente'}
+                                                    />
+                                                </td>
+                                                <td
+                                                    className="px-4 py-3 whitespace-nowrap cursor-pointer"
+                                                    onClick={() => setSelectedUuid(cfdi.uuid)}
+                                                >
+                                                    <IndicadorMaterialidad numEvidencias={numEvidencias} />
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                                    {formatearFecha(cfdi.fecha)}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                    <div className="max-w-xs truncate" title={cfdi.emisorNombre}>
+                                                        {cfdi.emisorNombre}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 font-mono">
+                                                    {cfdi.emisorRfc}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm" onClick={() => setSelectedUuid(cfdi.uuid)}>
+                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${getTipoColor(cfdi)}`}>
+                                                        {getTipoComprobanteLabel(cfdi)}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-semibold text-gray-900">
+                                                    {formatearMoneda(cfdi.total, cfdi.moneda)}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-center">
+                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${cfdi.estadoSat === 'Vigente' ? 'bg-green-100 text-green-800' :
+                                                        'bg-red-100 text-red-800'
+                                                        }`}>
+                                                        {cfdi.estadoSat}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
@@ -408,6 +540,28 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
                     onDelete={handleDeleteCfdi}
                 />
             )}
+
+            {/* Barra de Selección Flotante */}
+            <BarraSeleccion
+                cantidadSeleccionados={selectedCfdis.size}
+                ivaTotal={calcularIvaTotal()}
+                onGenerarExpediente={() => setShowExpedienteModal(true)}
+                onLimpiarSeleccion={() => setSelectedCfdis(new Set())}
+            />
+
+            {/* Modal de Expediente */}
+            <ModalExpediente
+                isOpen={showExpedienteModal}
+                onClose={() => setShowExpedienteModal(false)}
+                empresaId={empresaId}
+                cfdiUuids={Array.from(selectedCfdis)}
+                ivaTotal={calcularIvaTotal()}
+                onSuccess={(folio) => {
+                    alert(`✅ Expediente creado exitosamente!\n\nFolio: ${folio}\n\nAhora puedes consultar tu expediente en la sección de "Mis Expedientes".`);
+                    setSelectedCfdis(new Set());
+                    fetchCfdis(); // Refrescar la tabla
+                }}
+            />
         </>
     );
 }

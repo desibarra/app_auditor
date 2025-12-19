@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import { cfdiRecibidos } from '../../database/schema/cfdi_recibidos.schema';
 import { documentosSoporte } from '../../database/schema/documentos_soporte';
+import { empresas } from '../../database/schema/empresas.schema';
 import { CacheService } from '../../common/cache.service';
 
 @Injectable()
@@ -13,8 +14,24 @@ export class StatsService {
 
     /**
      * Obtiene el resumen de estadísticas para una empresa
+     * LÓGICA CONTABLE CORRECTA:
+     * - Ingreso: RFC_Emisor == RFC_Empresa AND tipo == 'I'
+     * - Egreso: RFC_Receptor == RFC_Empresa AND tipo == 'I' (compras/gastos)
+     * - Notas de Crédito: tipo == 'E' (restan según quién las emita/reciba)
      */
     async getResumen(empresaId: string) {
+        // Obtener RFC de la empresa
+        const [empresa] = await this.db
+            .select({ rfc: empresas.rfc })
+            .from(empresas)
+            .where(eq(empresas.id, empresaId));
+
+        if (!empresa) {
+            throw new Error('Empresa no encontrada');
+        }
+
+        const rfcEmpresa = empresa.rfc;
+
         // Obtener fechas del mes actual
         const now = new Date();
         const primerDiaMes = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -24,13 +41,9 @@ export class StatsService {
         const fechaInicio = primerDiaMes.toISOString().split('T')[0];
         const fechaFin = ultimoDiaMes.toISOString().split('T')[0];
 
-        // 1. CFDI del Mes - Suma de importes por tipo
+        // 1. Obtener todos los CFDIs del mes
         const cfdisMes = await this.db
-            .select({
-                tipoComprobante: cfdiRecibidos.tipoComprobante,
-                total: sql<number>`COALESCE(SUM(${cfdiRecibidos.total}), 0)`,
-                count: sql<number>`COUNT(*)`,
-            })
+            .select()
             .from(cfdiRecibidos)
             .where(
                 and(
@@ -38,22 +51,43 @@ export class StatsService {
                     gte(cfdiRecibidos.fecha, fechaInicio),
                     lte(cfdiRecibidos.fecha, fechaFin),
                 ),
-            )
-            .groupBy(cfdiRecibidos.tipoComprobante);
+            );
 
-        // Calcular totales por tipo
+        // Clasificar contablemente cada CFDI
         let totalIngresos = 0;
         let countIngresos = 0;
         let totalEgresos = 0;
         let countEgresos = 0;
 
-        cfdisMes.forEach((item) => {
-            if (item.tipoComprobante === 'I') {
-                totalIngresos += Number(item.total);
-                countIngresos += Number(item.count);
-            } else if (item.tipoComprobante === 'E') {
-                totalEgresos += Number(item.total);
-                countEgresos += Number(item.count);
+        cfdisMes.forEach((cfdi) => {
+            const monto = Number(cfdi.total);
+            const tipo = cfdi.tipoComprobante;
+            const emisor = cfdi.emisorRfc;
+            const receptor = cfdi.receptorRfc;
+
+            // LÓGICA CONTABLE CORRECTA
+            if (tipo === 'I') {
+                // CFDI de Ingreso
+                if (emisor === rfcEmpresa) {
+                    // Nosotros emitimos → INGRESO (venta)
+                    totalIngresos += monto;
+                    countIngresos++;
+                } else if (receptor === rfcEmpresa) {
+                    // Nosotros recibimos → EGRESO (compra/gasto)
+                    totalEgresos += monto;
+                    countEgresos++;
+                }
+            } else if (tipo === 'E') {
+                // CFDI de Egreso (Nota de Crédito)
+                if (emisor === rfcEmpresa) {
+                    // Nosotros emitimos NC → RESTA a ingresos
+                    totalIngresos -= monto;
+                    countIngresos++;
+                } else if (receptor === rfcEmpresa) {
+                    // Nosotros recibimos NC → RESTA a egresos
+                    totalEgresos -= monto;
+                    countEgresos++;
+                }
             }
         });
 
@@ -180,8 +214,20 @@ export class StatsService {
 
     /**
      * Obtiene el histórico de ingresos y egresos de los últimos 6 meses
+     * LÓGICA CONTABLE CORRECTA aplicada
      */
     private async getHistorico6Meses(empresaId: string) {
+        // Obtener RFC de la empresa
+        const [empresa] = await this.db
+            .select({ rfc: empresas.rfc })
+            .from(empresas)
+            .where(eq(empresas.id, empresaId));
+
+        if (!empresa) {
+            throw new Error('Empresa no encontrada');
+        }
+
+        const rfcEmpresa = empresa.rfc;
         const meses = [];
         const now = new Date();
 
@@ -194,12 +240,9 @@ export class StatsService {
             const fechaInicio = primerDia.toISOString().split('T')[0];
             const fechaFin = ultimoDia.toISOString().split('T')[0];
 
-            // Consultar CFDIs del mes
+            // Consultar todos los CFDIs del mes
             const cfdisMes = await this.db
-                .select({
-                    tipoComprobante: cfdiRecibidos.tipoComprobante,
-                    total: sql<number>`COALESCE(SUM(${cfdiRecibidos.total}), 0)`,
-                })
+                .select()
                 .from(cfdiRecibidos)
                 .where(
                     and(
@@ -207,18 +250,36 @@ export class StatsService {
                         gte(cfdiRecibidos.fecha, fechaInicio),
                         lte(cfdiRecibidos.fecha, fechaFin),
                     ),
-                )
-                .groupBy(cfdiRecibidos.tipoComprobante);
+                );
 
-            // Calcular totales
+            // Clasificar contablemente
             let ingresos = 0;
             let egresos = 0;
 
-            cfdisMes.forEach((item) => {
-                if (item.tipoComprobante === 'I') {
-                    ingresos = Number(item.total);
-                } else if (item.tipoComprobante === 'E') {
-                    egresos = Number(item.total);
+            cfdisMes.forEach((cfdi) => {
+                const monto = Number(cfdi.total);
+                const tipo = cfdi.tipoComprobante;
+                const emisor = cfdi.emisorRfc;
+                const receptor = cfdi.receptorRfc;
+
+                // LÓGICA CONTABLE CORRECTA
+                if (tipo === 'I') {
+                    if (emisor === rfcEmpresa) {
+                        // Nosotros emitimos → INGRESO
+                        ingresos += monto;
+                    } else if (receptor === rfcEmpresa) {
+                        // Nosotros recibimos → EGRESO
+                        egresos += monto;
+                    }
+                } else if (tipo === 'E') {
+                    // Notas de Crédito
+                    if (emisor === rfcEmpresa) {
+                        // Nosotros emitimos NC → RESTA a ingresos
+                        ingresos -= monto;
+                    } else if (receptor === rfcEmpresa) {
+                        // Nosotros recibimos NC → RESTA a egresos
+                        egresos -= monto;
+                    }
                 }
             });
 
