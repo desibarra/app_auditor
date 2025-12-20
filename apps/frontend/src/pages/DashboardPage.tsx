@@ -80,7 +80,7 @@ function DashboardPage() {
         };
 
         fetchData();
-    }, [empresaSeleccionada]); // Recargar cuando cambie la empresa
+    }, [empresaSeleccionada, refreshKey]); // Recargar cuando cambie la empresa
 
     if (loading) {
         return (
@@ -132,7 +132,8 @@ function DashboardPage() {
                                 empresaSeleccionada={empresaSeleccionada}
                                 onSeleccionar={(id) => {
                                     setEmpresaSeleccionada(id);
-                                    setRefreshKey(prev => prev + 1); // Refrescar CFDIs
+                                    localStorage.setItem('empresaActiva', id); // Persistencia crítica
+                                    setRefreshKey(prev => prev + 1);
                                 }}
                             />
                         </div>
@@ -273,6 +274,7 @@ function DashboardPage() {
                         <TablaCfdiRecientes
                             empresaId={empresaSeleccionada}
                             key={refreshKey}
+                            onRefresh={() => setRefreshKey(prev => prev + 1)}
                         />
                     </div>
                 ) : (

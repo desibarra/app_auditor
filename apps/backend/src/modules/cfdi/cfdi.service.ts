@@ -366,4 +366,110 @@ export class CfdiService {
             );
         }
     }
+    /**
+     * Consulta el estado en tiempo real del CFDI en el SAT (SOAP)
+     */
+    async consultarEstadoSat(uuid: string, re: string, rr: string, tt: number): Promise<string> {
+        // Formatear total a string como lo requiere el SAT (ej: 123.45)
+        // A veces requiere total exacto con decimales.
+        const totalStr = tt.toFixed(6).replace(/0+$/, '').replace(/\.$/, '.0'); // Ajuste básico, idealmente exacto del XML
+
+        const soapBody = `
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <tem:Consulta>
+         <tem:expresionImpresa><![CDATA[?re=${re}&rr=${rr}&tt=${totalStr}&id=${uuid}]]></tem:expresionImpresa>
+      </tem:Consulta>
+   </soapenv:Body>
+</soapenv:Envelope>`;
+
+        try {
+            // Usamos fetch nativo de Node.js
+            const response = await fetch('https://consultaqr.facturaelectronica.sat.gob.mx/ConsultaCFDIService.svc', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/xml;charset=UTF-8',
+                    'SOAPAction': 'http://tempuri.org/IConsultaCFDIService/Consulta'
+                },
+                body: soapBody.trim()
+            });
+
+            if (!response.ok) {
+                console.warn(`SAT SOAP Error ${response.status}: ${response.statusText}`);
+                return 'Error';
+            }
+
+            const text = await response.text();
+
+            // Regex para extraer Estado sin parseador XML pesado
+            // Namespace suele ser 'a' o sin namespace
+            const match = text.match(/<.*?:?Estado>(.*?)<\/.*?:?Estado>/);
+
+            if (match && match[1]) {
+                return match[1]; // Generalmente "Vigente" o "Cancelado"
+            }
+            return 'NoEncontrado';
+        } catch (e) {
+            console.error(`Error consultando SAT para UUID ${uuid}:`, e);
+            return 'ErrorRed';
+        }
+    }
+
+    /**
+     * Sincroniza el estatus de todos los CFDIs 'Vigentes' de la empresa con el SAT
+     */
+    async sincronizarEmpresa(empresaId: string) {
+        // Obtener CFDIs que asumimos vigentes para re-validar
+        // Limitamos a los últimos 50 para no timeout, o por fecha.
+        // MVP: Últimos 50 importados.
+        const cfdis = await this.db
+            .select()
+            .from(cfdiRecibidos)
+            .where(eq(cfdiRecibidos.empresaId, empresaId))
+            .limit(50); // Límite de seguridad
+
+        let actualizados = 0;
+        let canceladosDetectados = 0;
+
+        // Ejecutar en serie o paralelo limitado para no saturar SAT
+        for (const cfdi of cfdis) {
+            // Solo verificar si vale la pena (no verificar cancelados antiguos, aunque el usuario pide re-checar)
+            // Validaremos TODOS los de la lista para asegurar.
+
+            // Ajuste Total: El SAT es quisquilloso con el total. Usar total exacto del CFDI.
+            const estadoReal = await this.consultarEstadoSat(
+                cfdi.uuid,
+                cfdi.emisorRfc,
+                cfdi.receptorRfc,
+                cfdi.total
+            );
+
+            if (estadoReal === 'Vigente' || estadoReal === 'Cancelado') {
+                // Actualizar DB
+                await this.db
+                    .update(cfdiRecibidos)
+                    .set({
+                        estadoSat: estadoReal,
+                        fechaValidacionSat: new Date()
+                    })
+                    .where(eq(cfdiRecibidos.uuid, cfdi.uuid));
+
+                actualizados++;
+                if (estadoReal === 'Cancelado' && cfdi.estadoSat !== 'Cancelado') {
+                    canceladosDetectados++;
+                }
+            }
+
+            // Pequeña pausa para no ser bloqueado
+            await new Promise(r => setTimeout(r, 200));
+        }
+
+        return {
+            procesados: cfdis.length,
+            actualizados,
+            canceladosDetectados,
+            fecha: new Date()
+        };
+    }
 }

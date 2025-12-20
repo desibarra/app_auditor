@@ -104,9 +104,10 @@ export class StatsService {
         let alertasMedia = 0; // 1-2 evidencias = amarillo
 
         for (const cfdi of todosLosCfdis) {
+            // Consultar las categorías de las evidencias existentes
             const evidencias = await this.db
                 .select({
-                    count: sql<number>`COUNT(*)`,
+                    categoria: documentosSoporte.categoriaEvidencia
                 })
                 .from(documentosSoporte)
                 .where(
@@ -116,11 +117,20 @@ export class StatsService {
                     ),
                 );
 
-            const numEvidencias = Number(evidencias[0]?.count || 0);
+            const numEvidencias = evidencias.length;
+
+            // Regla de Negocio: Si tiene Contrato, es materialidad FUERTE (Completo)
+            const tieneContrato = evidencias.some(e =>
+                e.categoria && e.categoria.toLowerCase().includes('contrato')
+            );
+
+            // Criterio de "Completo": >= 3 evidencias O tiene contrato
+            const esCompleto = numEvidencias >= 3 || tieneContrato;
 
             if (numEvidencias === 0) {
                 alertasAlta++;
-            } else if (numEvidencias < 3) {
+            } else if (!esCompleto) {
+                // Solo es alerta media (parcial) si tiene cosas PERO no es suficiente
                 alertasMedia++;
             }
         }

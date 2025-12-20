@@ -11,6 +11,8 @@ import { StatsModule } from './modules/stats/stats.module';
 import { S3Module } from './s3/s3.module';
 import { SeedModule } from './modules/seed/seed.module';
 
+import { LegajoModule } from './modules/legajo/legajo.module';
+
 @Module({
     imports: [
         ConfigModule.forRoot({
@@ -27,6 +29,7 @@ import { SeedModule } from './modules/seed/seed.module';
         StatsModule,
         S3Module,
         SeedModule,
+        LegajoModule,
     ],
     controllers: [],
     providers: [],

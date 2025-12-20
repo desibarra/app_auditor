@@ -18,14 +18,15 @@ interface CfdiReciente {
     fechaImportacion: number;
 }
 
-interface TablaCfdiRecientesProps {
+interface Props {
     empresaId: string;
     onRefresh?: () => void;
 }
 
-function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
+const TablaCfdiRecientes: React.FC<Props> = ({ empresaId, onRefresh }) => {
     const [cfdis, setCfdis] = useState<CfdiReciente[]>([]);
     const [loading, setLoading] = useState(true);
+    const [sincronizando, setSincronizando] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
 
@@ -418,12 +419,31 @@ function TablaCfdiRecientes({ empresaId, onRefresh }: TablaCfdiRecientesProps) {
                             {total} CFDI{total !== 1 ? 's' : ''} registrado{total !== 1 ? 's' : ''}
                         </p>
                     </div>
-                    <button
-                        onClick={fetchCfdis}
-                        className="text-sm text-blue-600 hover:text-blue-700"
-                    >
-                        🔄 Actualizar
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={async () => {
+                                if (sincronizando) return;
+                                try {
+                                    setSincronizando(true);
+                                    await axios.post('/api/cfdi/sincronizar-sat', { empresaId });
+                                    fetchCfdis();
+                                    if (onRefresh) onRefresh();
+                                } catch (e) {
+                                    alert('Error al verificar estatus en el SAT');
+                                } finally {
+                                    setSincronizando(false);
+                                }
+                            }}
+                            disabled={sincronizando}
+                            className={`text-sm flex items-center gap-1 ${sincronizando ? 'text-gray-400' : 'text-blue-600 hover:text-blue-700'}`}
+                        >
+                            {sincronizando ? (
+                                <>⏳ Validando SAT...</>
+                            ) : (
+                                <>📡 Verificar Estatus SAT</>
+                            )}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filtros */}

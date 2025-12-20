@@ -8,6 +8,7 @@ import {
     BadRequestException,
     Query,
     Param,
+    Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CfdiService } from './cfdi.service';
@@ -107,5 +108,13 @@ export class CfdiController {
     @Delete(':uuid')
     async deleteCfdi(@Param('uuid') uuid: string) {
         return await this.cfdiService.deleteCfdi(uuid);
+    }
+
+    @Post('sincronizar-sat')
+    async sincronizarSat(@Body() body: { empresaId: string }) {
+        if (!body.empresaId) {
+            throw new BadRequestException('Se requiere empresaId');
+        }
+        return await this.cfdiService.sincronizarEmpresa(body.empresaId);
     }
 }
