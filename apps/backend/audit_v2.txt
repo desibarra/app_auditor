@@ -1,0 +1,13 @@
+﻿--- AUDITOR├ìA EXTENDIDA ---
+
+­ƒöì ANALIZANDO: data/dev.db
+  ­ƒôè Total Global Registros: 36738
+  ­ƒôà Rango detectado: 2025-01-01T00:03:03 a 2025-12-18T09:41:29
+  ­ƒôå Top Meses con Datos: [{"mes":"2025-12","c":491},{"mes":"2025-11","c":3593},{"mes":"2025-10","c":1544},{"mes":"2025-09","c":2719},{"mes":"2025-08","c":2893}]
+  ­ƒÄ» Noviembre 2025 (Exacto): 3593
+  ­ƒÅÀ´©Å Tipos en Noviembre: [{"tipo_comprobante":"E","c":5},{"tipo_comprobante":"I","c":2706},{"tipo_comprobante":"N","c":745},{"tipo_comprobante":"P","c":136},{"tipo_comprobante":"T","c":1}]
+
+­ƒöì ANALIZANDO: sqlite/dev.db
+  ÔÜá´©Å Tabla 'cfdi_recibidos' NO encontrada.
+
+--- FIN ---

@@ -37,6 +37,8 @@ interface UseMetricasDominioResult {
     metricas: MetricasDominio | null;
     resumen: ResumenMes[];
     dominio: string | null;
+    rol: 'EMISOR' | 'RECEPTOR' | null;
+    tipo: string | null;
     periodo: string | null;
     loading: boolean;
     error: string | null;
@@ -51,6 +53,8 @@ export const useMetricasDominio = (
     const [metricas, setMetricas] = useState<MetricasDominio | null>(null);
     const [resumen, setResumen] = useState<ResumenMes[]>([]);
     const [dominio, setDominio] = useState<string | null>(null);
+    const [rol, setRol] = useState<'EMISOR' | 'RECEPTOR' | null>(null);
+    const [tipo, setTipo] = useState<string | null>(null);
     const [periodo, setPeriodo] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -84,6 +88,8 @@ export const useMetricasDominio = (
                 setMetricas(response.data.metricas);
                 setResumen(response.data.resumen);
                 setDominio(response.data.dominio);
+                setRol(response.data.rol);
+                setTipo(response.data.tipo);
                 setPeriodo(response.data.periodo);
             } else {
                 setError('Error al obtener datos del dominio');
@@ -118,6 +124,8 @@ export const useMetricasDominio = (
         metricas,
         resumen,
         dominio,
+        rol,
+        tipo,
         periodo,
         loading,
         error,

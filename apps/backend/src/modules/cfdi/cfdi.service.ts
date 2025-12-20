@@ -1071,4 +1071,38 @@ export class CfdiService {
     async getRecibidosPagos(empresaId: string, mes?: string, fi?: string, ff?: string) {
         return this.getDatosSegregados(empresaId, 'RECEPTOR', 'P', { mes, fechaInicio: fi, fechaFin: ff });
     }
+
+    /**
+     * 🕵️ AUDITORÍA DETALLADA (DRILL-DOWN 1x1)
+     * Retorna el listado exacto de XMLs para un mes, rol y tipo específico.
+     * IGNORA filtros globales, se enfoca en la celda clickeada.
+     */
+    async getDetalleAuditoria(
+        empresaId: string,
+        rol: 'EMISOR' | 'RECEPTOR',
+        tipo: string,
+        mes: string
+    ) {
+        const { sql } = await import('drizzle-orm');
+
+        const empresa = await this.db.query.empresas.findFirst({
+            where: (e, { eq }) => eq(e.id, empresaId),
+        });
+
+        if (!empresa) throw new BadRequestException('Empresa no encontrada');
+
+        const campoRfc = rol === 'EMISOR' ? 'emisor_rfc' : 'receptor_rfc';
+
+        // Query Forense 1x1 (Select * para evitar crash por columnas faltantes)
+        const detalle = await this.db.all(sql`
+            SELECT *
+            FROM cfdi_recibidos
+            WHERE ${sql.raw(campoRfc)} = ${empresa.rfc}
+              AND tipo_comprobante = ${tipo}
+              AND strftime('%Y-%m', fecha) = ${mes}
+            ORDER BY fecha DESC
+        `);
+
+        return detalle;
+    }
 }

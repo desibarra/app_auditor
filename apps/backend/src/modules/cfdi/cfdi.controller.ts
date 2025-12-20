@@ -280,4 +280,19 @@ export class CfdiController {
         if (!id) throw new BadRequestException('ID requerido');
         return await this.cfdiService.getRecibidosPagos(id, mes, fi, ff);
     }
+
+    /**
+     * 🔍 ENDPOINT DE AUDITORÍA FORENSE
+     * Uso exclusivo para drill-down desde tablas de control.
+     */
+    @Get('auditoria/detalle')
+    async getDetalleAuditoria(
+        @Query('empresaId') empresaId: string,
+        @Query('rol') rol: 'EMISOR' | 'RECEPTOR',
+        @Query('tipo') tipo: string,
+        @Query('mes') mes: string
+    ) {
+        if (!empresaId || !rol || !tipo || !mes) throw new BadRequestException('Faltan parámetros de auditoría');
+        return await this.cfdiService.getDetalleAuditoria(empresaId, rol, tipo, mes);
+    }
 }

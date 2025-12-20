@@ -91,7 +91,7 @@ function DashboardPage() {
     };
 
     // 🎣 HOOK DINÁMICO (Consume la verdad única del dominio seleccionado + filtros)
-    const { metricas, resumen, dominio, periodo, loading: loadingDominio, error: errorDominio, refresh } = useMetricasDominio(
+    const { metricas, resumen, dominio, rol, tipo, periodo, loading: loadingDominio, error: errorDominio, refresh } = useMetricasDominio(
         empresaSeleccionada,
         getEndpoint(),
         filtros
@@ -372,6 +372,9 @@ function DashboardPage() {
                             periodoLabel={periodo || ''}
                             totalHistorico={metricas?.total_general}
                             onLimpiarFiltros={handleLimpiarFiltros}
+                            empresaId={empresaSeleccionada}
+                            rol={rol}
+                            tipo={tipo}
                         />
 
                         {/* 📤 IMPORTADOR INTELIGENTE */}
