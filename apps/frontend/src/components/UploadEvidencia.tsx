@@ -53,10 +53,10 @@ function UploadEvidencia({ cfdiUuid, tipoComprobante, onSuccess }: UploadEvidenc
             return;
         }
 
-        // Validar tamaño (30MB)
-        const maxSize = 30 * 1024 * 1024;
+        // Validar tamaño (50MB)
+        const maxSize = 50 * 1024 * 1024;
         if (file.size > maxSize) {
-            setError('El archivo no debe superar los 30MB');
+            setError('El archivo no debe superar los 50MB');
             return;
         }
 
@@ -113,10 +113,13 @@ function UploadEvidencia({ cfdiUuid, tipoComprobante, onSuccess }: UploadEvidenc
             setError(null);
 
             const formData = new FormData();
-            formData.append('file', archivo);
+            // IMPORTANTE: Agregar campos de texto PRIMERO
             formData.append('cfdiUuid', cfdiUuid);
             formData.append('categoria', categoriaSeleccionada);
             formData.append('descripcion', descripcion || archivo.name);
+
+            // Archivo al FINAL
+            formData.append('file', archivo);
 
             await axios.post('/api/evidencias/upload', formData, {
                 headers: {
@@ -143,7 +146,25 @@ function UploadEvidencia({ cfdiUuid, tipoComprobante, onSuccess }: UploadEvidenc
             onSuccess();
         } catch (err: any) {
             console.error('Error al subir evidencia:', err);
-            setError(err.response?.data?.message || 'Error al subir el archivo');
+
+            // Mensaje de error amigable
+            let errorMessage = 'Error al subir el archivo';
+
+            if (err.response) {
+                if (err.response.status === 413) {
+                    errorMessage = 'El archivo es demasiado grande. El límite es 50MB.';
+                } else if (err.response.data?.message) {
+                    errorMessage = err.response.data.message;
+                } else {
+                    errorMessage = `Error del servidor (${err.response.status}). Intenta de nuevo.`;
+                }
+            } else if (err.request) {
+                errorMessage = 'No hubo respuesta del servidor. Verifica tu conexión.';
+            } else {
+                errorMessage = err.message;
+            }
+
+            setError(errorMessage);
         } finally {
             setUploading(false);
         }
@@ -264,7 +285,7 @@ function UploadEvidencia({ cfdiUuid, tipoComprobante, onSuccess }: UploadEvidenc
                                 </p>
                             </div>
                             <p className="text-xs text-gray-400">
-                                PDF, JPG o PNG (máx. 30MB)
+                                PDF, JPG o PNG (máx. 50MB)
                             </p>
                         </div>
                     )}

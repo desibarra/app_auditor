@@ -14,6 +14,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { EvidenciasService, EvidenciaDto } from './evidencias.service';
+import { CreateEvidenciaDto } from './dto/create-evidencia.dto';
 
 @Controller('evidencias')
 export class EvidenciasController {
@@ -24,22 +25,41 @@ export class EvidenciasController {
      * Sube una evidencia para un CFDI
      */
     @Post('upload')
-    @UseInterceptors(FileInterceptor('file'))
+    @UseInterceptors(FileInterceptor('file', {
+        limits: { fileSize: 50 * 1024 * 1024 } // 50MB explícito
+    }))
     async uploadEvidencia(
-        @Body() dto: EvidenciaDto,
+        @Body() dto: CreateEvidenciaDto,
         @UploadedFile() file: Express.Multer.File,
     ) {
-        if (!file) {
-            throw new BadRequestException('No se proporcionó ningún archivo');
-        }
+        // Logs de Verdad
+        console.log('⬇️ Datos recibidos:', {
+            uuid: dto?.cfdiUuid,
+            cat: dto?.categoria,
+            size: file?.size,
+            filename: file?.originalname
+        });
 
-        if (!dto.cfdiUuid || !dto.categoria) {
-            throw new BadRequestException(
-                'cfdiUuid y categoria son campos requeridos',
-            );
-        }
+        try {
+            if (!file) {
+                console.error('❌ Error: No se recibió archivo');
+                throw new BadRequestException('No se proporcionó ningún archivo (Multer falló o archivo vacío)');
+            }
 
-        return await this.evidenciasService.uploadEvidencia(dto, file);
+            // Mapeamos al DTO del servicio (que sigue siendo interface por ahora, o any)
+            const evidenciaDto = {
+                cfdiUuid: dto.cfdiUuid,
+                categoria: dto.categoria,
+                descripcion: dto.descripcion
+            };
+
+            const result = await this.evidenciasService.uploadEvidencia(evidenciaDto, file);
+            console.log('✅ Evidencia subida con éxito:', result.evidencia.id);
+            return result;
+        } catch (error) {
+            console.error('🚨 ERROR CRÍTICO EN UPLOAD:', error);
+            throw error;
+        }
     }
 
     /**
