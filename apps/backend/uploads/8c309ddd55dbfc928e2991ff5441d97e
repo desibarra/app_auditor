@@ -1,0 +1,92 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<cfdi:Comprobante xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd" Version="4.0" Fecha="2025-05-22T12:57:58" Sello="UM1jWwqeBXk2txT2yf3DXNylUSdKn213jDuKHgiO16Eeqoflz/hgd12qcNQPRG8GXtlcoT3CJa12anKrQc8PTFuKuDjhVMZ4V7Q1yPGjcE1lf05eIcXX8ck1i5J1MeG7neKOlGsw2fCukObf3K9ivxjI3Fj0od8cLh6RPeBlONMJNR6X6zRwL0OaarNnwk7RS43ccEt45+vtuVp3QryBa+uUTxx0wdRTUTEBHVYkXnih6DUp866kRUg+tHUL5/0sYlE56zoqvh1xoVoeGKjBVBSEeLK0KUeHmxqTXKd0XVIi09TyysC0aebuRT7uSkSgdF8P7NUwTitDH19/91lcIw==" FormaPago="99" NoCertificado="00001000000516579188" Certificado="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" SubTotal="4500.00" Moneda="MXN" Total="4860.00" TipoDeComprobante="I" Exportacion="01" MetodoPago="PPD" LugarExpedicion="88283" xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <cfdi:Emisor Rfc="TARC7808265JA" Nombre="CLAUDIA TAPIA ROMERO" RegimenFiscal="626" />
+  <cfdi:Receptor Rfc="TVA060209QL6" Nombre="TRASLADOS DE VANGUARDIA" DomicilioFiscalReceptor="36294" RegimenFiscalReceptor="624" UsoCFDI="G03" />
+  <cfdi:Conceptos>
+    <cfdi:Concepto ClaveProdServ="78181500" Cantidad="1.00" ClaveUnidad="ACT" Unidad="Actividad" Descripcion="10 de mayo 2025 caja#554 arreglo de llanta posicion #7 cambio de plafon fundido" ValorUnitario="500.00" Importe="500.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="500.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.080000" Importe="40.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="76111801" Cantidad="1.00" ClaveUnidad="ACT" Unidad="Actividad" Descripcion="10 de mayo 2025 servicio a domicilio" ValorUnitario="200.00" Importe="200.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="200.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.080000" Importe="16.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="78181500" Cantidad="1.00" ClaveUnidad="ACT" Unidad="Actividad" Descripcion="11 mayo 2025 caja #651 cambio de plafon lateral" ValorUnitario="400.00" Importe="400.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="400.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.080000" Importe="32.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="78181500" Cantidad="1.00" ClaveUnidad="ACT" Unidad="Actividad" Descripcion="11 mayo 2025 caja #611 chequeo general" ValorUnitario="400.00" Importe="400.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="400.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.080000" Importe="32.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="78181500" Cantidad="1.00" ClaveUnidad="ACT" Unidad="Actividad" Descripcion="11 mayo 2025 caja #639 chequeo general" ValorUnitario="400.00" Importe="400.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="400.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.080000" Importe="32.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="78181500" Cantidad="1.00" ClaveUnidad="ACT" Unidad="Actividad" Descripcion="11 mayo 2025 caja #641 chequeo general" ValorUnitario="400.00" Importe="400.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="400.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.080000" Importe="32.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="78181500" Cantidad="1.00" ClaveUnidad="ACT" Unidad="Actividad" Descripcion="11 mayo 2025 caja #637 chequeo general" ValorUnitario="400.00" Importe="400.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="400.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.080000" Importe="32.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="78181500" Cantidad="1.00" ClaveUnidad="ACT" Unidad="Actividad" Descripcion="11 mayo 2025 caja #587 chequeo general" ValorUnitario="400.00" Importe="400.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="400.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.080000" Importe="32.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="78181500" Cantidad="1.00" ClaveUnidad="ACT" Unidad="Actividad" Descripcion="11 mayo 2025 tractor #771 arreglo llanta posicion 7 parche #12 calibracion de llantas" ValorUnitario="500.00" Importe="500.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="500.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.080000" Importe="40.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="78181500" Cantidad="1.00" ClaveUnidad="ACT" Unidad="Actividad" Descripcion="11 mayo 2025 tractor #442 arreglo llanta posicion 7 parche #12" ValorUnitario="400.00" Importe="400.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="400.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.080000" Importe="32.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="76111801" Cantidad="1.00" ClaveUnidad="ACT" Unidad="Actividad" Descripcion="11 mayo 2025 servicio a domicilio" ValorUnitario="500.00" Importe="500.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="500.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.080000" Importe="40.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+  </cfdi:Conceptos>
+  <cfdi:Impuestos TotalImpuestosTrasladados="360.00">
+    <cfdi:Traslados>
+      <cfdi:Traslado Base="4500.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.080000" Importe="360.00" />
+    </cfdi:Traslados>
+  </cfdi:Impuestos>
+  <cfdi:Complemento>
+    <tfd:TimbreFiscalDigital xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" xsi:schemaLocation="http://www.sat.gob.mx/TimbreFiscalDigital http://www.sat.gob.mx/sitio_internet/cfd/TimbreFiscalDigital/TimbreFiscalDigitalv11.xsd" Version="1.1" UUID="CBCE8F29-C769-4F26-A014-7550BF4777DF" FechaTimbrado="2025-05-22T12:59:16" RfcProvCertif="SAT970701NN3" SelloCFD="UM1jWwqeBXk2txT2yf3DXNylUSdKn213jDuKHgiO16Eeqoflz/hgd12qcNQPRG8GXtlcoT3CJa12anKrQc8PTFuKuDjhVMZ4V7Q1yPGjcE1lf05eIcXX8ck1i5J1MeG7neKOlGsw2fCukObf3K9ivxjI3Fj0od8cLh6RPeBlONMJNR6X6zRwL0OaarNnwk7RS43ccEt45+vtuVp3QryBa+uUTxx0wdRTUTEBHVYkXnih6DUp866kRUg+tHUL5/0sYlE56zoqvh1xoVoeGKjBVBSEeLK0KUeHmxqTXKd0XVIi09TyysC0aebuRT7uSkSgdF8P7NUwTitDH19/91lcIw==" NoCertificadoSAT="00001000000705250068" SelloSAT="OnIkH1NyMMEOjPbAmJZdtbp18Ugg98z4p5PRfwz3H0o8X56PNq/+nai+QgjbaHzTVTvq/76ocp7rTpIxgnty9F7XWJKmH79hT185BuScyDbjC4fgB0HB+mnVShLLgHVFSFD+7OZxxxXR4QlmXa4wWczHLCd4W8DrjlfSkYPBlBr/M0I+DOWgG3VqKIehWgWmyhxxagWQp8O5nUh0uu9XAG0tMAYHwimO1a048hO9FO0imCS0twtIKLSS7T+Qw5/Nly3W3qQc9JaBsvEprjey9Axh6LoYF8NqMVl78tUU+Oh+f1h4bRSxUcBNrdKmMWPETLJ8KlAxiDpVf4xPqrVs7Q==" />
+  </cfdi:Complemento>
+</cfdi:Comprobante>

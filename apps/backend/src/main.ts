@@ -5,10 +5,8 @@ import { AppModule } from './app.module';
 import * as express from 'express';
 
 async function bootstrap() {
-  // Desactivar bodyParser por defecto para usar la configuración explícita de express
-  const app = await NestFactory.create(AppModule, {
-    bodyParser: false,
-  });
+  // Crear aplicación con bodyParser habilitado para soportar multipart/form-data
+  const app = await NestFactory.create(AppModule);
 
   // Configurar límite de payload para archivos grandes (50MB)
   app.use(express.json({ limit: '50mb' }));
@@ -40,3 +38,4 @@ async function bootstrap() {
 }
 
 bootstrap();
+// Force restart for BancosModule loading - Cycle v3

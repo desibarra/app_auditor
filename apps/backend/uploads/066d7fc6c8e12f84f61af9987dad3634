@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd" Version="4.0" Serie="FCR" Folio="53665" Fecha="2025-05-17T12:00:09" Sello="akEfArrnN5dX0bh5iBwb/shHKv1Dbz5r1b+YhGBCZkdAL3trqCxeOLzn08Q5irLYdX07hbUruh8NiclGzUmWEmVJ6xWjRZMlBWBTWMKrfOhDgo/yjOYnGVl33m2O6yBvufVhTGs3FLviBLS/HqAeDPbRmDZv2yNsetd+A2JfQnOuSPmcslH0O04tqFBsU+W85KL6QQ7VsaZZKEQMQQA4V2ULOgmkptEhwwNTmflQts12rPmyNUFJfcgtV5pvRUdZTXmCYVSoQap/CCnuw44BNOz57UGUqeqSsFRDJE/AU/s4wYvFgImXl8ZDn0l96tM/HO4qSWHc1PRiJ/HSHPwHew==" FormaPago="99" NoCertificado="00001000000508756525" Certificado="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" CondicionesDePago="Crédito" SubTotal="6601.17" Moneda="MXN" TipoCambio="1" Total="7657.35" TipoDeComprobante="I" Exportacion="01" MetodoPago="PPD" LugarExpedicion="37683">
+  <cfdi:Emisor Rfc="KCE9905036Y0" Nombre="KENWORTH DEL CENTRO" RegimenFiscal="601" />
+  <cfdi:Receptor Rfc="TVA060209QL6" Nombre="TRASLADOS DE VANGUARDIA" DomicilioFiscalReceptor="36294" RegimenFiscalReceptor="624" UsoCFDI="G03" />
+  <cfdi:Conceptos>
+    <cfdi:Concepto ClaveProdServ="13101904" NoIdentificacion="B-063" Cantidad="1" ClaveUnidad="C62" Unidad="Uno" Descripcion="TOTE PARA USO EXCLUSIVO DE UREA" ValorUnitario="2200.39" Importe="2200.39" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="2200.39" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="352.06" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="13101904" NoIdentificacion="B-063" Cantidad="1" ClaveUnidad="C62" Unidad="Uno" Descripcion="TOTE PARA USO EXCLUSIVO DE UREA" ValorUnitario="2200.39" Importe="2200.39" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="2200.39" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="352.06" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="13101904" NoIdentificacion="B-063" Cantidad="1" ClaveUnidad="C62" Unidad="Uno" Descripcion="TOTE PARA USO EXCLUSIVO DE UREA" ValorUnitario="2200.39" Importe="2200.39" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="2200.39" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="352.06" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+  </cfdi:Conceptos>
+  <cfdi:Impuestos TotalImpuestosTrasladados="1056.18">
+    <cfdi:Traslados>
+      <cfdi:Traslado Base="6601.17" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="1056.18" />
+    </cfdi:Traslados>
+  </cfdi:Impuestos>
+<cfdi:Complemento><tfd:TimbreFiscalDigital xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" xsi:schemaLocation="http://www.sat.gob.mx/TimbreFiscalDigital http://www.sat.gob.mx/sitio_internet/cfd/TimbreFiscalDigital/TimbreFiscalDigitalv11.xsd" Version="1.1" UUID="C5579B25-3348-11F0-B7ED-CD07B9C10AE0" FechaTimbrado="2025-05-17T12:00:12" SelloCFD="akEfArrnN5dX0bh5iBwb/shHKv1Dbz5r1b+YhGBCZkdAL3trqCxeOLzn08Q5irLYdX07hbUruh8NiclGzUmWEmVJ6xWjRZMlBWBTWMKrfOhDgo/yjOYnGVl33m2O6yBvufVhTGs3FLviBLS/HqAeDPbRmDZv2yNsetd+A2JfQnOuSPmcslH0O04tqFBsU+W85KL6QQ7VsaZZKEQMQQA4V2ULOgmkptEhwwNTmflQts12rPmyNUFJfcgtV5pvRUdZTXmCYVSoQap/CCnuw44BNOz57UGUqeqSsFRDJE/AU/s4wYvFgImXl8ZDn0l96tM/HO4qSWHc1PRiJ/HSHPwHew==" NoCertificadoSAT="00001000000700047508" SelloSAT="w11Zjah4q6RL3t1npcQ1BMTuzXgkfnbcehXr11ZxYlHUXfQviFxCX2WDl3ot5ZvQXv76qrLmANdTV+E1CTHBPAM1FtwqwMn50zoJSgpTPGU9ByU0NfBY/dFlvbSh6jdtTWKf8ud0Mn+K35QkS7bAq0OJafMpsFwVDR75Cj+ym68teLdjNQIn2CPY6spOuDRQAJyel0egylxHFpwxebzib9lPVTCpxp8G/WK8Ag09WjBRRIW3tTqbIlpUCAAdMFYkeJrdrZPIczocjjpS2NjJLDIANVsQH5Aqk59cqsHpDtif0loAQOgdRmF+ulrhRmGUaXOAmKhWpjJtk9id7DgVOQ==" RfcProvCertif="EME000602QR9" /></cfdi:Complemento></cfdi:Comprobante>

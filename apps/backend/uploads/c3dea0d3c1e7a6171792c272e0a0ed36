@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<cfdi:Comprobante xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd" Version="4.0" Moneda="MXN" NoCertificado="00001000000704066864" Folio="3631" LugarExpedicion="63735" Exportacion="01" Certificado="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" MetodoPago="PUE" FormaPago="01" SubTotal="132.50" Total="132.50" TipoDeComprobante="I" Sello="ROgVsxCMXmnW7eVIi6j8KK6/PMHuLYS5oLEB+E2mHkqHlfSXQuMGgEp1h6cpBEK8BSnDZUZ2DWx6LSz0jwx8GSyyWC5hi3X1KERLKAbnCneLES5YwbPbzy/+h4LNZha5HseaUbIK86VxBCy5+SXrJ47beHXomzz0czsu1Kiy2ng847CzYgYH6LBYMy5fn0KBfIjPP/r3xS6/a1GwHuC1oJUJDXgdUCr5QCgh75ADCSbT6ocERT1X2td+TGD0sIvrI45PjNoJRJK7B7iwSzJKN90Gde9/HmpQFjQVhkeeJuOljG+GflY9MtV0LrlAYNYptxn3OaQWi2Sbe9N4KG5YRg==" Fecha="2025-05-26T11:17:15" xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <cfdi:Emisor Rfc="PVC990111G63" Nombre="PARADISE VILLAGE COUNTRY CLUB" RegimenFiscal="601" />
+  <cfdi:Receptor Rfc="TVA060209QL6" Nombre="TRASLADOS DE VANGUARDIA" UsoCFDI="G03" DomicilioFiscalReceptor="36294" RegimenFiscalReceptor="624" />
+  <cfdi:Conceptos>
+    <cfdi:Concepto ClaveProdServ="50202301" NoIdentificacion="000001668" Cantidad="1.000000" ClaveUnidad="H87" Unidad="PZA" Descripcion="EPURA AGUA 1 LT" ValorUnitario="17.00" Importe="17.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="17.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.000000" Importe="0.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="50221300" NoIdentificacion="000008479" Cantidad="1.000000" ClaveUnidad="H87" Unidad="PZA" Descripcion="MISSION TOSTADAS MARISQUERAS 360GR" ValorUnitario="46.00" Importe="46.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="46.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.000000" Importe="0.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="50465525" NoIdentificacion="000008557" Cantidad="1.000000" ClaveUnidad="H87" Unidad="PZA" Descripcion="COSTE?A JALAPE?OS ENTEROS 380G" ValorUnitario="33.00" Importe="33.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="33.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.000000" Importe="0.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="50404600" NoIdentificacion="000003491" Cantidad="1.000000" ClaveUnidad="H87" Unidad="PZA" Descripcion="MR LUCKY LECHUGA ROMANA PZA" ValorUnitario="36.50" Importe="36.50" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="36.50" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.000000" Importe="0.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+  </cfdi:Conceptos>
+  <cfdi:Impuestos TotalImpuestosTrasladados="0.00">
+    <cfdi:Traslados>
+      <cfdi:Traslado Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.000000" Importe="0.00" Base="132.50" />
+    </cfdi:Traslados>
+  </cfdi:Impuestos>
+  <cfdi:Complemento>
+    <tfd:TimbreFiscalDigital Version="1.1" UUID="CB7101D6-B6DF-4A01-8DD5-7A6F60B21BBF" FechaTimbrado="2025-05-26T11:17:28" RfcProvCertif="INT020124V62" SelloCFD="ROgVsxCMXmnW7eVIi6j8KK6/PMHuLYS5oLEB+E2mHkqHlfSXQuMGgEp1h6cpBEK8BSnDZUZ2DWx6LSz0jwx8GSyyWC5hi3X1KERLKAbnCneLES5YwbPbzy/+h4LNZha5HseaUbIK86VxBCy5+SXrJ47beHXomzz0czsu1Kiy2ng847CzYgYH6LBYMy5fn0KBfIjPP/r3xS6/a1GwHuC1oJUJDXgdUCr5QCgh75ADCSbT6ocERT1X2td+TGD0sIvrI45PjNoJRJK7B7iwSzJKN90Gde9/HmpQFjQVhkeeJuOljG+GflY9MtV0LrlAYNYptxn3OaQWi2Sbe9N4KG5YRg==" NoCertificadoSAT="00001000000708361008" SelloSAT="howRP61j59geswQnAAYmoOW2UDuGRRlIZMR7XizSJyY56oLsE27JK5RI8//Du53jHEE6RG4h7eH12uYzvTLACsf2SrjoxTdZRaEqLBWT+Y4tpxPBT0WblwKVCd5niW3VIuNK4P9UpnhQKJVIcYMX+5KMLVZgrOjxh2O1ZVAYjYmgV3ESByxiEHAxkxPGi+VlO5agGOO8fBkAZ8tYX5NLrqo98l630NxVfKmEJTOKPlTmqYozQjB3fKP2ZArRvRaaWtaPShjPUo9rY1DD5W8D2axzhR0QjOTIWHJpeHbsAMBD6dSspyheDxYwtvAKSRJASOl9BoLeGZvVnwErUCGEvA==" xsi:schemaLocation="http://www.sat.gob.mx/TimbreFiscalDigital http://www.sat.gob.mx/sitio_internet/cfd/TimbreFiscalDigital/TimbreFiscalDigitalv11.xsd" xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" />
+  </cfdi:Complemento>
+</cfdi:Comprobante>

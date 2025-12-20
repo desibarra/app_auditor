@@ -1,0 +1,35 @@
+const Database = require('better-sqlite3');
+const path = require('path');
+
+const dbPath = path.join(__dirname, 'data', 'dev.db');
+const db = new Database(dbPath);
+
+console.log('\n🗑️  Eliminando periodo Septiembre 2025...\n');
+
+try {
+    // Eliminar movimientos
+    const delMovs = db.prepare(`
+        DELETE FROM movimientos_bancarios 
+        WHERE estado_cuenta_id IN (
+            SELECT id FROM estados_cuenta 
+            WHERE empresa_id = ? AND anio = ? AND mes = ?
+        )
+    `);
+    const movsDeleted = delMovs.run('empresa-pnk140311qm2', 2025, 9);
+    console.log(`✅ ${movsDeleted.changes} movimientos eliminados`);
+
+    // Eliminar estados de cuenta
+    const delEstados = db.prepare(`
+        DELETE FROM estados_cuenta 
+        WHERE empresa_id = ? AND anio = ? AND mes = ?
+    `);
+    const estadosDeleted = delEstados.run('empresa-pnk140311qm2', 2025, 9);
+    console.log(`✅ ${estadosDeleted.changes} estados de cuenta eliminados`);
+
+    db.close();
+    console.log('\n✅ Periodo limpio - Puedes volver a cargar\n');
+
+} catch (error) {
+    console.error('❌', error.message);
+    db.close();
+}

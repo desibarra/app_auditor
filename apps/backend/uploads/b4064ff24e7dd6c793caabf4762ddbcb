@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Certificado="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" Exportacion="01" Fecha="2025-06-02T15:37:14" Folio="2327" FormaPago="99" LugarExpedicion="52930" MetodoPago="PPD" Moneda="MXN" NoCertificado="00001000000517993385" Sello="YUu1PEDgxpiCi5YGsXMIj7S+Xg8jt/Y2g88T4WeW8I+9z23YL9XKn/IBxtAnBdmc+Fo8dEdV6Hnne5DnfoPk038HtVgSBayli+RyTSM4vMqg0WW4nluKwfnjy/t3UcY7nKaYgEvO+WM+j+Ub6V2VtYjeEO11zGb4nZvujsL63qIWhJ0rtlMct328HAL36ZiW3g5CXgrDBJQ6wSlWMYWtXfULPYWNIOigFt1v0cDXS51FfbwDGbflS7hjom9N9hGFM5NIu1wNMZmAuRBovmSAixK/uHhC6nOvGo98kfS8IWAl60eoY0F9G+0wFEshJK7JsBquUrbtIczHbrKfVkgkEA==" Serie="A" SubTotal="19168.00" TipoDeComprobante="I" Total="22234.88" Version="4.0" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd">
+  <cfdi:Emisor Nombre="CLAUDIA VERONICA PEREZ SANTOS" RegimenFiscal="612" Rfc="PESC720820Q97" />
+  <cfdi:Receptor DomicilioFiscalReceptor="36294" Nombre="TRASLADOS DE VANGUARDIA" RegimenFiscalReceptor="624" Rfc="TVA060209QL6" UsoCFDI="G03" />
+  <cfdi:Conceptos>
+    <cfdi:Concepto Cantidad="30.000" ClaveProdServ="80141605" ClaveUnidad="H87" Descripcion="Antiestrés con figura de tráiler. Seleccionado en color blanco. Impresos en tampografía a una tinta." Importe="2337.00" ObjetoImp="02" Unidad="Pzas" ValorUnitario="77.900">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="2337.00" Importe="373.92" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto Cantidad="100.000" ClaveProdServ="80141605" ClaveUnidad="H87" Descripcion="Block de notas Pavía cubierta en curpiel con 70 hojasde raya, notas adheribles (días de la semana), bolígrafo tinta negra y broche de seguridad. Seleccionado en color gris. Impresos en serigrafía a una tinta." Importe="8959.00" ObjetoImp="02" Unidad="Pzas" ValorUnitario="89.590">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="8959.00" Importe="1433.44" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto Cantidad="400.000" ClaveProdServ="80141605" ClaveUnidad="H87" Descripcion="Bolígrafo Burma con cuerpo metálico de color. Clip, punta, y pulsador color plata. En el centro del bolígrafo cuenta con dos arandelas y más arriba finalizando el clip cuenta con una muesca color plata. Tinta negra. Seleccionados en color gris. Grabados con impresión en láser." Importe="7072.00" ObjetoImp="02" Unidad="Pzas" ValorUnitario="17.680">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="7072.00" Importe="1131.52" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto Cantidad="1.000" ClaveProdServ="78102200" ClaveUnidad="E48" Descripcion="Gastos de envío" Importe="800.00" ObjetoImp="02" Unidad="Serv" ValorUnitario="800.000">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="800.00" Importe="128.00" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+  </cfdi:Conceptos>
+  <cfdi:Impuestos TotalImpuestosTrasladados="3066.88">
+    <cfdi:Traslados>
+      <cfdi:Traslado Base="19168.00" Importe="3066.88" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+    </cfdi:Traslados>
+  </cfdi:Impuestos>
+  <cfdi:Complemento><tfd:TimbreFiscalDigital xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" xsi:schemaLocation="http://www.sat.gob.mx/TimbreFiscalDigital http://www.sat.gob.mx/sitio_internet/cfd/TimbreFiscalDigital/TimbreFiscalDigitalv11.xsd" Version="1.1" UUID="270F0FCE-C738-445E-8A41-630634BD8C8C" SelloCFD="YUu1PEDgxpiCi5YGsXMIj7S+Xg8jt/Y2g88T4WeW8I+9z23YL9XKn/IBxtAnBdmc+Fo8dEdV6Hnne5DnfoPk038HtVgSBayli+RyTSM4vMqg0WW4nluKwfnjy/t3UcY7nKaYgEvO+WM+j+Ub6V2VtYjeEO11zGb4nZvujsL63qIWhJ0rtlMct328HAL36ZiW3g5CXgrDBJQ6wSlWMYWtXfULPYWNIOigFt1v0cDXS51FfbwDGbflS7hjom9N9hGFM5NIu1wNMZmAuRBovmSAixK/uHhC6nOvGo98kfS8IWAl60eoY0F9G+0wFEshJK7JsBquUrbtIczHbrKfVkgkEA==" NoCertificadoSAT="00001000000508768672" FechaTimbrado="2025-06-02T15:40:02" SelloSAT="TegRAvqEIoQq3/v3E/fprbJbve6odLhddk1PI3OSjd0eNqYikDRYtSrPl4i2S4bPNuPGEeXolKHrXW1hciux8TgKmzYpg/7cs+1entJaV2yE8SZVeZwmcUW/W8ANxlGiJdZsWWyVZ9ou+OdKsE9xdNU7YoGN9a3OcJ8HpkMl4GKlK+ass8MXijaXNETOnj6M6i/B3Z8Wfb8nyCFQPxXaDoEc2QKsLECI4qOJodr3lPqOaiEOCw70s81jHRuwlC93GoEZnGOMxxCEr/aFm+Sb7PqjFdZ7sBwxoTwdfVB+/SS1sNSTdqDPuBZsI/PsudS608kUF7wbHeacjRf2guKvMg==" RfcProvCertif="SIF0403229F9" /></cfdi:Complemento>
+</cfdi:Comprobante>

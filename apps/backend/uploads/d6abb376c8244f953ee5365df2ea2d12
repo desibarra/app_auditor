@@ -1,0 +1,124 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd" Version="4.0" Serie="FCR" Folio="53559" Fecha="2025-05-08T12:33:02" Sello="GF6GO3xp69ojp43qVi+u0nZrViD2wevPp+zB/SPX3jcEa2m1vZUdmSMH1VGFRyAtThAhzjSQ/epvLRx5HQ1ykzBGa80uaO7BU13sWFl1ih20hb4zbaT/vdjYe1yZEZKnt7arP/O2QsNDPcNmi9HGYlCTL+wBDw/5v2AeQgLk/sGeYeK68Q3fM/+cwcpvW0Ar1IbED1Lk8GVnSKySNd27hgumicq8hj+RYCR6aPpuo9ciVBtKYSHUjKo5IuzZVivMOKM8QRAXSEzknGLNCKJUXXm5rjRi+EQWvs1UFhUjQidjAE3znio3mN7QojLJh9vK+1XNomGqnnSQLRWArgSoDA==" FormaPago="99" NoCertificado="00001000000508756525" Certificado="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" CondicionesDePago="Crédito" SubTotal="5568.76" Moneda="MXN" TipoCambio="1" Total="6459.72" TipoDeComprobante="I" Exportacion="01" MetodoPago="PPD" LugarExpedicion="37683">
+  <cfdi:Emisor Rfc="KCE9905036Y0" Nombre="KENWORTH DEL CENTRO" RegimenFiscal="601" />
+  <cfdi:Receptor Rfc="TVA060209QL6" Nombre="TRASLADOS DE VANGUARDIA" DomicilioFiscalReceptor="36294" RegimenFiscalReceptor="624" UsoCFDI="G03" />
+  <cfdi:Conceptos>
+    <cfdi:Concepto ClaveProdServ="11141600" NoIdentificacion="BT31S95CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE BATERIA DE TORNILLO 31 STUD 925CCA" ValorUnitario="666.33" Importe="666.33" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="666.33" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="106.61" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="11141600" NoIdentificacion="BT31S95CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE BATERIA DE TORNILLO 31 STUD 925CCA" ValorUnitario="666.33" Importe="666.33" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="666.33" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="106.61" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="11141600" NoIdentificacion="BT31S95CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE BATERIA DE TORNILLO 31 STUD 925CCA" ValorUnitario="666.33" Importe="666.33" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="666.33" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="106.61" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="11141600" NoIdentificacion="BT31S95CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE BATERIA DE TORNILLO 31 STUD 925CCA" ValorUnitario="666.33" Importe="666.33" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="666.33" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="106.61" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="25171712" NoIdentificacion="ZAP4709CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE DE ZAPATA REMACHADA 4709 A CAMBIO" ValorUnitario="246.96" Importe="246.96" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="246.96" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="39.51" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="25171712" NoIdentificacion="ZAP4709CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE DE ZAPATA REMACHADA 4709 A CAMBIO" ValorUnitario="246.96" Importe="246.96" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="246.96" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="39.51" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="25171712" NoIdentificacion="ZAP4709CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE DE ZAPATA REMACHADA 4709 A CAMBIO" ValorUnitario="246.96" Importe="246.96" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="246.96" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="39.51" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="25171712" NoIdentificacion="ZAP4709CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE DE ZAPATA REMACHADA 4709 A CAMBIO" ValorUnitario="246.96" Importe="246.96" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="246.96" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="39.51" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="25171712" NoIdentificacion="ZAP4709CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE DE ZAPATA REMACHADA 4709 A CAMBIO" ValorUnitario="246.96" Importe="246.96" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="246.96" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="39.51" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="25171712" NoIdentificacion="ZAP4709CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE DE ZAPATA REMACHADA 4709 A CAMBIO" ValorUnitario="246.96" Importe="246.96" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="246.96" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="39.51" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="25171712" NoIdentificacion="ZAP4709CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE DE ZAPATA REMACHADA 4709 A CAMBIO" ValorUnitario="246.96" Importe="246.96" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="246.96" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="39.51" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="25171712" NoIdentificacion="ZAP4709CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE DE ZAPATA REMACHADA 4709 A CAMBIO" ValorUnitario="246.96" Importe="246.96" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="246.96" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="39.51" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="26112101" NoIdentificacion="ZAP4719CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE KIT DE BALATA REMACHADA" ValorUnitario="231.94" Importe="231.94" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="231.94" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="37.11" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="26112101" NoIdentificacion="ZAP4719CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE KIT DE BALATA REMACHADA" ValorUnitario="231.94" Importe="231.94" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="231.94" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="37.11" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="26112101" NoIdentificacion="ZAP4719CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE KIT DE BALATA REMACHADA" ValorUnitario="231.94" Importe="231.94" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="231.94" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="37.11" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="26112101" NoIdentificacion="ZAP4719CP" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="CORE KIT DE BALATA REMACHADA" ValorUnitario="231.94" Importe="231.94" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="231.94" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="37.11" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+  </cfdi:Conceptos>
+  <cfdi:Impuestos TotalImpuestosTrasladados="890.96">
+    <cfdi:Traslados>
+      <cfdi:Traslado Base="5568.76" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="890.96" />
+    </cfdi:Traslados>
+  </cfdi:Impuestos>
+<cfdi:Complemento><tfd:TimbreFiscalDigital xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" xsi:schemaLocation="http://www.sat.gob.mx/TimbreFiscalDigital http://www.sat.gob.mx/sitio_internet/cfd/TimbreFiscalDigital/TimbreFiscalDigitalv11.xsd" Version="1.1" UUID="DF9FC359-2C3A-11F0-AECF-C75FE702EE31" FechaTimbrado="2025-05-08T12:33:07" SelloCFD="GF6GO3xp69ojp43qVi+u0nZrViD2wevPp+zB/SPX3jcEa2m1vZUdmSMH1VGFRyAtThAhzjSQ/epvLRx5HQ1ykzBGa80uaO7BU13sWFl1ih20hb4zbaT/vdjYe1yZEZKnt7arP/O2QsNDPcNmi9HGYlCTL+wBDw/5v2AeQgLk/sGeYeK68Q3fM/+cwcpvW0Ar1IbED1Lk8GVnSKySNd27hgumicq8hj+RYCR6aPpuo9ciVBtKYSHUjKo5IuzZVivMOKM8QRAXSEzknGLNCKJUXXm5rjRi+EQWvs1UFhUjQidjAE3znio3mN7QojLJh9vK+1XNomGqnnSQLRWArgSoDA==" NoCertificadoSAT="00001000000700047508" SelloSAT="etgYnCBHOQA+zEOY727Cu/I322zATBTJQiURE/CvzvIhgXt05hdL06g6EfKT/X5Q5wTCv78F5NTQSscuKeiUgjDfM0R7UFGwXAYZLjk7JhbpKePoiwvLUL28PcJG5h5N9XOX1GYEZhhQc9v6g7NZ/hVEGGUk8XL4+vsPYs69d+cm8bKfBqt9Z6ryTNkRnQ5A6xSyclWepCgjgw3xfXhj/aZ6wDQ6V9a1PIn62giwe8QnONbW4gR4VuZqY72iPM0GETTrOOnyCNIgr8pSV2u+gjNOPQpz+JnZ7jdbJlYtqzcMt2CWpBW7qCEXevUkNdtgkf0OTFMTbRi14T9f4DpYGQ==" RfcProvCertif="EME000602QR9" /></cfdi:Complemento></cfdi:Comprobante>

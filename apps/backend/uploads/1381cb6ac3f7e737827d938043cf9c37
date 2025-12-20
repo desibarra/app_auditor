@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd" Version="4.0" Serie="FCR" Folio="53672" Fecha="2025-05-17T14:07:15" Sello="PH4L0p74wzhnpScGxl4u5FgpmL326/ZDlAlLIDB2QfOdz5KMcHjTmf8+GU56bOo1hBBwViJoljOzeHXqZ/YXLHHl/uwxVXrnhh8LrqHePoqXsm//czGWZB0u/1uhWArMc7qFTcFMTz2syV0CLyAf+2poa2PvJ7NssfM9KM2X/VqUw1RcyFJmw83sd/gukZ//apMLJzLQMqmjBW/NrbOu/pMTUcX9dLm74OalPzR3x8g3oaQT5vsr0A9FfevON2keIVXE6PvCapi0tg2iXyWnUE2B/k/I0YcRZE6VPMrCPKl32BGaQhYEbHW8mS82mIyci7wbMnf05Op61A+BeT5ZhA==" FormaPago="99" NoCertificado="00001000000508756525" Certificado="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" CondicionesDePago="Crédito" SubTotal="20033.00" Moneda="MXN" TipoCambio="1" Total="23238.28" TipoDeComprobante="I" Exportacion="01" MetodoPago="PPD" LugarExpedicion="37683">
+  <cfdi:Emisor Rfc="KCE9905036Y0" Nombre="KENWORTH DEL CENTRO" RegimenFiscal="601" />
+  <cfdi:Receptor Rfc="TVA060209QL6" Nombre="TRASLADOS DE VANGUARDIA" DomicilioFiscalReceptor="36294" RegimenFiscalReceptor="624" UsoCFDI="G03" />
+  <cfdi:Conceptos>
+    <cfdi:Concepto ClaveProdServ="40161500" NoIdentificacion="FS19763FLG" Cantidad="6" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="FILTRO DE COMBUSTIBLE" ValorUnitario="197.00" Importe="1182.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="1182" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="189.12" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="40161500" NoIdentificacion="FF5776FLG" Cantidad="4" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="FILTER-FUEL COMB" ValorUnitario="554.00" Importe="2216.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="2216" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="354.56" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="40161500" NoIdentificacion="WF2127FLG" Cantidad="4" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="FILTRO DE AGUA ISX" ValorUnitario="250.00" Importe="1000.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="1000" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="160.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="40161504" NoIdentificacion="LF14000NNFLG" Cantidad="8" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="FILTRO DE ACEITE DE MOTOR ISX" ValorUnitario="525.00" Importe="4200.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="4200" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="672.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="40161500" NoIdentificacion="SR2000092" Cantidad="6" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="FILTRO" ValorUnitario="770.00" Importe="4620.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="4620" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="739.20" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="25172000" NoIdentificacion="KD2585" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="VALVE BARKSDALE HEIGHT CN" ValorUnitario="2315.00" Importe="2315.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="2315" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="370.40" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="25172002" NoIdentificacion="KD2429" Cantidad="1" ClaveUnidad="H87" Unidad="PIEZA" Descripcion="VALVULA NIVELADORA" ValorUnitario="4500.00" Importe="4500.00" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="4500" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="720.00" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+  </cfdi:Conceptos>
+  <cfdi:Impuestos TotalImpuestosTrasladados="3205.28">
+    <cfdi:Traslados>
+      <cfdi:Traslado Base="20033.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="3205.28" />
+    </cfdi:Traslados>
+  </cfdi:Impuestos>
+<cfdi:Complemento><tfd:TimbreFiscalDigital xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" xsi:schemaLocation="http://www.sat.gob.mx/TimbreFiscalDigital http://www.sat.gob.mx/sitio_internet/cfd/TimbreFiscalDigital/TimbreFiscalDigitalv11.xsd" Version="1.1" UUID="86CADBF7-335A-11F0-BAD6-8D8D35873B88" FechaTimbrado="2025-05-17T14:07:20" SelloCFD="PH4L0p74wzhnpScGxl4u5FgpmL326/ZDlAlLIDB2QfOdz5KMcHjTmf8+GU56bOo1hBBwViJoljOzeHXqZ/YXLHHl/uwxVXrnhh8LrqHePoqXsm//czGWZB0u/1uhWArMc7qFTcFMTz2syV0CLyAf+2poa2PvJ7NssfM9KM2X/VqUw1RcyFJmw83sd/gukZ//apMLJzLQMqmjBW/NrbOu/pMTUcX9dLm74OalPzR3x8g3oaQT5vsr0A9FfevON2keIVXE6PvCapi0tg2iXyWnUE2B/k/I0YcRZE6VPMrCPKl32BGaQhYEbHW8mS82mIyci7wbMnf05Op61A+BeT5ZhA==" NoCertificadoSAT="00001000000700047508" SelloSAT="x4tl4Lj796QYnEZdApqtbqZvrdKV4sjCH0HStO7vZJH5rWTWSMmG9DKqJKujabq9FpQ8cRA96FrcfvedD/NjcBtVU4hLw81XYqiBwaEKbf+jWqz8zKkB3yFDFyv/2uIUl7WxtjFZ2A+oSHHH8cXPptpGXBZZkUdbt2pnmM/iRYhF3PN02KaF8CQ69vcHF3R5uPIq2hLmPQQOKl0yjr88RqT8wb5lbaZL5iZZvlkjaVGrNq8vLSRX5CIzuwdqfaydlarhL7bvydai6P2ZOUErBlF74G6aeGHutg0tH3yfnQ4V4ZDUVRZrIDfq+JkkdMC+KYzvPhhLyU9WE3TKu+S6RA==" RfcProvCertif="EME000602QR9" /></cfdi:Complemento></cfdi:Comprobante>

@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react';
-import axios from 'axios';
 import { parsearXmlsPreview, CfdiPreview } from '../utils/xmlParser';
 import ModalRevisionXml from './ModalRevisionXml';
 
@@ -112,21 +111,28 @@ function BotonCargarXml({ empresaId, onSuccess }: BotonCargarXmlProps) {
                     ? `/api/cfdi/importar-xml?empresaId=${empresaId}`
                     : '/api/cfdi/importar-xml';
 
-                const response = await axios.post(url, formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
+                // Usar fetch en lugar de axios para evitar problemas de interceptores
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    // No establecer Content-Type, el navegador lo hace automáticamente con boundary
                 });
 
-                if (response.data.success) {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
                     resultadosTemp.push({
                         archivo: archivo.name,
                         exito: true,
-                        duplicado: response.data.duplicado || false,
-                        mensaje: response.data.duplicado
-                            ? `Duplicado: ${response.data.uuid}`
-                            : `Importado: ${response.data.emisor} - $${response.data.total?.toLocaleString('es-MX')}`,
-                        uuid: response.data.uuid,
+                        duplicado: data.duplicado || false,
+                        mensaje: data.duplicado
+                            ? `Duplicado: ${data.uuid}`
+                            : `Importado: ${data.emisor} - $${data.total?.toLocaleString('es-MX')}`,
+                        uuid: data.uuid,
                     });
                 }
             } catch (error: any) {
@@ -135,7 +141,7 @@ function BotonCargarXml({ empresaId, onSuccess }: BotonCargarXmlProps) {
                     archivo: archivo.name,
                     exito: false,
                     duplicado: false,
-                    mensaje: error.response?.data?.message || 'Error al importar',
+                    mensaje: error.message || 'Error al importar',
                 });
             }
         }

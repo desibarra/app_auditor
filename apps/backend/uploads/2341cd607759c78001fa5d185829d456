@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Certificado="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" Exportacion="01" Fecha="2025-06-02T17:04:16" Folio="004467386" FormaPago="99" LugarExpedicion="03200" MetodoPago="PPD" Moneda="MXN" NoCertificado="00001000000709158476" Sello="GX08bGm6EPtx75/3y22IuT0R+RpFheA2yR8NiLQjuK/696f0ka2TfgZgfryKqdql9XusX9W6iKz6mHN9CyWtSipnJIghOhCGBW8SF3HVOxY9fZvBvpfU+6ZwvYOD9Us/yzxX00mtNSHnZeW4A0R3pZgPW46eVLifeYNjd2+C1XA3DpZ4Bh/WZ3q10c6D4oPDWxcyko77xqqcvgxe49c94xdsunLtREf0REd4PE/l1wTGjd9oZArq+WzdOYQTsjcCWETuAuss4RLYNIf2F4WwRVWm2zcA1hjIEefc1GtT9PiqBMHWkn2Eiap3/h0oB3zZqdBJ/UREenfSkLw4eKUpxA==" Serie="GMC" SubTotal="1327.13" TipoDeComprobante="I" Total="1539.46" Version="4.0" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd">
+    <cfdi:Emisor Nombre="AXA SEGUROS" RegimenFiscal="601" Rfc="ASE931116231" />
+    <cfdi:Receptor DomicilioFiscalReceptor="36294" Nombre="TRASLADOS DE VANGUARDIA" RegimenFiscalReceptor="624" Rfc="TVA060209QL6" UsoCFDI="G03" />
+    <cfdi:Conceptos>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="84131602" ClaveUnidad="IP" Descripcion="Prima de seguro de gastos médicos" Importe="1000.11" ObjetoImp="02" ValorUnitario="1000.11">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="1000.11" Importe="160.01" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="84131602" ClaveUnidad="IP" Descripcion="Recargos de prima de seguros de gastos médicos" Importe="90.02" ObjetoImp="02" ValorUnitario="90.02">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="90.02" Importe="14.40" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="84131602" ClaveUnidad="IP" Descripcion="Derechos de prima de seguros de gastos médicos" Importe="237.00" ObjetoImp="02" ValorUnitario="237.00">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="237.00" Importe="37.92" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+    </cfdi:Conceptos>
+    <cfdi:Impuestos TotalImpuestosTrasladados="212.33">
+        <cfdi:Traslados>
+            <cfdi:Traslado Base="1327.13" Importe="212.33" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+        </cfdi:Traslados>
+    </cfdi:Impuestos>
+<cfdi:Complemento><tfd:TimbreFiscalDigital xsi:schemaLocation="http://www.sat.gob.mx/TimbreFiscalDigital http://www.sat.gob.mx/sitio_internet/cfd/TimbreFiscalDigital/TimbreFiscalDigitalv11.xsd" Version="1.1" UUID="E802D8E6-4005-11F0-B3FA-C56255DE391E" FechaTimbrado="2025-06-02T18:04:29" SelloCFD="GX08bGm6EPtx75/3y22IuT0R+RpFheA2yR8NiLQjuK/696f0ka2TfgZgfryKqdql9XusX9W6iKz6mHN9CyWtSipnJIghOhCGBW8SF3HVOxY9fZvBvpfU+6ZwvYOD9Us/yzxX00mtNSHnZeW4A0R3pZgPW46eVLifeYNjd2+C1XA3DpZ4Bh/WZ3q10c6D4oPDWxcyko77xqqcvgxe49c94xdsunLtREf0REd4PE/l1wTGjd9oZArq+WzdOYQTsjcCWETuAuss4RLYNIf2F4WwRVWm2zcA1hjIEefc1GtT9PiqBMHWkn2Eiap3/h0oB3zZqdBJ/UREenfSkLw4eKUpxA==" NoCertificadoSAT="00001000000700047508" SelloSAT="rBvfA48LsGOYuRIGjgChAygnArGQsdjQO4YVOSrcgI63yOxpemq3TigeIZjfO4mNWT/sQrv5vBTm9KY6u/O2e9F2gbxFTqND/IciGuj9275JqG6vFvP+gxwQG3mO65GAe+Fqs57p01A8XkY3DXIIoSI/0oP30K8++NePsWr6iFl9DIVUEJ8gTiRIwzjf5oWhY2Spxay0GUJsAxBFqnLueOUDpPdfZam0lVl/CdgRcknRrSnvfQcqNrTEfeKgIQyF9ofmeQwaL6Eoox88NVQW2qZYJKbzdBaA78Haj1n930/GD7mo0NHUKOldSBGVdmTyT9G9B+mTKUw1cJ5Rt71Lcw==" RfcProvCertif="EME000602QR9" /></cfdi:Complemento></cfdi:Comprobante>

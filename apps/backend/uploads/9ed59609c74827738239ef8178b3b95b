@@ -1,0 +1,320 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Certificado="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" CondicionesDePago="Contado" Exportacion="01" Fecha="2025-06-01T06:22:01" Folio="59510" FormaPago="99" LugarExpedicion="21385" MetodoPago="PPD" Moneda="MXN" NoCertificado="00001000000704970658" Sello="K+pgJk1f0nrQTGxhYo3E8s+jc1BSBlzfneuetCgA2pv6eQaRGfMWvg1eR2bnqPeZ4B2JJsPuHybDXAPwK11RUQX5pCDqjRj4vMvvAbNrn4P+vDASGT9Pdji4Yw6Jnd6cOJ/bjdHzwMiwB8MTwjnH6hz1Xc33vYDF+t8Uid7Yr19/Bz97W2ID/H+kcRzWBLtcDdiEgr8AQjk1sIKdGDmJiJywlxr+wBzxcBzCgKzAI9GFOwcPv9/hsuL2p2gBaGUS052krYCy/TMNmPv4JUKqV+rAx+7VgSJT+EqwJab/EFWsjoRawG+0AhzrecIdzGWc47MHV3SJpT9Z44GfMxWYZw==" Serie="ROL" SubTotal="1230480.26" TipoCambio="1" TipoDeComprobante="I" Total="1427357.22" Version="4.0" xsi:schemaLocation="http://www.sat.gob.mx/cfd/4 http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd">
+    <cfdi:Emisor Nombre="PACCAR FINANCIAL MEXICO" RegimenFiscal="601" Rfc="PFM9701249Q8" />
+    <cfdi:Receptor DomicilioFiscalReceptor="36294" Nombre="TRASLADOS DE VANGUARDIA" RegimenFiscalReceptor="624" Rfc="TVA060209QL6" UsoCFDI="G03" />
+    <cfdi:Conceptos>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Camion-C7 Marca Kenworth 314702 en contrato de ARRENDAMIENTO PURO" Importe="27556.00" ObjetoImp="02" ValorUnitario="27556.00">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="27556.00" Importe="4408.96" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Camion-C7 Marca Kenworth 314703 en contrato de ARRENDAMIENTO PURO" Importe="27556.00" ObjetoImp="02" ValorUnitario="27556.00">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="27556.00" Importe="4408.96" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Camion-C7 Marca Kenworth 314704 en contrato de ARRENDAMIENTO PURO" Importe="27556.00" ObjetoImp="02" ValorUnitario="27556.00">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="27556.00" Importe="4408.96" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Camion-C7 Marca Kenworth 314705 en contrato de ARRENDAMIENTO PURO" Importe="27556.00" ObjetoImp="02" ValorUnitario="27556.00">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="27556.00" Importe="4408.96" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Camion-C7 Marca Kenworth 314706 en contrato de ARRENDAMIENTO PURO" Importe="27556.00" ObjetoImp="02" ValorUnitario="27556.00">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="27556.00" Importe="4408.96" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Camion-C7 Marca Kenworth 314707 en contrato de ARRENDAMIENTO PURO" Importe="27556.00" ObjetoImp="02" ValorUnitario="27556.00">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="27556.00" Importe="4408.96" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Caja Seca Marca HYUNDAI 314702CS en contrato de ARRENDAMIENTO PURO" Importe="13533.97" ObjetoImp="02" ValorUnitario="13533.97">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="13534.00" Importe="2165.44" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Caja Seca Marca HYUNDAI 314704CS en contrato de ARRENDAMIENTO PURO" Importe="13533.97" ObjetoImp="02" ValorUnitario="13533.97">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="13534.00" Importe="2165.44" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Caja Seca Marca HYUNDAI 314705CS en contrato de ARRENDAMIENTO PURO" Importe="13533.97" ObjetoImp="02" ValorUnitario="13533.97">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="13534.00" Importe="2165.44" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Caja Seca Marca HYUNDAI 314706CS en contrato de ARRENDAMIENTO PURO" Importe="13311.02" ObjetoImp="02" ValorUnitario="13311.02">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="13311.00" Importe="2129.76" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Caja Seca Marca HYUNDAI 314707CS en contrato de ARRENDAMIENTO PURO" Importe="13311.02" ObjetoImp="02" ValorUnitario="13311.02">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="13311.00" Importe="2129.76" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 318924 en contrato de ARRENDAMIENTO PURO" Importe="29406.23" ObjetoImp="02" ValorUnitario="29406.23">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="29406.25" Importe="4705.00" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 318925 en contrato de ARRENDAMIENTO PURO" Importe="29406.23" ObjetoImp="02" ValorUnitario="29406.23">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="29406.25" Importe="4705.00" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 318926 en contrato de ARRENDAMIENTO PURO" Importe="29406.23" ObjetoImp="02" ValorUnitario="29406.23">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="29406.25" Importe="4705.00" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion Marca Kenworth 318927 en contrato de ARRENDAMIENTO PURO" Importe="29406.23" ObjetoImp="02" ValorUnitario="29406.23">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="29406.25" Importe="4705.00" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion Marca Kenworth 318928 en contrato de ARRENDAMIENTO PURO" Importe="29406.23" ObjetoImp="02" ValorUnitario="29406.23">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="29406.25" Importe="4705.00" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion Marca Kenworth 318929 en contrato de ARRENDAMIENTO PURO" Importe="29406.23" ObjetoImp="02" ValorUnitario="29406.23">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="29406.25" Importe="4705.00" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion Marca Kenworth 318930 en contrato de ARRENDAMIENTO PURO" Importe="29406.23" ObjetoImp="02" ValorUnitario="29406.23">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="29406.25" Importe="4705.00" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion Marca Kenworth 318931 en contrato de ARRENDAMIENTO PURO" Importe="29406.23" ObjetoImp="02" ValorUnitario="29406.23">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="29406.25" Importe="4705.00" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion Marca Kenworth 318932 en contrato de ARRENDAMIENTO PURO" Importe="29406.23" ObjetoImp="02" ValorUnitario="29406.23">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="29406.25" Importe="4705.00" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 321584 en contrato de ARRENDAMIENTO PURO" Importe="28859.57" ObjetoImp="02" ValorUnitario="28859.57">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="28859.56" Importe="4617.53" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511804 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511805 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511807 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511810 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511814 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511815 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511816 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511817 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511818 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511819 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511820 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511821 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511822 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511823 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511813 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511824 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511825 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511828 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion Marca Kenworth 511829 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion Marca Kenworth 511830 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion Marca Kenworth 511833 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511808 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+        <cfdi:Concepto Cantidad="1" ClaveProdServ="72141700" ClaveUnidad="C62" Descripcion="Renta Mensual del Tractocamion-C8 Marca Kenworth 511811 en contrato de ARRENDAMIENTO PURO" Importe="30626.29" ObjetoImp="02" ValorUnitario="30626.29">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="30626.31" Importe="4900.21" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+    </cfdi:Conceptos>
+    <cfdi:Impuestos TotalImpuestosTrasladados="196876.96">
+        <cfdi:Traslados>
+            <cfdi:Traslado Base="1230480.94" Importe="196876.96" Impuesto="002" TasaOCuota="0.160000" TipoFactor="Tasa" />
+        </cfdi:Traslados>
+    </cfdi:Impuestos>
+    <cfdi:Complemento><tfd:TimbreFiscalDigital xsi:schemaLocation="http://www.sat.gob.mx/TimbreFiscalDigital http://www.sat.gob.mx/sitio_internet/cfd/TimbreFiscalDigital/TimbreFiscalDigitalv11.xsd" Version="1.1" UUID="66B722F9-3EEB-11F0-8784-6BE00E32B6C8" FechaTimbrado="2025-06-02T10:28:48" SelloCFD="K+pgJk1f0nrQTGxhYo3E8s+jc1BSBlzfneuetCgA2pv6eQaRGfMWvg1eR2bnqPeZ4B2JJsPuHybDXAPwK11RUQX5pCDqjRj4vMvvAbNrn4P+vDASGT9Pdji4Yw6Jnd6cOJ/bjdHzwMiwB8MTwjnH6hz1Xc33vYDF+t8Uid7Yr19/Bz97W2ID/H+kcRzWBLtcDdiEgr8AQjk1sIKdGDmJiJywlxr+wBzxcBzCgKzAI9GFOwcPv9/hsuL2p2gBaGUS052krYCy/TMNmPv4JUKqV+rAx+7VgSJT+EqwJab/EFWsjoRawG+0AhzrecIdzGWc47MHV3SJpT9Z44GfMxWYZw==" NoCertificadoSAT="00001000000700047508" SelloSAT="MItzdZMVSiFRRBgTnMnR7+LRxZpOQ+eijwdITLfsA7M5J+d+CUPFXbpRdmo2GAlGTvo2AbbO4Gs8/m/xyKMIdLz4NvuNt3T1GngmNiqBfaK1ybFStyBGBfXJyXVwPW3ZeN9+BJ0nnWTdlFvt8kxitDPcyEU1qSs7xpM4BqNpvRA3U6APQkOc709VFmkhBKCUtN3i5EHyPJe3TX4zDfN0RwCBLWzvVflYT9P+xi1sww18waM+K72TBjovSiG4N3sXjv7Yhuowew40AgigTAro2AzcFgjR5srpNrzs0uyw49+S+R5eJU7QaFRHziGcTCBzIcmRp0ZwZ+fjsr8iBhjTiA==" RfcProvCertif="EME000602QR9" /></cfdi:Complemento></cfdi:Comprobante>

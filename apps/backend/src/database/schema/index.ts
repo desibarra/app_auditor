@@ -2,8 +2,8 @@
 export * from './usuarios.schema';
 export * from './empresas.schema';
 export * from './empresa_usuario_rol.schema'; // Updated to use underscores
-export { expedientesDevolucionIva } from './expedientes_devolucion_iva';
 export { cedulasIva } from './cedulas_iva';
+export { expedientesDevolucionIva } from './expedientes_devolucion_iva';
 
 // ✨ NUEVAS TABLAS - PASO 1: Módulo de Materialidad y Devoluciones IVA
 export { cfdiRecibidos } from './cfdi_recibidos.schema';
@@ -13,3 +13,6 @@ export { documentosSoporte } from './documentos_soporte'; // Actualizado con nue
 
 // ✨ NUEVAS TABLAS - PASO 4: Expedientes de Devolución de IVA
 export { expedientesDevolucionIva as expedientesDevolucion, expedienteCfdi } from './expedientes_devolucion.schema';
+
+// ✨ NUEVAS TABLAS - ETAPA 1: Flujo de Efectivo
+export * from './bancos.schema';
