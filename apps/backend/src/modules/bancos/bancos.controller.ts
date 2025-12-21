@@ -34,6 +34,25 @@ export class BancosController {
         }
     }
 
+    @Post('import-excel')
+    @UseInterceptors(FileInterceptor('file'))
+    async uploadEstadoCuentaExcel(
+        @UploadedFile() file: Express.Multer.File,
+        @Body() body: { empresaId: string; banco: string; anio: number; mes: number; cuenta: string }
+    ) {
+        if (!file) throw new BadRequestException('Archivo requerido');
+        if (!body.empresaId || !body.banco || !body.anio || !body.mes || !body.cuenta) {
+            throw new BadRequestException('Faltan datos obligatorios');
+        }
+
+        try {
+            return await this.bancosService.procesarExcel(file, body.empresaId, body.banco, body.cuenta, Number(body.anio), Number(body.mes));
+        } catch (error) {
+            this.logger.error(`Error procesando Excel: ${error.message}`, error.stack);
+            throw new BadRequestException(error.message || 'Error importando Excel');
+        }
+    }
+
     @Get('movimientos')
     async getMovimientos(
         @Query('empresaId') empresaId: string,

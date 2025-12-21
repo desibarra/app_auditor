@@ -1,4 +1,5 @@
 import { Injectable, Inject, BadRequestException, Logger } from '@nestjs/common';
+import { Readable } from 'stream';
 import { eq, and, sql } from 'drizzle-orm';
 import { estadosCuenta, movimientosBancarios, cfdiRecibidos, empresas } from '../../database/schema';
 import * as fs from 'fs';
@@ -258,6 +259,340 @@ export class BancosService {
             }
         }
         return { success: true };
+    }
+
+    async procesarExcel(file: Express.Multer.File, empresaId: string, banco: string, cuenta: string, anio: number, mes: number) {
+        this.logger.log(`📥 Iniciando Importación Excel: ${file.originalname} (${file.size} bytes)`);
+
+        const workbook = new Excel.Workbook();
+        let worksheet: any;
+
+        try {
+            if (file.originalname.toLowerCase().endsWith('.csv')) {
+                // CSV Parsing
+                worksheet = await workbook.csv.read(new Readable({
+                    read() {
+                        this.push(file.buffer);
+                        this.push(null);
+                    }
+                }));
+            } else {
+                // XLSX Parsing
+                await workbook.xlsx.load(file.buffer);
+                worksheet = workbook.getWorksheet(1);
+            }
+        } catch (e) {
+            this.logger.error(`Error leyendo archivo Excel/CSV: ${e.message}`);
+            throw new BadRequestException('El archivo está dañado o tiene un formato no soportado.');
+        }
+
+        if (!worksheet) throw new BadRequestException('El archivo Excel no tiene hojas válidas.');
+
+        const movimientos: any[] = [];
+        let headerRow = -1;
+        let colMap = { fecha: -1, desc: -1, cargo: -1, abono: -1, ref: -1, monto: -1 };
+
+        // --- FASE 1: DETECCIÓN INTELIGENTE DE ENCABEZADOS ---
+        // Palabras clave expandidas para bancos mexicanos
+        const FECHA_KW = ['FECHA', 'DATE', 'DIA', 'OPERACION', 'APLICACION'];
+        const DESC_KW = ['DESCRIPCION', 'CONCEPTO', 'DETALLE', 'MOVIMIENTO', 'LEYENDA', 'REFERENCIA ALFANUMERICA'];
+        const CARGO_KW = ['CARGO', 'CARGOS', 'RETIRO', 'RETIROS', 'DEBITO', 'EGRESO', 'SALIDA'];
+        const ABONO_KW = ['ABONO', 'ABONOS', 'DEPOSITO', 'DEPOSITOS', 'CREDITO', 'INGRESO', 'ENTRADA'];
+        const REF_KW = ['REFERENCIA', 'FOLIO', 'NO.', 'NUMERO'];
+        const MONTO_KW = ['IMPORTE', 'MONTO', 'CANTIDAD', 'AMOUNT'];
+
+        // Escanear primeras 30 filas buscando encabezados
+        for (let rowNum = 1; rowNum <= Math.min(30, worksheet.rowCount); rowNum++) {
+            const row = worksheet.getRow(rowNum);
+            const values = (row.values as any[]).map(v => (v || '').toString().toUpperCase().trim());
+
+            let matchCount = 0;
+            const tempMap = { fecha: -1, desc: -1, cargo: -1, abono: -1, ref: -1, monto: -1 };
+
+            values.forEach((val, idx) => {
+                if (!val) return;
+
+                if (FECHA_KW.some(kw => val.includes(kw)) && tempMap.fecha === -1) {
+                    tempMap.fecha = idx;
+                    matchCount++;
+                }
+                if (DESC_KW.some(kw => val.includes(kw)) && tempMap.desc === -1) {
+                    tempMap.desc = idx;
+                    matchCount++;
+                }
+                if (CARGO_KW.some(kw => val.includes(kw)) && tempMap.cargo === -1) {
+                    tempMap.cargo = idx;
+                    matchCount++;
+                }
+                if (ABONO_KW.some(kw => val.includes(kw)) && tempMap.abono === -1) {
+                    tempMap.abono = idx;
+                    matchCount++;
+                }
+                if (REF_KW.some(kw => val.includes(kw)) && tempMap.ref === -1) {
+                    tempMap.ref = idx;
+                }
+                if (MONTO_KW.some(kw => val.includes(kw)) && !val.includes('SALDO') && tempMap.monto === -1) {
+                    tempMap.monto = idx;
+                    matchCount++;
+                }
+            });
+
+            // Si encontramos al menos Fecha + (Descripción o Monto), es header válido
+            if (matchCount >= 2 && tempMap.fecha !== -1) {
+                headerRow = rowNum;
+                colMap = tempMap;
+                this.logger.log(`✅ Header detectado en fila ${rowNum}: ${JSON.stringify(colMap)}`);
+                break;
+            }
+        }
+
+        if (headerRow === -1) {
+            this.logger.error('❌ No se detectaron encabezados válidos');
+            throw new BadRequestException('No se encontraron los encabezados esperados. Verifica que el Excel tenga columnas de Fecha, Concepto y Monto.');
+        }
+
+
+        // --- FASE 2: EXTRACCIÓN DE MOVIMIENTOS ---
+        let rowsProcessed = 0;
+        let rowsSkipped = 0;
+
+        for (let rowNum = headerRow + 1; rowNum <= worksheet.rowCount; rowNum++) {
+            const row = worksheet.getRow(rowNum);
+            const rawVals = row.values as any[];
+
+            // Skip filas vacías
+            if (!rawVals || rawVals.filter(v => v).length === 0) continue;
+
+            // Skip filas que parecen totales o pie de página
+            const rowStr = rawVals.join(' ').toString().toUpperCase();
+            if (rowStr.includes('TOTAL') || rowStr.includes('SALDO FINAL') || rowStr.includes('SUMA')) {
+                rowsSkipped++;
+                continue;
+            }
+
+            rowsProcessed++;
+
+            try {
+                // FECHA - Parsing robusto
+                let fecha: Date | null = null;
+                const fechaRaw = rawVals[colMap.fecha];
+
+                if (fechaRaw instanceof Date) {
+                    fecha = fechaRaw;
+                } else if (fechaRaw) {
+                    const str = fechaRaw.toString().trim();
+
+                    // Intentar varios formatos
+                    // DD/MM/YYYY, DD-MM-YYYY
+                    if (str.match(/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$/)) {
+                        const parts = str.split(/[\/\-]/);
+                        const day = parseInt(parts[0]);
+                        const month = parseInt(parts[1]);
+                        const year = parts[2].length === 2 ? 2000 + parseInt(parts[2]) : parseInt(parts[2]);
+
+                        // Validar que sea DD/MM (día > 12 o mes <= 12)
+                        if (day > 12 || month <= 12) {
+                            fecha = new Date(year, month - 1, day);
+                        } else {
+                            // Ambiguo, asumir DD/MM por ser México
+                            fecha = new Date(year, month - 1, day);
+                        }
+                    }
+                    // YYYY-MM-DD
+                    else if (str.match(/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/)) {
+                        fecha = new Date(str);
+                    }
+                    // Intento genérico
+                    else {
+                        fecha = new Date(str);
+                    }
+                }
+
+                if (!fecha || isNaN(fecha.getTime())) {
+                    rowsSkipped++;
+                    continue;
+                }
+
+                // Ajustar año si es necesario
+                if (fecha.getFullYear() < 2000) {
+                    fecha.setFullYear(anio);
+                }
+
+                // DESCRIPCION
+                let descripcion = 'MOVIMIENTO BANCARIO';
+                if (colMap.desc > -1 && rawVals[colMap.desc]) {
+                    descripcion = rawVals[colMap.desc].toString().trim().substring(0, 200);
+                }
+
+                // REFERENCIA
+                let referencia = '';
+                if (colMap.ref > -1 && rawVals[colMap.ref]) {
+                    referencia = rawVals[colMap.ref].toString().trim();
+                }
+
+                // MONTOS - Helper para limpiar
+                const cleanMoney = (val: any): number => {
+                    if (typeof val === 'number') return val;
+                    if (!val) return 0;
+                    // Remover todo excepto dígitos, punto y signo negativo
+                    const cleaned = val.toString().replace(/[^0-9.-]/g, '');
+                    return parseFloat(cleaned) || 0;
+                };
+
+                let monto = 0;
+                let tipo: 'CARGO' | 'ABONO' = 'CARGO';
+
+                // Estrategia A: Columnas separadas Cargo/Abono
+                if (colMap.cargo > -1 && colMap.abono > -1) {
+                    const cargo = Math.abs(cleanMoney(rawVals[colMap.cargo]));
+                    const abono = Math.abs(cleanMoney(rawVals[colMap.abono]));
+
+                    if (abono > 0 && cargo === 0) {
+                        monto = abono;
+                        tipo = 'ABONO';
+                    } else if (cargo > 0 && abono === 0) {
+                        monto = cargo;
+                        tipo = 'CARGO';
+                    } else if (abono > 0 && cargo > 0) {
+                        // Ambos tienen valor, tomar el mayor
+                        if (abono > cargo) {
+                            monto = abono;
+                            tipo = 'ABONO';
+                        } else {
+                            monto = cargo;
+                            tipo = 'CARGO';
+                        }
+                    }
+                }
+                // Estrategia B: Columna única de Importe (con signo)
+                else if (colMap.monto > -1) {
+                    const rawMonto = cleanMoney(rawVals[colMap.monto]);
+                    if (rawMonto < 0) {
+                        monto = Math.abs(rawMonto);
+                        tipo = 'CARGO';
+                    } else if (rawMonto > 0) {
+                        monto = rawMonto;
+                        tipo = 'ABONO';
+                    }
+                }
+
+                // Skip si no hay monto válido
+                if (monto === 0 || isNaN(monto)) {
+                    rowsSkipped++;
+                    continue;
+                }
+
+                movimientos.push({
+                    fecha: fecha.toISOString().split('T')[0],
+                    descripcion,
+                    referencia,
+                    monto: tipo === 'CARGO' ? -monto : monto,
+                    tipo
+                });
+
+            } catch (err) {
+                this.logger.warn(`⚠️ Error procesando fila ${rowNum}: ${err.message}`);
+                rowsSkipped++;
+            }
+        }
+
+        this.logger.log(`📊 Procesadas ${rowsProcessed} filas, ${rowsSkipped} omitidas, ${movimientos.length} movimientos extraídos`);
+
+        if (movimientos.length === 0) {
+            throw new BadRequestException('No se extrajeron movimientos válidos. Verifica el formato del Excel.');
+        }
+
+        // --- FASE 3: PERSISTENCIA Y LIMPIEZA ---
+        const previos = await this.db.select().from(estadosCuenta).where(and(
+            eq(estadosCuenta.empresaId, empresaId),
+            eq(estadosCuenta.banco, banco),
+            eq(estadosCuenta.anio, anio),
+            eq(estadosCuenta.mes, mes)
+        ));
+
+        for (const p of previos) {
+            await this.db.delete(movimientosBancarios).where(eq(movimientosBancarios.estadoCuentaId, p.id));
+            await this.db.delete(estadosCuenta).where(eq(estadosCuenta.id, p.id));
+        }
+
+        const estadoCuentaId = randomUUID();
+        // Guardar archivo físico 
+        const uploadsDir = path.join(process.cwd(), 'uploads', 'bancos', empresaId);
+        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+        const filePath = path.join(uploadsDir, `${anio}_${mes}_${file.originalname}`);
+        fs.writeFileSync(filePath, file.buffer);
+
+        await this.db.insert(estadosCuenta).values({
+            id: estadoCuentaId,
+            empresaId,
+            banco,
+            cuenta,
+            anio,
+            mes,
+            archivoPath: filePath,
+            fechaCarga: new Date(),
+        });
+
+        // --- FASE 4: AUTO-CONCILIACIÓN ---
+        let conciliadosCount = 0;
+
+        // Cargar CFDIs del mes para buscar matches (Optimización en memoria)
+        const cfdis = await this.db.select({
+            uuid: cfdiRecibidos.uuid,
+            total: cfdiRecibidos.total,
+            fecha: cfdiRecibidos.fecha,
+            tipo: cfdiRecibidos.tipoComprobante
+        }).from(cfdiRecibidos).where(eq(cfdiRecibidos.empresaId, empresaId));
+
+        this.logger.log(`🔍 Buscando coincidencias entre ${movimientos.length} movimientos y ${cfdis.length} CFDIs...`);
+
+        for (const mov of movimientos) {
+            const montoAbs = Math.abs(mov.monto);
+            const fechaMov = new Date(mov.fecha).getTime();
+
+            const match = cfdis.find((c: any) => {
+                const diffMonto = Math.abs(c.total - montoAbs);
+                if (diffMonto > 0.5) return false;
+
+                const fechaCfdi = new Date(c.fecha).getTime();
+                const diffDays = Math.abs(fechaMov - fechaCfdi) / (1000 * 3600 * 24);
+
+                return diffDays <= 7;
+            });
+
+            await this.db.insert(movimientosBancarios).values({
+                id: randomUUID(),
+                estadoCuentaId,
+                fecha: mov.fecha,
+                descripcion: mov.descripcion,
+                referencia: mov.referencia,
+                monto: mov.monto,
+                tipo: mov.tipo,
+                conciliado: !!match,
+                cfdiUuid: match ? match.uuid : null
+            });
+
+            if (match) conciliadosCount++;
+        }
+
+        const totalDepositos = movimientos.filter(m => m.tipo === 'ABONO').reduce((acc, m) => acc + m.monto, 0);
+        const totalRetiros = movimientos.filter(m => m.tipo === 'CARGO').reduce((acc, m) => acc + Math.abs(m.monto), 0);
+        const pctConciliado = movimientos.length > 0 ? Math.round((conciliadosCount / movimientos.length) * 100) : 0;
+
+        this.logger.log(`✅ Importación completada: ${movimientos.length} movimientos, ${conciliadosCount} conciliados (${pctConciliado}%)`);
+
+        return {
+            success: true,
+            message: `Excel procesado exitosamente.`,
+            resumen: {
+                movimientos: movimientos.length,
+                totalDepositos,
+                totalRetiros,
+                saldoFinal: totalDepositos - totalRetiros,
+                conciliados: conciliadosCount,
+                porcentajeConciliado: pctConciliado
+            }
+        };
     }
 
     async exportarExcel(empresaId: string, anio: number, mes: number) {
