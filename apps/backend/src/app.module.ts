@@ -12,6 +12,7 @@ import { S3Module } from './s3/s3.module';
 import { SeedModule } from './modules/seed/seed.module';
 import { LegajoModule } from './modules/legajo/legajo.module';
 import { BancosModule } from './modules/bancos/bancos.module';
+import { RiskModule } from './modules/risk/risk.module';
 
 @Module({
     imports: [
@@ -31,6 +32,7 @@ import { BancosModule } from './modules/bancos/bancos.module';
         SeedModule,
         LegajoModule,
         BancosModule,
+        RiskModule,
     ],
     controllers: [],
     providers: [],

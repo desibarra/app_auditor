@@ -1,7 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { cfdiRiesgos } from '../../database/schema';
+import { eq, desc } from 'drizzle-orm';
 
 @Injectable()
 export class DashboardService {
+    constructor(@Inject('DRIZZLE_CLIENT') private db: any) { }
+
     async getOverview(empresaId: string) {
         // TODO: Consultar métricas reales de BD
         return {
@@ -21,30 +25,9 @@ export class DashboardService {
                 gastoProveedoresRiesgo: 18.5, // porcentaje
                 expedientesIncompletos: 7,
             },
-            topAlertas: [
-                {
-                    id: '1',
-                    tipo: 'proveedor_efos',
-                    nivel: 'alta',
-                    mensaje: 'Proveedor XYZ identificado como posible EFOS',
-                    fecha: new Date().toISOString(),
-                },
-                {
-                    id: '2',
-                    tipo: 'cfdi_sin_evidencia',
-                    nivel: 'media',
-                    mensaje: '5 CFDI de servicios sin expediente de materialidad',
-                    fecha: new Date().toISOString(),
-                },
-                {
-                    id: '3',
-                    tipo: 'tasa_atipica',
-                    nivel: 'media',
-                    mensaje: 'Tasa efectiva de ISR inusualmente baja (8.2%)',
-                    fecha: new Date().toISOString(),
-                },
-            ],
+            topAlertas: await this.getTopRisks(empresaId),
             ingresosEgresos: [
+
                 { mes: 'Jul', ingresos: 450000, egresos: 320000 },
                 { mes: 'Ago', ingresos: 520000, egresos: 380000 },
                 { mes: 'Sep', ingresos: 480000, egresos: 350000 },
@@ -55,18 +38,20 @@ export class DashboardService {
         };
     }
 
-    getDemoEmpresaOverview() {
-        return {
-            totalCfdiMes: {
-                ingresos: 120,
-                egresos: 80,
-            },
-            alertasActivas: {
-                alta: 5,
-                media: 10,
-            },
-            gastoProveedoresRiesgo: 25, // porcentaje
-            expedientesIncompletos: 3,
-        };
+    async getTopRisks(empresaId: string) {
+        // Fetch real alerts from DB
+        const riesgos = await this.db.select()
+            .from(cfdiRiesgos)
+            .where(eq(cfdiRiesgos.empresaId, empresaId))
+            .orderBy(desc(cfdiRiesgos.fechaAnalisis))
+            .limit(5);
+
+        return riesgos.map(r => ({
+            id: r.id,
+            tipo: r.tipoRiesgo.toLowerCase(),
+            nivel: r.nivelRiesgo.toLowerCase(),
+            mensaje: r.titulo,
+            fecha: r.fechaAnalisis
+        }));
     }
 }

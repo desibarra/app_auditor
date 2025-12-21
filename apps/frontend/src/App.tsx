@@ -3,6 +3,9 @@ import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import ExpedientesPage from './pages/ExpedientesPage';
 import BancosPage from './pages/BancosPage';
+import ListaDevolucionesPage from './pages/ListaDevolucionesPage';
+import DetalleDevolucionPage from './pages/DetalleDevolucionPage';
+import ConfiguracionPage from './pages/ConfiguracionPage';
 
 function App() {
     return (
@@ -11,7 +14,10 @@ function App() {
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/config" element={<ConfiguracionPage />} />
                 <Route path="/expedientes" element={<ExpedientesPage />} />
+                <Route path="/devoluciones" element={<ListaDevolucionesPage />} />
+                <Route path="/devoluciones/:id" element={<DetalleDevolucionPage />} />
                 <Route path="/bancos" element={<BancosPage />} />
             </Routes>
         </BrowserRouter>

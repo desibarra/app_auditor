@@ -1,0 +1,25 @@
+--- checking cfdi_recibidos ---
+Total Rows: 36738
+Date Range: {"minF":"2025-01-01T00:03:03","maxF":"2025-12-18T09:41:29"}
+Types: [
+  {
+    "tipo_comprobante": "E",
+    "c": 224
+  },
+  {
+    "tipo_comprobante": "I",
+    "c": 27519
+  },
+  {
+    "tipo_comprobante": "N",
+    "c": 8112
+  },
+  {
+    "tipo_comprobante": "P",
+    "c": 882
+  },
+  {
+    "tipo_comprobante": "T",
+    "c": 1
+  }
+]

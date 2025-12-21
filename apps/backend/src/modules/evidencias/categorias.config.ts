@@ -17,102 +17,123 @@ export interface CategoriaEvidencia {
  * Categorías de evidencia por tipo de comprobante
  */
 export const CATEGORIAS_POR_TIPO: Record<string, CategoriaEvidencia[]> = {
-    // Tipo I: Ingreso (Ventas/Servicios)
+    // Tipo I: Ingreso (Fletes / Servicios de Transporte)
     I: [
         {
             id: 'contrato',
-            nombre: 'Contrato de Prestación de Servicios',
-            descripcion: 'Contrato firmado con el cliente',
+            nombre: 'Contrato Transporte / Prestación Servicios',
+            descripcion: 'Contrato marco o específico firmado con el cliente',
             requerido: true,
             icono: '📄',
         },
         {
-            id: 'entregable',
-            nombre: 'Evidencia de Entrega / Entregable',
-            descripcion: 'Comprobante de entrega del producto o servicio',
+            id: 'carta_porte',
+            nombre: 'Carta Porte / Complemento CCP',
+            descripcion: 'Evidencia del complemento Carta Porte o PDF generado',
             requerido: true,
-            icono: '📦',
+            icono: '🚛',
+        },
+        {
+            id: 'doda',
+            nombre: 'DODA / Pedimento (Exportación)',
+            descripcion: 'Documento aduanal para cruces o exportaciones',
+            requerido: false, // Solo para exportación, pero vital sugerirlo
+            icono: '🌐',
+        },
+        {
+            id: 'entregable',
+            nombre: 'Evidencia de Entrega (Acuse/Sello)',
+            descripcion: 'Prueba de entrega recibida, sellada por cliente destino',
+            requerido: true,
+            icono: '✅',
+        },
+        {
+            id: 'bitacora',
+            nombre: 'Bitácora de Viaje / Ruta',
+            descripcion: 'Hoja de ruta, control de kilometraje y tiempos',
+            requerido: false,
+            icono: '🗺️',
         },
         {
             id: 'pago',
-            nombre: 'Comprobante de Pago',
-            descripcion: 'Estado de cuenta o transferencia bancaria',
+            nombre: 'Comprobante de Pago / CEP',
+            descripcion: 'Transferencia bancaria o complemento de pago',
             requerido: true,
             icono: '💰',
         },
         {
-            id: 'bitacora',
-            nombre: 'Bitácora o Reporte de Servicio',
-            descripcion: 'Reporte de actividades para el cliente',
-            requerido: false,
-            icono: '📝',
-        },
-        {
             id: 'correos',
-            nombre: 'Correos o Minutas de Trabajo',
-            descripcion: 'Comunicaciones con el cliente',
+            nombre: 'Minutas / Instrucciones de Carga',
+            descripcion: 'Correos con instrucciones de embarque',
             requerido: false,
             icono: '📧',
         },
     ],
 
-    // Tipo E: Egreso (Compras/Gastos)
+    // Tipo E: Egreso (Gastos Operativos Transporte)
     E: [
         {
             id: 'contrato',
-            nombre: 'Contrato de Prestación de Servicios',
-            descripcion: 'Contrato firmado con el proveedor',
+            nombre: 'Contrato con Proveedor',
+            descripcion: 'Contrato de servicios o insumos',
             requerido: false,
-            icono: '📄',
+            icono: '🤝',
         },
         {
             id: 'contrato_arrendamiento',
-            nombre: 'Contrato de Arrendamiento',
-            descripcion: 'Contrato de arrendamiento firmado (para gastos de renta)',
+            nombre: 'Arrendamiento Unidades / Remolques',
+            descripcion: 'Contrato de renta de tractocamiones o cajas secas',
+            requerido: false, // Condicional
+            icono: '🚛',
+        },
+        {
+            id: 'ticket_diesel',
+            nombre: 'Ticket de Diesel / Volumétrico',
+            descripcion: 'Comprobante de carga de combustible (litros, bomba)',
+            requerido: true,
+            icono: '⛽',
+        },
+        {
+            id: 'peajes',
+            nombre: 'Casetas / Peajes (IAVE)',
+            descripcion: 'Reporte de cruces o tickets de caseta',
             requerido: false,
-            icono: '🏠',
+            icono: '🛣️',
+        },
+        {
+            id: 'mantenimiento',
+            nombre: 'Orden de Servicio / Mantenimiento',
+            descripcion: 'Reporte de taller, refacciones instaladas',
+            requerido: false,
+            icono: '🔧',
         },
         {
             id: 'pedido',
-            nombre: 'Orden de Compra o Pedido',
-            descripcion: 'Documento que autoriza la compra',
+            nombre: 'Orden de Compra / Cotización',
+            descripcion: 'Autorización interna del gasto',
             requerido: true,
-            icono: '📦',
+            icono: '🛒',
         },
         {
             id: 'entrega',
-            nombre: 'Foto de Mercancía o Entrega',
-            descripcion: 'Evidencia fotográfica de la recepción',
+            nombre: 'Evidencia de Recepción (Insumos)',
+            descripcion: 'Foto de refacciones o insumos recibidos en almacén',
             requerido: true,
             icono: '📸',
         },
         {
+            id: 'poliza_seguro',
+            nombre: 'Póliza de Seguro (Carga/Unidad)',
+            descripcion: 'Póliza vigente de la unidad o seguro de carga específica',
+            requerido: false,
+            icono: '🛡️',
+        },
+        {
             id: 'pago',
-            nombre: 'Comprobante de Pago / Transferencia',
-            descripcion: 'Estado de cuenta o transferencia bancaria',
+            nombre: 'Comprobante de Pago',
+            descripcion: 'Transferencia bancaria (Salida de banco)',
             requerido: true,
-            icono: '💰',
-        },
-        {
-            id: 'bitacora',
-            nombre: 'Bitácora o Reporte de Servicio',
-            descripcion: 'Reporte detallado de actividades realizadas',
-            requerido: false,
-            icono: '📝',
-        },
-        {
-            id: 'correos',
-            nombre: 'Correos o Minutas de Trabajo',
-            descripcion: 'Comunicaciones que validen la gestión',
-            requerido: false,
-            icono: '📧',
-        },
-        {
-            id: 'cotizacion',
-            nombre: 'Cotización Comparativa',
-            descripcion: 'Cotización previa para sustentar selección',
-            requerido: false,
-            icono: '📑',
+            icono: '💸',
         },
     ],
 
@@ -121,52 +142,66 @@ export const CATEGORIAS_POR_TIPO: Record<string, CategoriaEvidencia[]> = {
         {
             id: 'estado_cuenta',
             nombre: 'Estado de Cuenta Bancario',
-            descripcion: 'Estado de cuenta que muestra el movimiento',
+            descripcion: 'Renglón del banco donde se refleja el movimiento',
             requerido: true,
             icono: '🏦',
         },
         {
             id: 'transferencia',
-            nombre: 'Comprobante de Transferencia',
-            descripcion: 'Comprobante bancario de la transferencia',
+            nombre: 'SPEI / Comprobante Transferencia',
+            descripcion: 'PDF del banco con detalles de la operación',
             requerido: true,
-            icono: '💸',
+            icono: '📲',
         },
     ],
 
-    // Tipo N: Nómina
+    // Tipo N: Nómina (Operadores)
     N: [
         {
             id: 'recibo',
-            nombre: 'Recibo de Nómina Firmado',
-            descripcion: 'Recibo firmado por el empleado',
+            nombre: 'Lista de Raya / Recibo Firmado',
+            descripcion: 'Recibo de nómina firmado por el operador',
             requerido: true,
             icono: '✍️',
         },
         {
+            id: 'contrato_laboral',
+            nombre: 'Contrato Laboral / Expediente',
+            descripcion: 'Contrato individual de trabajo vigente',
+            requerido: false,
+            icono: '📂',
+        },
+        {
             id: 'deposito',
-            nombre: 'Comprobante de Depósito',
-            descripcion: 'Comprobante de depósito o transferencia',
+            nombre: 'Dispersión Bancaria',
+            descripcion: 'Comprobante de pago masivo o individual',
             requerido: true,
             icono: '💵',
         },
+        {
+            id: 'control_asistencia',
+            nombre: 'Control de Viajes / Asistencia',
+            descripcion: 'Reporte de viajes realizados en el periodo',
+            requerido: false,
+            icono: '🚍',
+        },
     ],
 
-    // Tipo T: Traslado
+    // Tipo T: Traslado (Carta Porte)
     T: [
         {
-            id: 'guia',
-            nombre: 'Guía de Traslado',
-            descripcion: 'Documento de traslado de mercancías',
+            id: 'carta_porte_t',
+            nombre: 'Carta Porte (Traslado)',
+            descripcion: 'CFDI de traslado con complemento Carta Porte',
             requerido: true,
             icono: '🚚',
         },
         {
-            id: 'foto',
-            nombre: 'Foto de Mercancía',
-            descripcion: 'Evidencia fotográfica del traslado',
+            id: 'inventario',
+            nombre: 'Salida de Inventario',
+            descripcion: 'Orden de salida de almacén propia',
             requerido: false,
-            icono: '📸',
+            icono: '📦',
         },
     ],
 };

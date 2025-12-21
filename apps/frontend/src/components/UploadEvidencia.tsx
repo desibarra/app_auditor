@@ -12,10 +12,11 @@ interface CategoriaEvidencia {
 interface UploadEvidenciaProps {
     cfdiUuid: string;
     tipoComprobante: string;
+    folioControl?: string; // Nuevo prop opcional
     onSuccess: () => void;
 }
 
-function UploadEvidencia({ cfdiUuid, tipoComprobante, onSuccess }: UploadEvidenciaProps) {
+function UploadEvidencia({ cfdiUuid, tipoComprobante, folioControl, onSuccess }: UploadEvidenciaProps) {
     const [categorias, setCategorias] = useState<CategoriaEvidencia[]>([]);
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
     const [descripcion, setDescripcion] = useState('');
@@ -117,6 +118,8 @@ function UploadEvidencia({ cfdiUuid, tipoComprobante, onSuccess }: UploadEvidenc
             formData.append('cfdiUuid', cfdiUuid);
             formData.append('categoria', categoriaSeleccionada);
             formData.append('descripcion', descripcion || archivo.name);
+            // Default folio if not provided
+            formData.append('folio_control', folioControl || `AUDIT-1X1-${new Date().getFullYear()}`);
 
             // Archivo al FINAL
             formData.append('file', archivo);

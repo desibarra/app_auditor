@@ -11,6 +11,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { DEMO_METRICAS, DEMO_RESUMEN } from '../data/demoData'; // IMPORT DEMO DATA
+
+const USE_DEMO_MODE = false; // ACTIVAR MODO DEMO
 
 export interface MetricasDominio {
     cfdi_del_mes: number;
@@ -61,76 +64,65 @@ export const useMetricasDominio = (
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const fetchDatos = useCallback(async () => {
-        if (!empresaId || !endpoint) {
+        if (!empresaId) return;
+
+        // --- DEMO MODE INJECTION ---
+        if (USE_DEMO_MODE) {
+            setLoading(true);
+            setTimeout(() => {
+                setMetricas(DEMO_METRICAS);
+                setResumen(DEMO_RESUMEN);
+                setDominio("demo-forense.com.mx");
+                setRol("EMISOR");
+                setTipo("Ingresos");
+                setPeriodo("Septiembre 2025");
+                setError(null);
+                setLoading(false);
+            }, 500);
+            return;
+        }
+        // ---------------------------
+
+        if (!endpoint) {
             setLoading(false);
             return;
         }
 
         try {
             setLoading(true);
+            // Construir Query Params
+            const params = new URLSearchParams();
+            if (filtros.mes) params.append('mes', filtros.mes);
+            if (filtros.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
+            if (filtros.fechaFin) params.append('fechaFin', filtros.fechaFin);
+            params.append('empresaId', empresaId); // 👈 FIXED: Backend expects Query Param
+
+            const url = `${endpoint}?${params.toString()}`;
+
+            const response = await axios.get(url);
+
+            const data = response.data;
+            setMetricas(data.metricas);
+            setResumen(data.resumen);
+            setDominio(data.dominio);
+            setRol(data.rol);
+            setTipo(data.tipo);
+            setPeriodo(data.periodo);
             setError(null);
 
-            const params: any = { empresaId };
-
-            // Lógica de Filtros (Prioridad: Rango > Mes)
-            if (filtros.fechaInicio && filtros.fechaFin) {
-                params.fechaInicio = filtros.fechaInicio;
-                params.fechaFin = filtros.fechaFin;
-                // Limpiamos mes si hay rango
-                params.mes = undefined;
-            } else if (filtros.mes) {
-                params.mes = filtros.mes;
-            }
-
-            const response = await axios.get(endpoint, { params });
-
-            if (response.data.success) {
-                setMetricas(response.data.metricas);
-                setResumen(response.data.resumen);
-                setDominio(response.data.dominio);
-                setRol(response.data.rol);
-                setTipo(response.data.tipo);
-                setPeriodo(response.data.periodo);
-            } else {
-                setError('Error al obtener datos del dominio');
-            }
-        } catch (err: any) {
-            console.error('[useMetricasDominio] Error:', err);
-            if (err.code === 'ERR_NETWORK') {
-                setError('Error de conexión: No se pudo contactar al servidor. (Revise puerto 4000)');
-            } else if (err.response) {
-                // El servidor respondió con error (4xx, 5xx)
-                setError(`Error del servidor (${err.response.status}): ${err.response.data?.message || 'Solicitud rechazada'}`);
-            } else if (err.request) {
-                // La petición se hizo pero no hubo respuesta
-                setError('El servidor no responde. Verifique su conexión.');
-            } else {
-                setError(err.message || 'Error desconocido de aplicación');
-            }
+        } catch (err) {
+            console.error('Error fetching metricas dominio:', err);
+            setError('No se pudieron cargar las métricas');
         } finally {
             setLoading(false);
         }
-    }, [empresaId, endpoint, filtros.mes, filtros.fechaInicio, filtros.fechaFin]);
+    }, [empresaId, endpoint, JSON.stringify(filtros), refreshTrigger]);
 
     useEffect(() => {
         fetchDatos();
-    }, [fetchDatos, refreshTrigger]);
+    }, [fetchDatos]);
 
-    const refresh = useCallback(() => {
-        setRefreshTrigger(prev => prev + 1);
-    }, []);
+    const refresh = () => setRefreshTrigger(prev => prev + 1);
 
-    return {
-        metricas,
-        resumen,
-        dominio,
-        rol,
-        tipo,
-        periodo,
-        loading,
-        error,
-        refresh,
-    };
+    return { metricas, resumen, dominio, rol, tipo, periodo, loading, error, refresh };
 };
-
-export default useMetricasDominio;

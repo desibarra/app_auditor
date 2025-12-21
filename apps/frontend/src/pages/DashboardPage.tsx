@@ -1,13 +1,11 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import TablaCfdiRecientes from '../components/TablaCfdiRecientes';
-import BotonCargarXml from '../components/BotonCargarXml';
 import SelectorEmpresa from '../components/SelectorEmpresa';
-import GraficaIngresosEgresos from '../components/GraficaIngresosEgresos';
-import SkeletonCard from '../components/SkeletonCard';
 import { TablaControlMensualDominio } from '../components/TablaControlMensualDominio';
 import { useMetricasDominio } from '../hooks/useMetricasDominio';
+import MissionControlLayout from '../components/MissionControlLayout';
+import FiscalCharts from '../components/FiscalCharts';
+import ContextBar from '../components/ContextBar';
 
 interface HistoricoMes {
     mes: string;
@@ -17,460 +15,261 @@ interface HistoricoMes {
 }
 
 interface DashboardData {
-    totalCfdiMes: {
-        ingresos: number;
-        egresos: number;
-    };
     alertasActivas: {
         alta: number;
         media: number;
     };
-    gastoProveedoresRiesgo: number;
-    expedientesIncompletos: number;
-    topAlertas: Array<{
-        id: string | number;
-        mensaje: string;
-        nivel: 'alta' | 'media' | 'baja';
-        fecha: string;
-    }>;
-    historico?: HistoricoMes[];
+    historico?: HistoricoMes[]; // Histórico 12 meses
 }
 
 function DashboardPage() {
-    const navigate = useNavigate();
-    const [data, setData] = useState<DashboardData | null>(null);
-    const [health, setHealth] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [refreshKey, setRefreshKey] = useState(0);
+    // Estado Global Dashboard
+    const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string | null>(null);
+    // const [loadingGlobal, setLoadingGlobal] = useState(false); // Eliminado si no se usa visualmente aún
 
-    // 🛡️ TABS SAT-GRADE (Nivel 1 y 2)
+    // TABS (Nivel 1 y 2)
     const [tabPrincipal, setTabPrincipal] = useState<'emitidos' | 'recibidos'>('emitidos');
     const [subTab, setSubTab] = useState<string>('ingresos');
 
-    // 🔍 ESTADO DE FILTROS (Single Source of Truth)
+    // FILTROS (Single Source of Truth)
     const [filtros, setFiltros] = useState<{
         mes: string | null;
         fechaInicio: string | null;
         fechaFin: string | null;
     }>({
-        mes: new Date().toISOString().substring(0, 7), // Default: Mes actual
+        mes: new Date().toISOString().substring(0, 7),
         fechaInicio: null,
         fechaFin: null
     });
 
-    // Resetear sub-tab al cambiar de contexto principal
+    // 1. Fetch Global Data (Histórico 12 meses, Alertas Generales)
     useEffect(() => {
-        if (tabPrincipal === 'emitidos') {
-            // Default: Ingresos
-            if (!['ingresos', 'nomina', 'pagos', 'notas_credito'].includes(subTab)) setSubTab('ingresos');
-        } else {
-            // Default: Gastos
-            if (!['gastos', 'pagos', 'notas_credito'].includes(subTab)) setSubTab('gastos');
-        }
-    }, [tabPrincipal]);
+        // RESET INTELIGENTE DE ESTADO: Previene mostrar datos de la empresa anterior
+        setDashboardData(null);
 
-    // Determinar Endpoint Oficial SAT-Grade
+        const fetchGlobal = async () => {
+            if (!empresaSeleccionada) return;
+            // setLoadingGlobal(true);
+            try {
+                const res = await axios.get(`/api/stats/dashboard?empresaId=${empresaSeleccionada}`);
+                setDashboardData(res.data);
+            } catch (err) {
+                console.error("Error loading global stats", err);
+            } finally {
+                // setLoadingGlobal(false);
+            }
+        };
+        fetchGlobal();
+    }, [empresaSeleccionada]);
+
+    // 2. Hook Metricas Dominio (Datos del Mes Actual/Filtro)
     const getEndpoint = () => {
+        const base = tabPrincipal === 'emitidos' ? '/api/cfdi/emitidos' : '/api/cfdi/recibidos';
+        // Mapeo de subtabs a endpoints
         if (tabPrincipal === 'emitidos') {
-            switch (subTab) {
-                case 'ingresos': return '/api/cfdi/emitidos/ingresos';
-                case 'nomina': return '/api/cfdi/emitidos/nomina';
-                case 'pagos': return '/api/cfdi/emitidos/pagos';
-                case 'notas_credito': return '/api/cfdi/emitidos/egresos'; // NC Emitidas (Tipo E)
-            }
+            if (subTab === 'ingresos') return `${base}/ingresos`;
+            if (subTab === 'nomina') return `${base}/nomina`;
+            if (subTab === 'pagos') return `${base}/pagos`;
+            if (subTab === 'notas_credito') return `${base}/egresos`;
         } else {
-            switch (subTab) {
-                case 'gastos': return '/api/cfdi/recibidos/gastos'; // Gastos (Tipo I)
-                case 'pagos': return '/api/cfdi/recibidos/pagos';
-                case 'notas_credito': return '/api/cfdi/recibidos/egresos'; // NC Recibidas (Tipo E)
-            }
+            if (subTab === 'gastos') return `${base}/gastos`;
+            if (subTab === 'pagos') return `${base}/pagos`;
+            if (subTab === 'notas_credito') return `${base}/egresos`;
         }
-        return '';
+        return `${base}/ingresos`; // Default
     };
 
-    // 🎣 HOOK DINÁMICO (Consume la verdad única del dominio seleccionado + filtros)
-    const { metricas, resumen, dominio, rol, tipo, periodo, loading: loadingDominio, error: errorDominio, refresh } = useMetricasDominio(
+    const endpoint = getEndpoint();
+
+    // 1. Hook para KPIs (RESPETA FILTROS)
+    const { metricas, dominio, rol, tipo, periodo, loading: loadingMetrics } = useMetricasDominio(
         empresaSeleccionada,
-        getEndpoint(),
+        endpoint,
         filtros
     );
 
-    // Carga Global inicial
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const healthRes = await axios.get('/api/dashboard/health');
-                setHealth(healthRes.data);
+    // 2. Hook para Tabla Mensual (IGNORA FILTROS - HISTÓRICO COMPLETO)
+    // Pasamos un objeto vacío como filtro para forzar la carga de todos los meses disponibles
+    const { resumen: resumenHistorico, loading: loadingTabla } = useMetricasDominio(
+        empresaSeleccionada,
+        endpoint,
+        {}
+    );
 
-                if (empresaSeleccionada) {
-                    const statsRes = await axios.get(`/api/stats/dashboard?empresaId=${empresaSeleccionada}`);
-                    setData(statsRes.data);
-                } else {
-                    setData({
-                        totalCfdiMes: { ingresos: 0, egresos: 0 },
-                        alertasActivas: { alta: 0, media: 0 },
-                        gastoProveedoresRiesgo: 0,
-                        expedientesIncompletos: 0,
-                        topAlertas: [],
-                        historico: [],
-                    });
-                }
-                setError(null);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                setError('No se pudo cargar los datos del dashboard.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [empresaSeleccionada, refreshKey]);
-
+    // Handlers
     const handleFechaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFiltros(prev => ({
-            ...prev,
-            mes: null, // Desactivar selección de mes si se usan rangos
-            [name]: value || null
-        }));
+        setFiltros(prev => ({ ...prev, mes: null, [name]: value || null }));
     };
 
-    const handleLimpiarFiltros = () => {
-        setFiltros({
-            mes: new Date().toISOString().substring(0, 7),
-            fechaInicio: null,
-            fechaFin: null
-        });
-    };
+    // Cálculos Inteligentes para KPIs (Safe Logic)
+    // Usamos 'any' temporalmente para metricas si TS se queja, pero idealmente extendemos la interfaz.
+    const metricasSafe: any = metricas || {};
+    // FIX: Usar nombres de propiedades correctos según useMetricasDominio.ts
+    const isPeriodoEmpty = !metricas || metricasSafe.cfdi_del_mes === 0;
+    const montoDisplay = metricasSafe.importe_total_mes || 0;
+    const historicoDisplay = metricasSafe.total_general || 0;
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="text-lg">Cargando...</div></div>;
-    if (error) return <div className="min-h-screen flex items-center justify-center"><div className="text-red-500 text-lg">{error}</div></div>;
+    // Calcular variación vs mes anterior del DashboardData si existe
+    /*
+    const variacion = dashboardData?.historico && dashboardData.historico.length > 1 
+        ? ((montoDisplay - dashboardData.historico[1].ingresos) / dashboardData.historico[1].ingresos) * 100 
+        : 0;
+    */
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans">
-            {/* Header */}
-            <header className="bg-white border-b border-gray-200 shadow-sm z-10 relative">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex justify-between items-center">
+        <MissionControlLayout title="CENTRO DE MANDO FISCAL">
+
+            {/* 1. BARRA DE CONTEXTO (HUD) - SIEMPRE VISIBLE */}
+            <ContextBar
+                empresaNombre={dashboardData?.alertasActivas ? "EMPRESA VINCULADA" : "SELECCIONE EMPRESA"} // Idealmente traer nombre real
+                empresaRfc={empresaSeleccionada || '---'}
+                periodoLabel={filtros.mes || 'HISTÓRICO GLOBAL'}
+                modo={tabPrincipal}
+                subModo={subTab}
+            />
+
+            <div className="space-y-6 mt-6">
+
+                {/* BLOQUE DE CONTROL SUPERIOR (Selectores + Estado) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* A. BLOQUE ESTADO (3 cols) */}
+                    <div className="lg:col-span-3 bg-gray-900 border border-gray-800 rounded-lg p-4 shadow-lg flex flex-col justify-between relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                            <div className={`w-2 h-2 rounded-full ${dashboardData?.alertasActivas?.alta ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></div>
+                        </div>
                         <div>
-                            <div className="flex items-center gap-3">
-                                <img src="/kontify-sentinel-logo.svg" alt="Kontify · Sentinel" style={{ height: '40px', width: 'auto' }} />
+                            <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-2">IDENTIDAD & ESTADO</span>
+                            <div className="mb-4">
+                                <SelectorEmpresa
+                                    empresaSeleccionada={empresaSeleccionada}
+                                    onSeleccionar={(id) => setEmpresaSeleccionada(id)}
+                                />
                             </div>
-                            <p className="text-xs text-gray-500 mt-1 font-medium tracking-wide">
-                                AUDITORÍA FISCAL INTELIGENTE
-                            </p>
-                            {health && <p className="text-xs text-emerald-600 mt-0.5 font-bold">● SISTEMA OPERATIVO</p>}
                         </div>
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => navigate('/expedientes')} className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                📁 Mis Expedientes
-                            </button>
-                            <SelectorEmpresa
-                                empresaSeleccionada={empresaSeleccionada}
-                                onSeleccionar={(id) => {
-                                    setEmpresaSeleccionada(id);
-                                    localStorage.setItem('empresaActiva', id);
-                                    setRefreshKey(prev => prev + 1);
-                                }}
-                            />
+                        <div className="mt-2 pt-2 border-t border-gray-800">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-500 font-bold">ESTADO SAT</span>
+                                <span className={`text-sm font-bold tracking-wide ${dashboardData?.alertasActivas?.alta ? 'text-red-400' : 'text-emerald-400'}`}>
+                                    {dashboardData?.alertasActivas?.alta ? '⚠️ ALERTA FISCAL' : '✓ EN REGLA'}
+                                </span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </header>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-                {/* 🏷️ TABS PRINCIPALES SEGMETADOS */}
-                <div className="flex justify-center mb-6">
-                    <div className="bg-gray-100 p-1 rounded-lg inline-flex shadow-inner">
-                        <button
-                            className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${tabPrincipal === 'emitidos' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                            onClick={() => setTabPrincipal('emitidos')}
-                        >
-                            📤 CFDI Emitidos
-                        </button>
-                        <button
-                            className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${tabPrincipal === 'recibidos' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                            onClick={() => setTabPrincipal('recibidos')}
-                        >
-                            📥 CFDI Recibidos
-                        </button>
-                    </div>
-                </div>
-
-                {/* 🏷️ SUB-TABS (DOMINIOS) */}
-                <div className="mb-6 flex gap-3 border-b border-gray-200 pb-1 overflow-x-auto">
-                    {tabPrincipal === 'emitidos' ? (
-                        <>
-                            {['ingresos', 'nomina', 'pagos', 'notas_credito'].map(t => (
-                                <button
-                                    key={t}
-                                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${subTab === t ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-                                    onClick={() => setSubTab(t)}
-                                >
-                                    {t === 'notas_credito' ? 'Notas de Crédito' : t.charAt(0).toUpperCase() + t.slice(1)}
-                                </button>
-                            ))}
-                        </>
-                    ) : (
-                        <>
-                            {['gastos', 'pagos', 'notas_credito'].map(t => (
-                                <button
-                                    key={t}
-                                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${subTab === t ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-                                    onClick={() => setSubTab(t)}
-                                >
-                                    {t === 'notas_credito' ? 'Notas de Crédito' : (t === 'gastos' ? 'Gastos' : t.charAt(0).toUpperCase() + t.slice(1))}
-                                </button>
-                            ))}
-                        </>
-                    )}
-                </div>
-
-                {/* 🔍 BARRA DE FILTROS PROFESIONAL */}
-                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-8 flex flex-wrap items-end gap-x-6 gap-y-4">
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Periodo (Mes)</label>
-                        <input
-                            type="month"
-                            className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100 disabled:text-gray-400"
-                            value={filtros.mes || ''}
-                            onChange={(e) => setFiltros({ mes: e.target.value, fechaInicio: null, fechaFin: null })}
-                            disabled={!!filtros.fechaInicio}
-                        />
-                    </div>
-
-                    <div className="h-8 w-px bg-gray-200 self-center hidden sm:block"></div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Rango Inicia</label>
-                        <input
-                            type="date"
-                            name="fechaInicio"
-                            className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            value={filtros.fechaInicio || ''}
-                            onChange={handleFechaChange}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Rango Termina</label>
-                        <input
-                            type="date"
-                            name="fechaFin"
-                            className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            value={filtros.fechaFin || ''}
-                            onChange={handleFechaChange}
-                        />
-                    </div>
-
-                    <div className="flex-grow text-right">
-                        {(filtros.fechaInicio || filtros.mes !== new Date().toISOString().substring(0, 7)) && (
-                            <button
-                                onClick={handleLimpiarFiltros}
-                                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                            >
-                                🔄 Restaurar Filtros
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                {/* 📌 ENCABEZADO EXPLICATIVO DE VISTA ACTUAL */}
-                <div className="flex items-center justify-between mb-4 px-1">
-                    <div>
-                        <h2 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                            <span className="text-gray-400">Vista:</span>
-                            <span className="text-indigo-700 bg-indigo-50 px-2 rounded">
-                                {tabPrincipal === 'emitidos' ? 'Emitidos' : 'Recibidos'} &gt; {subTab.charAt(0).toUpperCase() + subTab.slice(1)}
+                    {/* B. BLOQUE MAGNITUD (6 cols) - KPIs Centrales */}
+                    <div className="lg:col-span-6 grid grid-cols-2 gap-4">
+                        {/* KPI: Total Monetario */}
+                        <div className="bg-gray-900 border-l-4 border-indigo-500 rounded-r-lg p-5 shadow-lg relative flex flex-col justify-center">
+                            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest block mb-1">
+                                TOTAL {tabPrincipal.toUpperCase()}
                             </span>
-                        </h2>
-                        <p className="text-sm text-gray-500 mt-1 ml-1">
-                            Mostrando datos del periodo: <strong className="text-gray-700">{periodo || 'Calculando...'}</strong>
-                        </p>
-                    </div>
-                </div>
-
-                {/* 🚨 ERROR DE CONEXIÓN (ANTI-PÁNICO) */}
-                {errorDominio && (
-                    <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-8 rounded-r shadow-sm animate-fade-in-down">
-                        <div className="flex">
-                            <div className="flex-shrink-0">
-                                <span className="text-2xl">⚠️</span>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-3xl text-white font-mono font-bold tracking-tight">
+                                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(montoDisplay)}
+                                </span>
                             </div>
-                            <div className="ml-3">
-                                <h3 className="text-sm font-bold text-red-800 uppercase tracking-wide">Error de Comunicación con Servidor</h3>
-                                <div className="mt-2 text-sm text-red-700">
-                                    <p className="font-medium">{errorDominio}</p>
-                                    <p className="mt-2 text-red-600 bg-red-100 p-2 rounded inline-block">
-                                        🛡️ <strong>Nota de Seguridad:</strong> Tus datos están intactos en la base de datos. Este es un problema temporal de visualización.
-                                    </p>
+                            {/* Contexto Histórico "Anti-Pánico" */}
+                            {isPeriodoEmpty && historicoDisplay > 0 && (
+                                <div className="mt-2 bg-gray-800/50 rounded px-2 py-1 inline-flex items-center gap-2 max-w-fit">
+                                    <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <span className="text-[10px] text-gray-400">
+                                        Histórico Global: <span className="text-white font-mono">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(historicoDisplay)}</span>
+                                    </span>
                                 </div>
-                                <div className="mt-4">
-                                    <button
-                                        onClick={refresh}
-                                        className="inline-flex items-center px-3 py-2 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                                    >
-                                        🔄 Reintentar Conexión
-                                    </button>
-                                </div>
+                            )}
+                        </div>
+
+                        {/* KPI: Volumen Operativo */}
+                        <div className="bg-gray-900 border-l-4 border-blue-500 rounded-r-lg p-5 shadow-lg flex flex-col justify-center">
+                            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest block mb-1">
+                                VOLUMEN OPERATIVO
+                            </span>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-3xl text-white font-mono font-bold tracking-tight">
+                                    {metricasSafe.cfdi_del_mes || 0}
+                                </span>
+                                <span className="text-xs text-blue-400 font-bold">CFDI</span>
+                            </div>
+                            <div className="mt-2 text-[10px] text-gray-500">
+                                Transacciones procesadas en este periodo
                             </div>
                         </div>
                     </div>
-                )}
 
-                {/* 📊 KPIs DEL DOMINIO ACTIVO */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    {loadingDominio ? (
-                        <>
-                            <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
-                        </>
-                    ) : (
-                        <>
-                            <div className="card border-l-4 border-l-indigo-500">
-                                <h3 className="text-xs font-bold uppercase text-gray-500 mb-1">CFDIs Registrados</h3>
-                                <p className="text-2xl font-bold text-gray-900">{metricas?.cfdi_del_mes ?? 0}</p>
-                                <p className="text-xs text-gray-400 mt-1">{periodo || 'Periodo actual'}</p>
+                    {/* C. BLOQUE PERIODO (3 cols) - Control y Filtros */}
+                    <div className="lg:col-span-3 bg-gray-800/40 border border-gray-700 rounded-lg p-4 flex flex-col justify-center gap-3">
+                        <div>
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 block">PERIODO ACTIVO</span>
+                            <div className="relative group cursor-pointer" onClick={() => document.querySelector<HTMLInputElement>('input[name="mes"]')?.showPicker()}>
+                                <input
+                                    type="month"
+                                    name="mes"
+                                    value={filtros.mes || ''}
+                                    onChange={handleFechaChange}
+                                    className="w-full bg-gray-900 border border-gray-600 text-white text-sm rounded px-3 py-2 pl-9 focus:ring-1 focus:ring-emerald-500 outline-none transition-colors cursor-pointer"
+                                />
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none group-hover:text-emerald-400 transition-colors">
+                                    <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                </div>
                             </div>
-                            <div className="card border-l-4 border-l-green-500">
-                                <h3 className="text-xs font-bold uppercase text-gray-500 mb-1">
-                                    {tabPrincipal === 'emitidos' ? (subTab === 'nomina' ? 'Sueldos Pagados' : 'Facturación Total') : 'Gasto Total'}
-                                </h3>
-                                <p className="text-2xl font-bold text-green-700 font-mono tracking-tight">
-                                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(metricas?.importe_total_mes ?? 0)}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">Acumulado en periodo</p>
-                            </div>
-                            <div className="card border-l-4 border-l-blue-500">
-                                <h3 className="text-xs font-bold uppercase text-gray-500 mb-1">
-                                    {subTab === 'nomina' ? 'Empleados' : 'Receptores Únicos'}
-                                </h3>
-                                <p className="text-2xl font-bold text-blue-600">{metricas?.clientes_activos ?? 0}</p>
-                                <p className="text-xs text-gray-400 mt-1">Entidades distintas</p>
-                            </div>
-                            <div className="card border-l-4 border-l-gray-400">
-                                <h3 className="text-xs font-bold uppercase text-gray-500 mb-1">Ultima Carga</h3>
-                                <p className="text-2xl font-bold text-gray-900">{metricas?.cargados_hoy ?? 0}</p>
-                                <p className="text-xs text-gray-400 mt-1">XMLs procesados hoy</p>
-                            </div>
-                        </>
-                    )}
+                        </div>
+                        <div className="flex rounded-md shadow-sm mt-1" role="group">
+                            <button
+                                onClick={() => setTabPrincipal('emitidos')}
+                                className={`flex-1 px-4 py-2 text-xs font-bold uppercase rounded-l-lg border transition-all ${tabPrincipal === 'emitidos' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-800 text-gray-400 border-gray-600 hover:bg-gray-700 hover:text-white'}`}
+                            >Emitidos</button>
+                            <button
+                                onClick={() => setTabPrincipal('recibidos')}
+                                className={`flex-1 px-4 py-2 text-xs font-bold uppercase rounded-r-lg border-t border-b border-r transition-all ${tabPrincipal === 'recibidos' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-800 text-gray-400 border-gray-600 hover:bg-gray-700 hover:text-white'}`}
+                            >Recibidos</button>
+                        </div>
+                    </div>
                 </div>
 
-                {/* ✨ SECCIÓN CENTRAL: TABLA DETALLE + IMPORTADOR */}
-                {empresaSeleccionada ? (
-                    <div className="mb-8 space-y-6">
+                {/* NIVEL 2: GRÁFICAS (Mission Control Visuals) */}
+                <FiscalCharts
+                    historico={dashboardData?.historico}
+                    topConcentracion={metricasSafe.top_clientes?.map((c: any) => ({ id: c.rfc, total: c.total, nombre: c.razon_social }))}
+                    tipo={tabPrincipal === 'emitidos' ? 'ingresos' : 'gastos'}
+                />
 
-                        {/* 📋 TABLA DE CONTROL MENSUAL (Por Dominio) */}
-                        <TablaControlMensualDominio
-                            resumen={resumen}
-                            dominio={dominio || subTab.toUpperCase()}
-                            loading={loadingDominio}
-                            periodoLabel={periodo || ''}
-                            totalHistorico={metricas?.total_general}
-                            onLimpiarFiltros={handleLimpiarFiltros}
-                            empresaId={empresaSeleccionada}
-                            rol={rol}
-                            tipo={tipo}
-                        />
-
-                        {/* 📤 IMPORTADOR INTELIGENTE */}
-                        <div className="card border border-dashed border-gray-300 bg-gray-50 hover:bg-white transition-colors">
-                            <div className="flex justify-between items-center mb-4">
-                                <div>
-                                    <h2 className="text-sm font-bold text-gray-700">Carga de Archivos XML</h2>
-                                    <p className="text-xs text-gray-500">El sistema clasificará automáticamente por ROL y TIPO (SAT-Grade)</p>
-                                </div>
-                            </div>
-                            <BotonCargarXml
-                                onSuccess={() => {
-                                    refresh(); // Refrescar dominio actual
-                                    setRefreshKey(prev => prev + 1); // Refrescar lista general
-                                }}
-                            />
-                        </div>
-
-                        {/* Listado Reciente */}
-                        <TablaCfdiRecientes empresaId={empresaSeleccionada} key={refreshKey} onRefresh={() => setRefreshKey(prev => prev + 1)} />
-                    </div>
-                ) : (
-                    <div className="mb-8 card text-center py-8 text-gray-500 border-2 border-dashed">
-                        Selecciona una empresa para visualizar información detallada.
-                    </div>
-                )}
-
-                {/* 🚨 ALERTAS Y GRÁFICAS (Contexto Global) */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-1 card">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Alertas Prioritarias</h2>
-                        <div className="space-y-3">
-                            {(data?.topAlertas ?? []).map((alerta) => (
-                                <div key={alerta.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                                    <div className={`w-2 h-2 rounded-full mt-2 ${alerta.nivel === 'alta' ? 'bg-red-500' : alerta.nivel === 'media' ? 'bg-yellow-500' : 'bg-blue-500'}`} />
-                                    <div className="flex-1">
-                                        <p className="text-sm font-medium text-gray-900">{alerta.mensaje}</p>
-                                        <p className="text-xs text-gray-500 mt-1">{new Date(alerta.fecha).toLocaleDateString('es-MX')}</p>
-                                    </div>
-                                </div>
+                {/* NIVEL 3: OPERACIÓN (Tabla) */}
+                <div className="bg-white rounded-lg shadow-xl overflow-hidden border border-gray-200 mb-8">
+                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <h3 className="text-gray-800 text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                            <span className="w-2 h-6 bg-indigo-600 rounded-full"></span>
+                            Auditoría Detallada
+                        </h3>
+                        {/* Selector de Subtabs tipo 'Pill' */}
+                        <div className="flex flex-wrap gap-2">
+                            {(tabPrincipal === 'emitidos' ? ['ingresos', 'nomina', 'pagos', 'notas_credito'] : ['gastos', 'pagos', 'notas_credito']).map(st => (
+                                <button
+                                    key={st}
+                                    onClick={() => setSubTab(st)}
+                                    className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md border transition-all ${subTab === st ? 'bg-indigo-600 text-white border-indigo-600 shadow-md transform scale-105' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}
+                                >
+                                    {st.replace('_', ' ')}
+                                </button>
                             ))}
-                            {(!data?.topAlertas?.length) && <p className="text-sm text-gray-500 italic">Sin alertas pendientes.</p>}
                         </div>
                     </div>
 
-                    <div className="lg:col-span-2 card">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Ingresos vs Egresos (Global)</h2>
-                        <GraficaIngresosEgresos data={data?.historico || []} />
-                    </div>
+                    <TablaControlMensualDominio
+                        resumen={resumenHistorico}
+                        dominio={dominio || subTab.toUpperCase()}
+                        loading={loadingTabla}
+                        periodoLabel={periodo || ''}
+                        totalHistorico={metricasSafe.total_general}
+                        onLimpiarFiltros={() => setFiltros({ mes: new Date().toISOString().substring(0, 7), fechaInicio: null, fechaFin: null })}
+                        empresaId={empresaSeleccionada}
+                        rol={rol}
+                        tipo={tipo}
+                    />
                 </div>
-
-            </main>
-
-            {/* ESTILOS CSS */}
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                .tabs-container { border-bottom: 2px solid #e5e7eb; }
-                .tabs { display: flex; gap: 2rem; }
-                .tab {
-                    padding: 12px 4px;
-                    background: none;
-                    border: none;
-                    border-bottom: 3px solid transparent;
-                    color: #6b7280;
-                    font-weight: 500;
-                    font-size: 1rem;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-                .tab:hover { color: #1a7f3e; }
-                .tab.activa {
-                    color: #1a7f3e;
-                    border-bottom-color: #1a7f3e;
-                    font-weight: 700;
-                }
-                
-                .subtab {
-                    padding: 6px 16px;
-                    background: #f3f4f6;
-                    border: 1px solid #e5e7eb;
-                    border-radius: 9999px;
-                    font-size: 0.875rem;
-                    color: #4b5563;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-                .subtab:hover { background: #e5e7eb; }
-                .subtab.activo {
-                    background: #dcfce7;
-                    color: #166534;
-                    border-color: #86efac;
-                    font-weight: 600;
-                }
-            `}} />
-        </div>
+            </div>
+        </MissionControlLayout>
     );
 }
 

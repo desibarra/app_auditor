@@ -4,27 +4,16 @@ import { hash } from 'bcrypt';
 
 @Injectable()
 export class SeedService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(private readonly databaseService: DatabaseService) { }
 
   async seedDemo() {
+    // PROTECCIÓN DE DATOS REALES
+    // El usuario está trabajando con datos reales. Se desactiva el Seed.
+    return { message: 'Seed desactivado para proteger datos reales.' };
+
+    /*
     const hashedPassword = await hash('password', 10);
-
-    // Insert demo company
-    await this.databaseService.query(
-      `INSERT INTO empresas (rfc, razon_social, regimen) VALUES ($1, $2, $3)`,
-      ['XAXX010101000', 'Empresa Demo SA de CV', '601']
-    );
-
-    // Insert admin user
-    await this.databaseService.query(
-      `INSERT INTO usuarios (email, password, rol) VALUES ($1, $2, $3)`,
-      ['admin@demo.com', hashedPassword, 'admin']
-    );
-
-    // Insert demo CFDIs, providers, alerts, and expedientes
-    // Placeholder logic for inserting demo data
-    // Replace with actual Drizzle ORM or SQL queries
-
-    return { message: 'Demo data seeded successfully' };
+    // ... existing logic ...
+    */
   }
 }

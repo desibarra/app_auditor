@@ -4,6 +4,7 @@ import { CfdiController } from './cfdi.controller';
 import { CfdiService } from './cfdi.service';
 import { CfdiParserService } from './services/cfdi-parser.service';
 import { memoryStorage } from 'multer';
+import { RiskModule } from '../risk/risk.module';
 
 @Module({
     imports: [
@@ -14,6 +15,7 @@ import { memoryStorage } from 'multer';
                 files: 1000, // Máximo 1000 archivos
             },
         }),
+        RiskModule,
     ],
     controllers: [CfdiController],
     providers: [CfdiService, CfdiParserService],

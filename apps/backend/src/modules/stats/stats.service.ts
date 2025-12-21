@@ -1,8 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, sql, desc } from 'drizzle-orm';
 import { cfdiRecibidos } from '../../database/schema/cfdi_recibidos.schema';
 import { documentosSoporte } from '../../database/schema/documentos_soporte';
 import { empresas } from '../../database/schema/empresas.schema';
+import { cfdiRiesgos } from '../../database/schema/cfdi_riesgos.schema';
 import { CacheService } from '../../common/cache.service';
 
 @Injectable()
@@ -142,6 +143,14 @@ export class StatsService {
         // 4. Expedientes Incompletos (CFDIs sin evidencias)
         const expedientesIncompletos = alertasAlta;
 
+        // 5. OBTENER RIESGOS FORENSES (SENTINEL)
+        const riesgosForense = await this.db
+            .select()
+            .from(cfdiRiesgos)
+            .where(eq(cfdiRiesgos.empresaId, empresaId))
+            .orderBy(desc(cfdiRiesgos.fechaAnalisis))
+            .limit(5);
+
         return {
             totalCfdiMes: {
                 ingresos: totalIngresos,
@@ -150,21 +159,32 @@ export class StatsService {
                 countEgresos,
             },
             alertasActivas: {
-                alta: alertasAlta,
-                media: alertasMedia,
+                alta: alertasAlta + riesgosForense.filter(r => r.nivelRiesgo === 'ALTO').length,
+                media: alertasMedia + riesgosForense.filter(r => r.nivelRiesgo === 'MEDIO').length,
             },
             gastoProveedoresRiesgo,
             expedientesIncompletos,
-            topAlertas: this.generarTopAlertas(alertasAlta, alertasMedia),
+            topAlertas: this.combinarAlertas(alertasAlta, alertasMedia, riesgosForense),
         };
     }
 
     /**
-     * Genera las alertas prioritarias basadas en los contadores
+     * Genera las alertas prioritarias combinando materialidad y riesgos forenses
      */
-    private generarTopAlertas(alertasAlta: number, alertasMedia: number) {
+    private combinarAlertas(alertasAlta: number, alertasMedia: number, riesgosForense: any[]) {
         const alertas = [];
 
+        // 1. Riesgos Forenses (Prioridad Máxima)
+        riesgosForense.forEach((r, i) => {
+            alertas.push({
+                id: `risk-${r.id}`,
+                mensaje: `${r.titulo}: ${r.descripcion}`,
+                nivel: r.nivelRiesgo.toLowerCase(),
+                fecha: new Date(r.fechaAnalisis).toISOString(),
+            });
+        });
+
+        // 2. Alertas de Materialidad
         if (alertasAlta > 0) {
             alertas.push({
                 id: 1,

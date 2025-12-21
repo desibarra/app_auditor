@@ -26,9 +26,22 @@ function SelectorEmpresa({ empresaSeleccionada, onSeleccionar }: SelectorEmpresa
             const response = await axios.get('/api/empresas');
             setEmpresas(response.data);
 
-            // Si no hay empresa seleccionada, seleccionar la primera
+            // Lógica de Selección Inteligente
             if (!empresaSeleccionada && response.data.length > 0) {
-                onSeleccionar(response.data[0].id);
+                // 1. Buscar Traslados de Vanguardia (TVA)
+                const tva = response.data.find((e: Empresa) => e.rfc.includes('TVA060209QL6'));
+                if (tva) {
+                    onSeleccionar(tva.id);
+                } else {
+                    // 2. Buscar Koppara (si se conoce RFC, agregar aquí)
+                    const koppara = response.data.find((e: Empresa) => e.razonSocial.toUpperCase().includes('KOPPARA'));
+                    if (koppara) {
+                        onSeleccionar(koppara.id);
+                    } else {
+                        // 3. Fallback a la primera
+                        onSeleccionar(response.data[0].id);
+                    }
+                }
             }
 
             setError(null);

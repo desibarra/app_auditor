@@ -126,4 +126,33 @@ export class ExpedientesController {
             body.observaciones
         );
     }
+
+    /**
+     * POST /api/expedientes/periodo
+     * Crea un expediente automático basado en un periodo
+     */
+    @Post('periodo')
+    async crearPorPeriodo(@Body() body: {
+        empresaId: string;
+        periodo: string; // YYYY-MM
+        nombre: string;
+    }) {
+        if (!body.empresaId || !body.periodo || !body.nombre) {
+            throw new BadRequestException('Faltan datos requeridos');
+        }
+        return await this.expedientesService.crearExpedientePorPeriodo(
+            body.empresaId,
+            body.periodo,
+            body.nombre
+        );
+    }
+
+    /**
+     * GET /api/expedientes/:id/cedulas
+     * Obtiene las Cédulas de IVA calculadas
+     */
+    @Get(':id/cedulas')
+    async getCedulas(@Param('id') id: string) {
+        return await this.expedientesService.getCedulas(parseInt(id, 10));
+    }
 }

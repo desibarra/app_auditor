@@ -7,11 +7,24 @@ export interface CrearEmpresaDto {
     razonSocial: string;
     regimenFiscal?: string;
     sector?: string;
+    configuracion?: any; // JSON Object
 }
 
 @Injectable()
 export class EmpresasService {
     constructor(@Inject('DRIZZLE_CLIENT') private db: any) { }
+
+    private parseConfig(empresa: any) {
+        if (!empresa) return empresa;
+        try {
+            if (empresa.configuracion && typeof empresa.configuracion === 'string') {
+                empresa.configuracion = JSON.parse(empresa.configuracion);
+            }
+        } catch (e) {
+            empresa.configuracion = {};
+        }
+        return empresa;
+    }
 
     /**
      * Obtiene todas las empresas activas
@@ -23,7 +36,7 @@ export class EmpresasService {
                 .from(empresas)
                 .where(eq(empresas.activa, true));
 
-            return empresasList;
+            return empresasList.map(this.parseConfig);
         } catch (error) {
             console.error('Error al obtener empresas:', error);
             throw new BadRequestException('Error al obtener empresas');
@@ -45,7 +58,7 @@ export class EmpresasService {
                 throw new NotFoundException(`Empresa con ID ${id} no encontrada`);
             }
 
-            return empresa[0];
+            return this.parseConfig(empresa[0]);
         } catch (error) {
             if (error instanceof NotFoundException) {
                 throw error;
@@ -87,6 +100,7 @@ export class EmpresasService {
                 regimenFiscal: dto.regimenFiscal,
                 sector: dto.sector,
                 activa: true,
+                configuracion: dto.configuracion ? JSON.stringify(dto.configuracion) : null,
             });
 
             return {
@@ -115,14 +129,20 @@ export class EmpresasService {
             // Verificar que existe
             await this.findOne(id);
 
+            const updateData: any = {
+                razonSocial: dto.razonSocial,
+                regimenFiscal: dto.regimenFiscal,
+                sector: dto.sector,
+            };
+
+            if (dto.configuracion !== undefined) {
+                updateData.configuracion = JSON.stringify(dto.configuracion);
+            }
+
             // Actualizar
             await this.db
                 .update(empresas)
-                .set({
-                    razonSocial: dto.razonSocial,
-                    regimenFiscal: dto.regimenFiscal,
-                    sector: dto.sector,
-                })
+                .set(updateData)
                 .where(eq(empresas.id, id));
 
             return {
@@ -137,6 +157,7 @@ export class EmpresasService {
             throw new BadRequestException('Error al actualizar empresa');
         }
     }
+
 
     /**
      * Desactiva una empresa (soft delete)

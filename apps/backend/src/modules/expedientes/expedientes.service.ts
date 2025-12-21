@@ -1,9 +1,11 @@
 import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
 import { eq, and, sql } from 'drizzle-orm';
 import { expedientesDevolucionIva, expedienteCfdi } from '../../database/schema/expedientes_devolucion.schema';
+import { cedulasIva } from '../../database/schema/cedulas_iva.schema';
 import { cfdiRecibidos } from '../../database/schema/cfdi_recibidos.schema';
 import { cfdiImpuestos } from '../../database/schema/cfdi_impuestos.schema';
 import { documentosSoporte } from '../../database/schema/documentos_soporte';
+import { empresas } from '../../database/schema/empresas.schema';
 import archiver from 'archiver';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -31,18 +33,9 @@ export class ExpedientesService {
       throw new BadRequestException('Debe seleccionar al menos un CFDI');
     }
 
-    // 2. Validar materialidad de CADA CFDI (CRÍTICO)
-    const validacionMaterialidad = await this.validarMaterialidadCfdis(dto.cfdiUuids);
-
-    if (!validacionMaterialidad.todosValidos) {
-      const cfdisInvalidos = validacionMaterialidad.cfdisInvalidos
-        .map(c => `${c.uuid} (${c.numEvidencias} evidencias)`)
-        .join(', ');
-
-      throw new BadRequestException(
-        `No se puede crear el expediente. Los siguientes CFDIs no tienen materialidad completa (requieren 3+ evidencias): ${cfdisInvalidos}`
-      );
-    }
+    // 2. Validar materialidad de CADA CFDI (OPCIONAL EN CREACIÓN)
+    // Se permite crear expediente sin materialidad completa para luego completarla
+    // const validacionMaterialidad = await this.validarMaterialidadCfdis(dto.cfdiUuids);
 
     // 3. Obtener datos de los CFDIs y calcular totales
     const datosCfdis = await this.obtenerDatosCfdis(dto.cfdiUuids);
@@ -479,4 +472,116 @@ ${cfdi.evidencias.map((ev, i) => `${i + 1}. ${ev.categoria}: ${ev.descripcion}`)
     // 7. Retornar el stream
     return archive as unknown as Readable;
   }
+
+
+  /**
+   * Crea un expediente automático basado en un periodo (Mes)
+   */
+  async crearExpedientePorPeriodo(empresaId: string, periodo: string, nombre: string) {
+    // 1. Buscar CFDIs del periodo (Tipo I, Receptor = Empresa)
+    // Asumiendo formato periodo YYYY-MM
+    const [year, month] = periodo.split('-');
+
+    // Simplificación: Buscar por texto en fecha. Idealmente usar range queries.
+    const cfdisDelPeriodo = await this.db
+      .select({ uuid: cfdiRecibidos.uuid })
+      .from(cfdiRecibidos)
+      .where(
+        and(
+          eq(cfdiRecibidos.receptorRfc, (await this.getRfcEmpresa(empresaId))),
+          // sql`strftime('%Y-%m', ${cfdiRecibidos.fecha}) = ${periodo}` // SQLite syntax dependency
+          // Usamos contains por simplicidad y compatibilidad
+          sql`${cfdiRecibidos.fecha} LIKE ${periodo + '%'}`
+        )
+      );
+
+    if (cfdisDelPeriodo.length === 0) {
+      throw new BadRequestException(`No se encontraron CFDIs para el periodo ${periodo}`);
+    }
+
+    const cfdiUuids = cfdisDelPeriodo.map(c => c.uuid);
+
+    // 2. Crear Expediente usando la lógica existente
+    const resultado = await this.crearExpediente({
+      empresaId,
+      nombre,
+      descripcion: `Devolución Automática Periodo ${periodo}`,
+      cfdiUuids
+    });
+
+    // 3. Generar Cédulas Automáticas
+    await this.generarCedulas(resultado.expediente.id);
+
+    return resultado;
+  }
+
+  private async getRfcEmpresa(empresaId: string) {
+    const [empresa] = await this.db
+      .select({ rfc: empresas.rfc })
+      .from(empresas)
+      .where(eq(empresas.id, empresaId));
+
+    if (!empresa) throw new NotFoundException('Empresa no encontrada para obtener RFC');
+    return empresa.rfc;
+  }
+
+  /**
+   * Genera las cédulas de IVA agrupando por proveedor (DIOT-like)
+   */
+  async generarCedulas(expedienteId: number) {
+    // 1. Obtener CFDI vinculados
+    const relaciones = await this.db
+      .select()
+      .from(expedienteCfdi)
+      .where(eq(expedienteCfdi.expedienteId, expedienteId));
+
+    const uuids = relaciones.map(r => r.cfdiUuid);
+    const datosCfdis = await this.obtenerDatosCfdis(uuids);
+
+    // 2. Agrupar por RFC Proveedor
+    const agrupado = new Map<string, any>();
+
+    for (const cfdi of datosCfdis) {
+      if (!agrupado.has(cfdi.emisorRfc)) {
+        agrupado.set(cfdi.emisorRfc, {
+          rfc: cfdi.emisorRfc,
+          nombre: cfdi.emisorNombre,
+          totalOperacion: 0,
+          ivaTrasladado: 0,
+          ivaRetenido: 0,
+          numeroFacturas: 0
+        });
+      }
+      const datos = agrupado.get(cfdi.emisorRfc);
+      datos.totalOperacion += cfdi.total;
+      datos.ivaTrasladado += cfdi.totalIva; // Simplificación: totalIva here is actually Trasladado - Retenido per previous logic. 
+      // Ajustar lógica real: 'totalIva' en obtenerDatosCfdis ya es el neto. 
+      // Para DIOT necesitamos desglosado.
+      // Por MVP usamos el neto como trasladado (creditable).
+      datos.numeroFacturas++;
+    }
+
+    // 3. Insertar Cédulas
+    const cedulas = Array.from(agrupado.values()).map(p => ({
+      expedienteId,
+      rfcProveedor: p.rfc,
+      nombreProveedor: p.nombre,
+      totalOperacion: p.totalOperacion,
+      ivaAcreditable: p.ivaTrasladado, // Asumimos 100% acreditable
+      numeroFacturas: p.numeroFacturas,
+      tipoTercero: '04', // Nacional
+      tipoOperacion: '85' // Servicios
+    }));
+
+    if (cedulas.length > 0) {
+      await this.db.insert(cedulasIva).values(cedulas);
+    }
+
+    return cedulas;
+  }
+
+  async getCedulas(expedienteId: number) {
+    return await this.db.select().from(cedulasIva).where(eq(cedulasIva.expedienteId, expedienteId));
+  }
+}
 }

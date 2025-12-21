@@ -1,5 +1,6 @@
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { CfdiParserService, CfdiData } from './services/cfdi-parser.service';
+import { RiskEngineService } from '../risk/risk.service';
 import { cfdiRecibidos, cfdiImpuestos, empresas } from '../../database/schema';
 import { eq } from 'drizzle-orm';
 
@@ -8,6 +9,7 @@ export class CfdiService {
     constructor(
         @Inject('DRIZZLE_CLIENT') private db: any,
         private cfdiParserService: CfdiParserService,
+        private riskEngine: RiskEngineService,
     ) { }
 
     /**
@@ -169,6 +171,15 @@ export class CfdiService {
                     await tx.insert(cfdiImpuestos).values(impuestosValues);
                 }
             });
+
+            // 7. ANÁLISIS DE RIESGO (Sentinel Engine)
+            // Se ejecuta fuera de la transacción para no bloquear la importación
+            if (empresaId) {
+                // Background async execution
+                this.riskEngine.analyzeDeductibility(cfdiData, empresaId).catch(err =>
+                    console.error(`[RiskEngine] Error analizando CFDI ${cfdiData.uuid}:`, err)
+                );
+            }
 
             return {
                 success: true,
@@ -1000,6 +1011,21 @@ export class CfdiService {
                   ${condicionFecha}
             `);
 
+            // 2.1 Top Clientes (Para Gráfica de Concentración)
+            const topClientes = await this.db.all(sql`
+                SELECT 
+                    receptor_rfc as rfc,
+                    receptor_nombre as razon_social,
+                    SUM(total) as total
+                FROM cfdi_recibidos
+                WHERE ${sql.raw(campoRfc)} = ${empresa.rfc}
+                  AND tipo_comprobante = ${tipo}
+                  ${condicionFecha}
+                GROUP BY receptor_rfc
+                ORDER BY total DESC
+                LIMIT 5
+            `);
+
             // 3. KPI: Cargados Hoy (Inmutable)
             const cargadosHoy = await this.db.all(sql`
                 SELECT COUNT(*) as total
@@ -1029,6 +1055,7 @@ export class CfdiService {
                     clientes_activos: metricasRaw[0]?.clientes_activos || 0,
                     cargados_hoy: cargadosHoy[0]?.total || 0,
                     total_general: totalGeneral[0]?.total || 0,
+                    top_clientes: topClientes
                 },
                 periodo: periodoLabel
             };
