@@ -71,7 +71,7 @@ export const KontifyLogo: React.FC<LogoProps> = ({
                 </p>
             )}
 
-            <style jsx>{`
+            <style>{`
         .kontify-logo-full {
           display: flex;
           flex-direction: column;
@@ -101,7 +101,7 @@ export const KontifyLogo: React.FC<LogoProps> = ({
         .kontify-brand {
           font-size: 1.5rem;
           font-weight: 700;
-          color: #0a0a0a;
+          /* color: #0a0a0a; */ /* Removed to adapt to dark mode */
           font-family: 'Inter', -apple-system, system-ui, sans-serif;
         }
 

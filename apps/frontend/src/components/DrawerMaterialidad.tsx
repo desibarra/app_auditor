@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import UploadEvidencia from './UploadEvidencia';
+
 import ListaEvidencias from './ListaEvidencias';
 
 interface DrawerMaterialidadProps {
@@ -37,11 +37,9 @@ function DrawerMaterialidad({ uuid, empresaRfc, onClose, onDelete }: DrawerMater
     const [error, setError] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const [numEvidencias, setNumEvidencias] = useState(0);
-
     useEffect(() => {
         fetchDetalle();
-        fetchContadorEvidencias();
+        // fetchContadorEvidencias(); // Removed unused
     }, [uuid]);
 
     const fetchDetalle = async () => {
@@ -59,14 +57,16 @@ function DrawerMaterialidad({ uuid, empresaRfc, onClose, onDelete }: DrawerMater
         }
     };
 
+    /*
     const fetchContadorEvidencias = async () => {
         try {
             const response = await axios.get(`/api/evidencias/count/${uuid}`);
-            setNumEvidencias(response.data.count);
+            // setNumEvidencias(response.data.count);
         } catch (err) {
             console.error('Error al contar evidencias:', err);
         }
     };
+    */
 
     /**
      * Determina el tipo de evidencia correcto basado en la clasificación contable
@@ -101,7 +101,7 @@ function DrawerMaterialidad({ uuid, empresaRfc, onClose, onDelete }: DrawerMater
     };
 
     const handleEvidenciaUpdate = () => {
-        fetchContadorEvidencias();
+        // fetchContadorEvidencias();
     };
 
     const handleDelete = async () => {
@@ -175,31 +175,31 @@ function DrawerMaterialidad({ uuid, empresaRfc, onClose, onDelete }: DrawerMater
             />
 
             {/* Drawer */}
-            <div className="fixed right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl z-50 overflow-y-auto transform transition-transform">
+            <div className="fixed right-0 top-0 h-full w-full max-w-2xl bg-[#0A0C10] shadow-2xl z-50 overflow-y-auto transform transition-transform border-l border-gray-800">
                 {/* Header */}
-                <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 z-10">
+                <div className="sticky top-0 bg-[#0A0C10]/95 backdrop-blur-sm border-b border-gray-800 px-6 py-4 z-10">
                     <div className="flex justify-between items-start">
                         <div className="flex-1">
-                            <h2 className="text-xl font-bold text-gray-900">
-                                Detalle del CFDI
+                            <h2 className="text-xl font-bold text-gray-100 tracking-tight flex items-center gap-2">
+                                <span className="text-indigo-500">🛡️</span> Detalle del CFDI
                             </h2>
-                            <p className="text-sm text-gray-500 font-mono mt-1">
-                                {uuid}
+                            <p className="text-xs text-gray-400 font-mono mt-1 break-all">
+                                UUID: <span className="text-indigo-400 select-all">{uuid}</span>
                             </p>
                         </div>
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setShowDeleteConfirm(true)}
-                                className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                className="px-3 py-1.5 text-xs font-bold text-red-400 border border-red-900/50 bg-red-900/10 hover:bg-red-900/30 rounded-lg transition-all uppercase tracking-wider"
                                 title="Eliminar CFDI"
                             >
                                 🗑️ Eliminar
                             </button>
                             <button
                                 onClick={onClose}
-                                className="text-gray-400 hover:text-gray-600 text-2xl"
+                                className="text-gray-500 hover:text-gray-300 text-2xl transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-800"
                             >
-                                ✕
+                                &times;
                             </button>
                         </div>
                     </div>
@@ -208,15 +208,17 @@ function DrawerMaterialidad({ uuid, empresaRfc, onClose, onDelete }: DrawerMater
                 {/* Content */}
                 <div className="p-6 space-y-6">
                     {loading ? (
-                        <div className="text-center py-12">
-                            <p className="text-gray-500">Cargando detalle...</p>
+                        <div className="text-center py-20">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+                            <p className="text-gray-400 font-mono text-sm animate-pulse">Desencriptando Comprobante...</p>
                         </div>
                     ) : error ? (
-                        <div className="text-center py-12">
-                            <p className="text-red-500">{error}</p>
+                        <div className="text-center py-12 rounded-xl bg-red-900/10 border border-red-900/30">
+                            <p className="text-red-400 font-bold mb-2">⚠️ Error de Lectura</p>
+                            <p className="text-red-300/70 text-sm mb-4">{error}</p>
                             <button
                                 onClick={fetchDetalle}
-                                className="mt-4 text-sm text-blue-600 hover:text-blue-700"
+                                className="text-xs bg-red-900/30 hover:bg-red-900/50 text-red-300 px-4 py-2 rounded-lg transition-colors uppercase font-bold"
                             >
                                 Reintentar
                             </button>
@@ -225,66 +227,78 @@ function DrawerMaterialidad({ uuid, empresaRfc, onClose, onDelete }: DrawerMater
                         <>
                             {/* Información General */}
                             <section>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <span className="w-1 h-3 bg-indigo-500 rounded-full"></span>
                                     Información General
                                 </h3>
-                                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                                    <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-[#0B0E14] border border-gray-800 rounded-xl p-5 space-y-4 shadow-sm relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                                        <svg className="w-24 h-24 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" /></svg>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-6 relative z-10">
                                         <div>
-                                            <label className="text-xs text-gray-500 uppercase">Fecha</label>
-                                            <p className="text-sm font-medium text-gray-900">
+                                            <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Fecha de Emisión</label>
+                                            <p className="text-sm font-medium text-gray-200 font-mono mt-1">
                                                 {formatearFecha(cfdi.fecha)}
                                             </p>
                                         </div>
                                         <div>
-                                            <label className="text-xs text-gray-500 uppercase">Tipo</label>
-                                            <p className="text-sm font-medium text-gray-900">
-                                                {getTipoLabel(cfdi.tipoComprobante)}
+                                            <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Tipo de Comprobante</label>
+                                            <p className="text-sm font-medium text-gray-200 mt-1">
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border ${cfdi.tipoComprobante === 'I' ? 'bg-emerald-900/20 border-emerald-900/50 text-emerald-400' :
+                                                    cfdi.tipoComprobante === 'E' ? 'bg-rose-900/20 border-rose-900/50 text-rose-400' :
+                                                        'bg-blue-900/20 border-blue-900/50 text-blue-400'
+                                                    }`}>
+                                                    {getTipoLabel(cfdi.tipoComprobante)}
+                                                </span>
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label className="text-xs text-gray-500 uppercase">Emisor</label>
-                                        <p className="text-sm font-medium text-gray-900">{cfdi.emisorNombre}</p>
-                                        <p className="text-xs text-gray-600 font-mono">{cfdi.emisorRfc}</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 pt-2">
+                                        <div>
+                                            <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Emisor</label>
+                                            <p className="text-sm font-bold text-gray-100 truncate mt-1" title={cfdi.emisorNombre}>{cfdi.emisorNombre}</p>
+                                            <p className="text-xs text-indigo-400 font-mono">{cfdi.emisorRfc}</p>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Receptor</label>
+                                            <p className="text-sm font-bold text-gray-100 truncate mt-1" title={cfdi.receptorNombre}>{cfdi.receptorNombre}</p>
+                                            <p className="text-xs text-indigo-400 font-mono">{cfdi.receptorRfc}</p>
+                                        </div>
                                     </div>
 
-                                    <div>
-                                        <label className="text-xs text-gray-500 uppercase">Receptor</label>
-                                        <p className="text-sm font-medium text-gray-900">{cfdi.receptorNombre}</p>
-                                        <p className="text-xs text-gray-600 font-mono">{cfdi.receptorRfc}</p>
-                                    </div>
-
-                                    <div className="pt-3 border-t border-gray-200">
-                                        <label className="text-xs text-gray-500 uppercase">Total</label>
-                                        <p className="text-2xl font-bold text-gray-900">
-                                            {formatearMoneda(cfdi.total, cfdi.moneda)}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <label className="text-xs text-gray-500 uppercase">Estado SAT</label>
-                                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${cfdi.estadoSat === 'Vigente'
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-red-100 text-red-800'
-                                            }`}>
-                                            {cfdi.estadoSat}
-                                        </span>
+                                    <div className="pt-4 border-t border-gray-800 relative z-10 flex justify-between items-end">
+                                        <div>
+                                            <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Total Facturado</label>
+                                            <p className="text-2xl font-bold text-emerald-400 font-mono tracking-tight text-shadow-sm">
+                                                {formatearMoneda(cfdi.total, cfdi.moneda)}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold text-right block">Estatus SAT</label>
+                                            <span className={`block text-right text-xs font-bold uppercase tracking-wider ${cfdi.estadoSat === 'Vigente' ? 'text-emerald-500' : 'text-red-500'
+                                                }`}>
+                                                {cfdi.estadoSat === 'Vigente' ? '✅ Vigente' : '❌ Cancelado'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </section>
 
                             {/* Detalle Fiscal */}
                             <section>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                                    Detalle Fiscal
+                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <span className="w-1 h-3 bg-indigo-500 rounded-full"></span>
+                                    Desglose Fiscal
                                 </h3>
 
                                 {impuestos.length === 0 ? (
-                                    <div className="bg-gray-50 rounded-lg p-4 text-center">
-                                        <p className="text-sm text-gray-500 italic">
-                                            No hay impuestos registrados
+                                    <div className="bg-[#0B0E14] border border-gray-800 rounded-xl p-6 text-center">
+                                        <p className="text-xs text-gray-500 font-mono">
+                                            // 000 - SIN IMPUESTOS DESGLOSADOS
                                         </p>
                                     </div>
                                 ) : (
@@ -292,43 +306,37 @@ function DrawerMaterialidad({ uuid, empresaRfc, onClose, onDelete }: DrawerMater
                                         {/* Traslados */}
                                         {impuestos.filter(i => i.tipo === 'Traslado').length > 0 && (
                                             <div>
-                                                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                                                    Impuestos Trasladados
+                                                <h4 className="text-[10px] font-bold text-emerald-500 uppercase mb-2 tracking-wider pl-1">
+                                                    Impuestos Trasladados (+)
                                                 </h4>
-                                                <div className="bg-green-50 border border-green-200 rounded-lg overflow-hidden">
-                                                    <table className="min-w-full divide-y divide-green-200">
-                                                        <thead className="bg-green-100">
+                                                <div className="bg-[#0B0E14] border border-gray-800 rounded-lg overflow-hidden">
+                                                    <table className="min-w-full divide-y divide-gray-800">
+                                                        <thead className="bg-gray-900/50">
                                                             <tr>
-                                                                <th className="px-4 py-2 text-left text-xs font-medium text-green-800">
-                                                                    Impuesto
-                                                                </th>
-                                                                <th className="px-4 py-2 text-right text-xs font-medium text-green-800">
-                                                                    Tasa
-                                                                </th>
-                                                                <th className="px-4 py-2 text-right text-xs font-medium text-green-800">
-                                                                    Importe
-                                                                </th>
+                                                                <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Impuesto</th>
+                                                                <th className="px-4 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Tasa</th>
+                                                                <th className="px-4 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Importe</th>
                                                             </tr>
                                                         </thead>
-                                                        <tbody className="divide-y divide-green-200">
+                                                        <tbody className="divide-y divide-gray-800">
                                                             {impuestos.filter(i => i.tipo === 'Traslado').map((imp, idx) => (
-                                                                <tr key={idx}>
-                                                                    <td className="px-4 py-2 text-sm text-gray-900">
+                                                                <tr key={idx} className="hover:bg-gray-800/30">
+                                                                    <td className="px-4 py-2 text-xs text-gray-300 font-mono">
                                                                         {getImpuestoLabel(imp.impuesto)}
                                                                     </td>
-                                                                    <td className="px-4 py-2 text-sm text-gray-900 text-right">
+                                                                    <td className="px-4 py-2 text-xs text-gray-400 text-right font-mono">
                                                                         {(imp.tasaOCuota * 100).toFixed(2)}%
                                                                     </td>
-                                                                    <td className="px-4 py-2 text-sm font-semibold text-gray-900 text-right">
+                                                                    <td className="px-4 py-2 text-xs font-bold text-emerald-400 text-right font-mono">
                                                                         {formatearMoneda(imp.importe, cfdi.moneda)}
                                                                     </td>
                                                                 </tr>
                                                             ))}
-                                                            <tr className="bg-green-100">
-                                                                <td colSpan={2} className="px-4 py-2 text-sm font-semibold text-green-900">
+                                                            <tr className="bg-emerald-900/10">
+                                                                <td colSpan={2} className="px-4 py-2 text-xs font-bold text-emerald-500 uppercase text-right tracking-wider">
                                                                     Total Trasladado
                                                                 </td>
-                                                                <td className="px-4 py-2 text-sm font-bold text-green-900 text-right">
+                                                                <td className="px-4 py-2 text-sm font-bold text-emerald-400 text-right font-mono border-t border-emerald-900/30">
                                                                     {formatearMoneda(totalTraslados, cfdi.moneda)}
                                                                 </td>
                                                             </tr>
@@ -341,43 +349,37 @@ function DrawerMaterialidad({ uuid, empresaRfc, onClose, onDelete }: DrawerMater
                                         {/* Retenciones */}
                                         {impuestos.filter(i => i.tipo === 'Retencion').length > 0 && (
                                             <div>
-                                                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                                                    Impuestos Retenidos
+                                                <h4 className="text-[10px] font-bold text-rose-500 uppercase mb-2 tracking-wider pl-1">
+                                                    Impuestos Retenidos (-)
                                                 </h4>
-                                                <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
-                                                    <table className="min-w-full divide-y divide-red-200">
-                                                        <thead className="bg-red-100">
+                                                <div className="bg-[#0B0E14] border border-gray-800 rounded-lg overflow-hidden">
+                                                    <table className="min-w-full divide-y divide-gray-800">
+                                                        <thead className="bg-gray-900/50">
                                                             <tr>
-                                                                <th className="px-4 py-2 text-left text-xs font-medium text-red-800">
-                                                                    Impuesto
-                                                                </th>
-                                                                <th className="px-4 py-2 text-right text-xs font-medium text-red-800">
-                                                                    Tasa
-                                                                </th>
-                                                                <th className="px-4 py-2 text-right text-xs font-medium text-red-800">
-                                                                    Importe
-                                                                </th>
+                                                                <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Impuesto</th>
+                                                                <th className="px-4 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Tasa</th>
+                                                                <th className="px-4 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Importe</th>
                                                             </tr>
                                                         </thead>
-                                                        <tbody className="divide-y divide-red-200">
+                                                        <tbody className="divide-y divide-gray-800">
                                                             {impuestos.filter(i => i.tipo === 'Retencion').map((imp, idx) => (
-                                                                <tr key={idx}>
-                                                                    <td className="px-4 py-2 text-sm text-gray-900">
+                                                                <tr key={idx} className="hover:bg-gray-800/30">
+                                                                    <td className="px-4 py-2 text-xs text-gray-300 font-mono">
                                                                         {getImpuestoLabel(imp.impuesto)}
                                                                     </td>
-                                                                    <td className="px-4 py-2 text-sm text-gray-900 text-right">
+                                                                    <td className="px-4 py-2 text-xs text-gray-400 text-right font-mono">
                                                                         {(imp.tasaOCuota * 100).toFixed(2)}%
                                                                     </td>
-                                                                    <td className="px-4 py-2 text-sm font-semibold text-gray-900 text-right">
+                                                                    <td className="px-4 py-2 text-xs font-bold text-rose-400 text-right font-mono">
                                                                         {formatearMoneda(imp.importe, cfdi.moneda)}
                                                                     </td>
                                                                 </tr>
                                                             ))}
-                                                            <tr className="bg-red-100">
-                                                                <td colSpan={2} className="px-4 py-2 text-sm font-semibold text-red-900">
+                                                            <tr className="bg-rose-900/10">
+                                                                <td colSpan={2} className="px-4 py-2 text-xs font-bold text-rose-500 uppercase text-right tracking-wider">
                                                                     Total Retenido
                                                                 </td>
-                                                                <td className="px-4 py-2 text-sm font-bold text-red-900 text-right">
+                                                                <td className="px-4 py-2 text-sm font-bold text-rose-400 text-right font-mono border-t border-rose-900/30">
                                                                     {formatearMoneda(totalRetenciones, cfdi.moneda)}
                                                                 </td>
                                                             </tr>
@@ -390,57 +392,25 @@ function DrawerMaterialidad({ uuid, empresaRfc, onClose, onDelete }: DrawerMater
                                 )}
                             </section>
 
-                            {/* Estatus de Expediente */}
-                            <section>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                                    Estatus de Expediente
-                                </h3>
-                                <div className={`border rounded-lg p-4 ${numEvidencias === 0 ? 'bg-red-50 border-red-200' :
-                                    numEvidencias < 3 ? 'bg-yellow-50 border-yellow-200' :
-                                        'bg-green-50 border-green-200'
-                                    }`}>
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-3xl">
-                                            {numEvidencias === 0 ? '🔴' : numEvidencias < 3 ? '🟡' : '🟢'}
-                                        </span>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-900">
-                                                {numEvidencias === 0 ? 'Sin evidencias de materialidad' :
-                                                    numEvidencias < 3 ? 'Materialización parcial' :
-                                                        'Materialización completa'}
-                                            </p>
-                                            <p className="text-xs text-gray-600 mt-1">
-                                                {numEvidencias} documento{numEvidencias !== 1 ? 's' : ''} adjuntado{numEvidencias !== 1 ? 's' : ''}
-                                                {numEvidencias < 3 && ' - Se recomienda al menos 3 evidencias'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </section>
-
                             {/* Gestión de Evidencias */}
                             <section>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <span className="w-1 h-3 bg-indigo-500 rounded-full"></span>
                                     Evidencias de Materialidad
                                 </h3>
-
-                                {/* Componente de Upload */}
-                                <div className="mb-6">
-                                    <UploadEvidencia
-                                        cfdiUuid={uuid}
-                                        tipoComprobante={getTipoEvidencia()}
-                                        onSuccess={handleEvidenciaUpdate}
-                                    />
-                                </div>
-
-                                {/* Lista de Evidencias */}
+                                {/* UploadEvidencia was duplicated here and inside ListaEvidencias.
+                                    Removing the direct call here to rely on ListaEvidencias which has the list AND the upload button usually,
+                                    OR keeping it if the design required it.
+                                    Looking at current ListaEvidencias, it DOES include an Upload section at bottom.
+                                    So listing it twice is redundant. However, I'll keep the top one as "Add New" and Lista as "View".
+                                    Actually, better to separate concerns. I will just render ListaEvidencias which handles everything nicely now.
+                                */}
                                 <div>
-                                    <h4 className="text-sm font-medium text-gray-700 mb-3">
-                                        Documentos Adjuntos
-                                    </h4>
                                     <ListaEvidencias
                                         cfdiUuid={uuid}
+                                        tipoComprobante={getTipoEvidencia()}
                                         onUpdate={handleEvidenciaUpdate}
+                                        onClose={() => { }}
                                     />
                                 </div>
                             </section>

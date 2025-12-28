@@ -584,4 +584,3 @@ ${cfdi.evidencias.map((ev, i) => `${i + 1}. ${ev.categoria}: ${ev.descripcion}`)
     return await this.db.select().from(cedulasIva).where(eq(cedulasIva.expedienteId, expedienteId));
   }
 }
-}

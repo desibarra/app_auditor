@@ -20,7 +20,9 @@ import MissionControlLayout from '../components/MissionControlLayout';
 function BancosPage() {
     // ... logic (kept largely same, just styling return) ...
     const navigate = useNavigate();
-    const [empresaId, setEmpresaId] = useState<string>('');
+    const [empresaId, setEmpresaId] = useState<string>(() => {
+        return localStorage.getItem('empresaSeleccionada') || '';
+    });
     const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
 
     // Filtros
@@ -31,7 +33,7 @@ function BancosPage() {
     const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
-        const storedId = localStorage.getItem('empresaActiva');
+        const storedId = localStorage.getItem('empresaSeleccionada');
         if (storedId) {
             setEmpresaId(storedId);
             fetchMovimientos(storedId, anio, mes);

@@ -62,7 +62,7 @@ export class RiskEngineService {
         // Aquí asumimos que al importar está Vigente, pero si se cancela después es el riesgo.
     }
 
-    private async saveRisk(uuid: string, empresaId: string, tipo: string, data: any) {
+    public async saveRisk(uuid: string, empresaId: string, tipo: string, data: any) {
         // Verificar si ya existe para no duplicar
         const existing = await this.db.query.cfdiRiesgos.findFirst({
             where: and(

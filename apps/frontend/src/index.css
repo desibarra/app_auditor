@@ -1,26 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  * {
-    @apply border-border;
+  :root {
+    --color-bg-app: #0B0E14;
+    /* Deep fiscal dark */
+    --color-bg-card: #151A23;
+    /* Panel background */
+    --color-border: #2A3241;
+    /* Subtle borders */
+    --color-text-primary: #F3F4F6;
+    --color-text-secondary: #9CA3AF;
+    --font-sans: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
   }
+
+  * {
+    @apply border-gray-800;
+  }
+
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    background-color: var(--color-bg-app);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    @apply antialiased selection:bg-emerald-500/30 selection:text-emerald-200;
   }
 }
 
 @layer components {
-  .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+  .fiscal-card {
+    background-color: var(--color-bg-card);
+    @apply border border-gray-800 rounded-lg shadow-lg relative overflow-hidden;
   }
-  
+
+  .fiscal-card-hover {
+    @apply hover:border-gray-700 transition-all duration-300;
+  }
+
   .btn-primary {
-    @apply bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium;
+    @apply bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 font-medium text-sm tracking-wide;
   }
-  
+
   .btn-secondary {
-    @apply bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium;
+    @apply bg-gray-800 text-gray-300 border border-gray-700 px-4 py-2 rounded-md hover:bg-gray-700 hover:text-white transition-all font-medium text-sm;
+  }
+
+
+  .badge-fiscal {
+    @apply px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border;
+  }
+}
+
+/* Reglas de impresión para modal de informe */
+@media print {
+
+  /* Resetear estilos del body para impresión */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Ocultar el layout principal al imprimir */
+  #root {
+    background: white !important;
   }
 }

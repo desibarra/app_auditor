@@ -27,6 +27,13 @@ export const CATEGORIAS_POR_TIPO: Record<string, CategoriaEvidencia[]> = {
             icono: '📄',
         },
         {
+            id: 'contrato_arrendamiento',
+            nombre: 'Contrato de Arrendamiento',
+            descripcion: 'Contrato de renta de bien inmueble o mueble',
+            requerido: false,
+            icono: '🏢',
+        },
+        {
             id: 'carta_porte',
             nombre: 'Carta Porte / Complemento CCP',
             descripcion: 'Evidencia del complemento Carta Porte o PDF generado',

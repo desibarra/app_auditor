@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Table, Tag, Button, Dropdown, Menu } from 'antd';
+import { Table, Tag, Button, Dropdown } from 'antd';
 
 interface Cfdi {
   uuid: string;
@@ -67,19 +67,19 @@ const ListaCFDI: React.FC = () => {
       title: 'Tipo de Gasto',
       dataIndex: 'tipoGasto',
       key: 'tipoGasto',
-      render: (tipoGasto, record) => (
+      render: (tipoGasto: string | undefined, record: Cfdi) => (
         record.tipo === 'Egreso' ? (
           <Dropdown
-            overlay={
-              <Menu>
-                <Menu.Item key="servicios">Servicios</Menu.Item>
-                <Menu.Item key="publicidad">Publicidad</Menu.Item>
-                <Menu.Item key="arrendamiento">Arrendamiento</Menu.Item>
-                <Menu.Item key="intragrupo">Intragrupo</Menu.Item>
-                <Menu.Item key="importaciones">Importaciones</Menu.Item>
-                <Menu.Item key="otros">Otros</Menu.Item>
-              </Menu>
-            }
+            menu={{
+              items: [
+                { key: 'servicios', label: 'Servicios' },
+                { key: 'publicidad', label: 'Publicidad' },
+                { key: 'arrendamiento', label: 'Arrendamiento' },
+                { key: 'intragrupo', label: 'Intragrupo' },
+                { key: 'importaciones', label: 'Importaciones' },
+                { key: 'otros', label: 'Otros' },
+              ]
+            }}
           >
             <Button>{tipoGasto || 'Seleccionar'}</Button>
           </Dropdown>
@@ -92,7 +92,7 @@ const ListaCFDI: React.FC = () => {
       title: 'Estado Expediente',
       dataIndex: 'estadoExpediente',
       key: 'estadoExpediente',
-      render: (estado) => (
+      render: (estado: string) => (
         <Tag color={estado === 'Completo' ? 'green' : estado === 'En progreso' ? 'yellow' : 'red'}>
           {estado}
         </Tag>
@@ -102,7 +102,7 @@ const ListaCFDI: React.FC = () => {
       title: 'Riesgo',
       dataIndex: 'riesgo',
       key: 'riesgo',
-      render: (riesgo) => (
+      render: (riesgo: string) => (
         <Tag color={riesgo === 'Alto' ? 'red' : riesgo === 'Medio' ? 'yellow' : 'green'}>
           {riesgo}
         </Tag>
@@ -111,7 +111,7 @@ const ListaCFDI: React.FC = () => {
     {
       title: 'Acciones',
       key: 'acciones',
-      render: (_, record) => (
+      render: (_: unknown, record: Cfdi) => (
         record.tipo === 'Egreso' && record.estadoExpediente === 'Sin iniciar' ? (
           <Button type="primary" href={`/expediente/${record.uuid}`}>Crear expediente</Button>
         ) : (

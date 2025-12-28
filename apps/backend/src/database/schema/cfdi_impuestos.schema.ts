@@ -1,5 +1,4 @@
 import { sqliteTable, integer, text, real } from "drizzle-orm/sqlite-core";
-import { cfdiRecibidos } from "./cfdi_recibidos.schema";
 
 /**
  * Tabla: cfdi_impuestos
@@ -12,9 +11,8 @@ export const cfdiImpuestos = sqliteTable("cfdi_impuestos", {
     id: integer("id").primaryKey({ autoIncrement: true }),
 
     // Relación con CFDI
-    cfdiUuid: text("cfdi_uuid")
-        .references(() => cfdiRecibidos.uuid, { onDelete: 'cascade' })
-        .notNull(),
+    cfdiUuid: text("cfdi_uuid").notNull(), // Se eliminó FK estricta para soportar PK compuesta en padre
+    empresaId: text("empresa_id").notNull(), // Nuevo campo para vincular con PK compuesta
 
     // Relación con Concepto (nullable si es impuesto a nivel comprobante)
     conceptoId: integer("concepto_id"), // FK a cfdi_conceptos (se creará después si es necesario)

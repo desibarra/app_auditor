@@ -28,7 +28,7 @@ interface CategoriaReq {
     requerido: boolean;
 }
 
-function ListaEvidencias({ cfdiUuid, tipoComprobante, folioControl, onUpdate, onClose }: ListaEvidenciasProps) {
+function ListaEvidencias({ cfdiUuid, tipoComprobante, folioControl, onUpdate }: ListaEvidenciasProps) {
     const [evidencias, setEvidencias] = useState<Evidencia[]>([]);
     const [categoriasReq, setCategoriasReq] = useState<CategoriaReq[]>([]);
     const [loading, setLoading] = useState(true);
@@ -146,8 +146,8 @@ function ListaEvidencias({ cfdiUuid, tipoComprobante, folioControl, onUpdate, on
 
                 <div className="flex items-center gap-4">
                     <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold border-4 ${score === 100 ? 'border-green-400 text-green-400 bg-green-900/50' :
-                            score >= 50 ? 'border-yellow-400 text-yellow-400 bg-yellow-900/50' :
-                                'border-red-500 text-red-500 bg-red-900/50'
+                        score >= 50 ? 'border-yellow-400 text-yellow-400 bg-yellow-900/50' :
+                            'border-red-500 text-red-500 bg-red-900/50'
                         }`}>
                         {score}%
                     </div>
@@ -182,27 +182,30 @@ function ListaEvidencias({ cfdiUuid, tipoComprobante, folioControl, onUpdate, on
                     <h4 className="text-sm font-bold text-gray-300 uppercase">Documentación Cargada ({evidencias.length})</h4>
                 </div>
 
+                {/* Content - same as read? */}
+                {/* I need to make sure I am replacing the correct blocks. I will target the empty state and the upload section individually/together if possible. */}
+                {/* Empty State */}
                 {evidencias.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
-                        <div className="text-4xl mb-3">📂</div>
-                        <p className="font-medium">Expediente vacío</p>
-                        <p className="text-xs mt-1">Cargue los documentos requeridos para blindar esta operación.</p>
+                    <div className="p-12 text-center text-gray-500 bg-[#0B0E14] border-t border-gray-800">
+                        <div className="text-4xl mb-3 opacity-50">📂</div>
+                        <p className="font-bold text-gray-400">Expediente vacío</p>
+                        <p className="text-xs mt-1 text-gray-600">Cargue los documentos requeridos para blindar esta operación.</p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-gray-700">
+                    <div className="divide-y divide-gray-800 bg-[#0B0E14]">
                         {evidencias.map((ev) => (
-                            <div key={ev.id} className="p-4 hover:bg-gray-750 transition-colors flex items-center justify-between group">
+                            <div key={ev.id} className="p-4 hover:bg-gray-800/50 transition-colors flex items-center justify-between group">
                                 <div className="flex items-center gap-3 overflow-hidden">
-                                    <span className="text-2xl" title={ev.tipoArchivo}>{getIconoTipo(ev.tipoArchivo)}</span>
+                                    <span className="text-2xl opacity-70" title={ev.tipoArchivo}>{getIconoTipo(ev.tipoArchivo)}</span>
                                     <div className="min-w-0">
                                         <p className="text-sm font-bold text-gray-200 truncate">
                                             {getCategoriaLabel(ev.categoria)}
                                         </p>
                                         <div className="flex items-center gap-2 mt-0.5">
-                                            <p className="text-xs text-gray-400 truncate max-w-[200px]" title={ev.descripcion || ev.archivo}>
+                                            <p className="text-xs text-gray-500 truncate max-w-[200px]" title={ev.descripcion || ev.archivo}>
                                                 {ev.descripcion || ev.archivo}
                                             </p>
-                                            <span className="text-[10px] text-gray-500">• {new Date(ev.fechaSubida).toLocaleDateString()}</span>
+                                            <span className="text-[10px] text-gray-600">• {new Date(ev.fechaSubida).toLocaleDateString()}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -217,14 +220,14 @@ function ListaEvidencias({ cfdiUuid, tipoComprobante, folioControl, onUpdate, on
                                     </button>
                                     <button
                                         onClick={() => handleDownload(ev.id, ev.archivo)}
-                                        className="p-2 text-green-400 hover:text-green-300 hover:bg-green-900/30 rounded transition-colors"
+                                        className="p-2 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-900/30 rounded transition-colors"
                                         title="Descargar"
                                     >
                                         💾
                                     </button>
                                     <button
                                         onClick={() => handleDelete(ev.id)}
-                                        className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded transition-colors"
+                                        className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-900/30 rounded transition-colors"
                                         title="Eliminar"
                                     >
                                         🗑️
@@ -237,14 +240,22 @@ function ListaEvidencias({ cfdiUuid, tipoComprobante, folioControl, onUpdate, on
             </div>
 
             {/* UPLOAD SECTION (RESTORED/ADDED) */}
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h4 className="text-sm font-bold text-gray-700 mb-3">Subir Nueva Evidencia</h4>
-                <UploadEvidencia
-                    cfdiUuid={cfdiUuid}
-                    tipoComprobante={tipoComprobante}
-                    folioControl={folioControl}
-                    onSuccess={fetchData}
-                />
+            <div className="bg-[#0B0E14] p-4 rounded-xl border border-gray-800 shadow-sm relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:opacity-10 transition-opacity">
+                    <svg className="w-20 h-20 text-indigo-500" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" /></svg>
+                </div>
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2 relative z-10">
+                    <span className="w-1 h-3 bg-indigo-500 rounded-full"></span>
+                    Subir Nueva Evidencia
+                </h4>
+                <div className="relative z-10">
+                    <UploadEvidencia
+                        cfdiUuid={cfdiUuid}
+                        tipoComprobante={tipoComprobante}
+                        folioControl={folioControl}
+                        onSuccess={fetchData}
+                    />
+                </div>
             </div>
 
             {previewEvidencia && (

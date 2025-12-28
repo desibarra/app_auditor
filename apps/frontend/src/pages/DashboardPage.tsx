@@ -1,273 +1,317 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import SelectorEmpresa from '../components/SelectorEmpresa';
-import { TablaControlMensualDominio } from '../components/TablaControlMensualDominio';
-import { useMetricasDominio } from '../hooks/useMetricasDominio';
 import MissionControlLayout from '../components/MissionControlLayout';
 import FiscalCharts from '../components/FiscalCharts';
 import ContextBar from '../components/ContextBar';
 
-interface HistoricoMes {
-    mes: string;
-    ingresos: number;
-    egresos: number;
-    fecha: string;
-}
-
-interface DashboardData {
-    alertasActivas: {
-        alta: number;
-        media: number;
+interface SentinelSummary {
+    periodo: string;
+    flujo: string;
+    empresaMeta?: {
+        razonSocial: string;
+        rfc: string;
+        sector?: string;
+        regimenFiscal?: string;
     };
-    historico?: HistoricoMes[]; // Histórico 12 meses
+    kpis: {
+        total: number;
+        ingresos: number;
+        egresos: number;
+        countIngresos: number;
+        countEgresos: number;
+    };
+    perfilRiesgo: 'CRÍTICO' | 'MEDIO' | 'BAJO';
+    alertas: {
+        tipo: 'ROJA' | 'AMARILLA';
+        titulo: string;
+        desc: string;
+        fundamento: string;
+    }[];
+    alertasMeta: {
+        vista: string;
+        flujo: string;
+        periodo: string;
+    };
+    tendencia: {
+        status: 'OK' | 'INSUFICIENTE';
+        mesesDisponibles: number;
+        data: { mes: string; ingresos: number; egresos: number }[];
+    };
+    topConcentracion: {
+        id: string;
+        nombre: string;
+        total: number;
+    }[];
+    timestamp: string;
 }
 
 function DashboardPage() {
-    // Estado Global Dashboard
-    const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-    const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string | null>(null);
-    // const [loadingGlobal, setLoadingGlobal] = useState(false); // Eliminado si no se usa visualmente aún
+    const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string | null>(() => {
+        return localStorage.getItem('empresaSeleccionada');
+    });
 
-    // TABS (Nivel 1 y 2)
     const [tabPrincipal, setTabPrincipal] = useState<'emitidos' | 'recibidos'>('emitidos');
     const [subTab, setSubTab] = useState<string>('ingresos');
 
-    // FILTROS (Single Source of Truth)
-    const [filtros, setFiltros] = useState<{
-        mes: string | null;
-        fechaInicio: string | null;
-        fechaFin: string | null;
-    }>({
-        mes: new Date().toISOString().substring(0, 7),
-        fechaInicio: null,
-        fechaFin: null
+    const [filtros, setFiltros] = useState({
+        mes: new Date().toISOString().substring(0, 7)
     });
 
-    // 1. Fetch Global Data (Histórico 12 meses, Alertas Generales)
-    useEffect(() => {
-        // RESET INTELIGENTE DE ESTADO: Previene mostrar datos de la empresa anterior
-        setDashboardData(null);
+    const [summary, setSummary] = useState<SentinelSummary | null>(null);
+    const [loading, setLoading] = useState(false);
+    const dateInputRef = useRef<HTMLInputElement>(null);
 
-        const fetchGlobal = async () => {
-            if (!empresaSeleccionada) return;
-            // setLoadingGlobal(true);
+    // 1. CONSISTENCIA DE FLUJO
+    useEffect(() => {
+        if (tabPrincipal === 'emitidos' && (subTab === 'gastos')) setSubTab('ingresos');
+        if (tabPrincipal === 'recibidos' && (subTab === 'ingresos' || subTab === 'nomina')) setSubTab('gastos');
+    }, [tabPrincipal]);
+
+    // 2. SENTINEL ENGINE FETCH (FUENTE ÚNICA DE VERDAD)
+    useEffect(() => {
+        const fetchSummary = async () => {
+            if (!empresaSeleccionada || !filtros.mes) return;
+            setLoading(true);
             try {
-                const res = await axios.get(`/api/stats/dashboard?empresaId=${empresaSeleccionada}`);
-                setDashboardData(res.data);
+                let flujoLargo: 'EMITIDOS' | 'RECIBIDOS' | 'PAGOS' = 'RECIBIDOS';
+                if (subTab === 'pagos') flujoLargo = 'PAGOS';
+                else if (tabPrincipal === 'emitidos') flujoLargo = 'EMITIDOS';
+                else flujoLargo = 'RECIBIDOS';
+
+                const res = await axios.get('/api/stats/sentinel-summary', {
+                    params: {
+                        empresaId: empresaSeleccionada,
+                        periodo: filtros.mes,
+                        flujo: flujoLargo
+                    }
+                });
+                setSummary(res.data);
             } catch (err) {
-                console.error("Error loading global stats", err);
+                console.error("Sentinel Engine Critical Error:", err);
             } finally {
-                // setLoadingGlobal(false);
+                setLoading(false);
             }
         };
-        fetchGlobal();
-    }, [empresaSeleccionada]);
+        fetchSummary();
+    }, [empresaSeleccionada, filtros.mes, tabPrincipal, subTab]);
 
-    // 2. Hook Metricas Dominio (Datos del Mes Actual/Filtro)
-    const getEndpoint = () => {
-        const base = tabPrincipal === 'emitidos' ? '/api/cfdi/emitidos' : '/api/cfdi/recibidos';
-        // Mapeo de subtabs a endpoints
-        if (tabPrincipal === 'emitidos') {
-            if (subTab === 'ingresos') return `${base}/ingresos`;
-            if (subTab === 'nomina') return `${base}/nomina`;
-            if (subTab === 'pagos') return `${base}/pagos`;
-            if (subTab === 'notas_credito') return `${base}/egresos`;
-        } else {
-            if (subTab === 'gastos') return `${base}/gastos`;
-            if (subTab === 'pagos') return `${base}/pagos`;
-            if (subTab === 'notas_credito') return `${base}/egresos`;
-        }
-        return `${base}/ingresos`; // Default
-    };
-
-    const endpoint = getEndpoint();
-
-    // 1. Hook para KPIs (RESPETA FILTROS)
-    const { metricas, dominio, rol, tipo, periodo, loading: loadingMetrics } = useMetricasDominio(
-        empresaSeleccionada,
-        endpoint,
-        filtros
-    );
-
-    // 2. Hook para Tabla Mensual (IGNORA FILTROS - HISTÓRICO COMPLETO)
-    // Pasamos un objeto vacío como filtro para forzar la carga de todos los meses disponibles
-    const { resumen: resumenHistorico, loading: loadingTabla } = useMetricasDominio(
-        empresaSeleccionada,
-        endpoint,
-        {}
-    );
-
-    // Handlers
     const handleFechaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFiltros(prev => ({ ...prev, mes: null, [name]: value || null }));
+        setFiltros({ mes: e.target.value });
     };
 
-    // Cálculos Inteligentes para KPIs (Safe Logic)
-    // Usamos 'any' temporalmente para metricas si TS se queja, pero idealmente extendemos la interfaz.
-    const metricasSafe: any = metricas || {};
-    // FIX: Usar nombres de propiedades correctos según useMetricasDominio.ts
-    const isPeriodoEmpty = !metricas || metricasSafe.cfdi_del_mes === 0;
-    const montoDisplay = metricasSafe.importe_total_mes || 0;
-    const historicoDisplay = metricasSafe.total_general || 0;
+    const tryShowPicker = (ref: React.RefObject<HTMLInputElement>) => {
+        try {
+            if (ref.current && 'showPicker' in ref.current) {
+                // @ts-ignore
+                ref.current.showPicker();
+            } else {
+                (ref.current as any)?.click();
+            }
+        } catch (error) {
+            console.warn('Picker error', error);
+        }
+    };
 
-    // Calcular variación vs mes anterior del DashboardData si existe
-    /*
-    const variacion = dashboardData?.historico && dashboardData.historico.length > 1 
-        ? ((montoDisplay - dashboardData.historico[1].ingresos) / dashboardData.historico[1].ingresos) * 100 
-        : 0;
-    */
+    if (loading && !summary) {
+        return (
+            <MissionControlLayout title="CENTRO DE MANDO" lastUpdate={null}>
+                <div className="h-[70vh] flex flex-col items-center justify-center text-center">
+                    <div className="relative w-24 h-24 mb-10">
+                        <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full"></div>
+                        <div className="absolute inset-0 border-4 border-indigo-600 rounded-full animate-spin border-t-transparent"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-xl">🛡️</span>
+                        </div>
+                    </div>
+                    <p className="text-gray-500 font-black text-[12px] uppercase tracking-[0.5em] animate-pulse">Sentinel Auditing Engine Initializing...</p>
+                </div>
+            </MissionControlLayout>
+        );
+    }
+
+    if (!empresaSeleccionada) {
+        return (
+            <MissionControlLayout title="IDENTIDAD PENDIENTE">
+                <div className="h-[60vh] flex flex-col items-center justify-center text-center p-8 bg-black/20 rounded-3xl border border-gray-800/50 m-8">
+                    <div className="w-20 h-20 bg-indigo-600/10 rounded-3xl flex items-center justify-center mb-8 rotate-12 border border-indigo-500/20">
+                        <svg className="w-10 h-10 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                    </div>
+                    <h2 className="text-2xl font-black text-white mb-3">Ausencia de Identidad Fiscal</h2>
+                    <p className="text-gray-500 max-w-xs mb-10 text-xs font-medium leading-relaxed">Seleccione una entidad para desplegar el mapa de riesgos y comportamiento transaccional forense.</p>
+                    <div className="w-72">
+                        <SelectorEmpresa
+                            empresaSeleccionada={null}
+                            onSeleccionar={(id) => {
+                                setEmpresaSeleccionada(id);
+                                localStorage.setItem('empresaSeleccionada', id);
+                            }}
+                        />
+                    </div>
+                </div>
+            </MissionControlLayout>
+        );
+    }
+
+    const currentEmpresa = summary?.empresaMeta;
 
     return (
-        <MissionControlLayout title="CENTRO DE MANDO FISCAL">
+        <MissionControlLayout title="CENTRO DE MANDO FISCAL" lastUpdate={null}>
 
-            {/* 1. BARRA DE CONTEXTO (HUD) - SIEMPRE VISIBLE */}
-            <ContextBar
-                empresaNombre={dashboardData?.alertasActivas ? "EMPRESA VINCULADA" : "SELECCIONE EMPRESA"} // Idealmente traer nombre real
-                empresaRfc={empresaSeleccionada || '---'}
-                periodoLabel={filtros.mes || 'HISTÓRICO GLOBAL'}
-                modo={tabPrincipal}
-                subModo={subTab}
-            />
+            {/* BARRA DE CONTEXTO DINÁMICA */}
+            <div className="mb-8">
+                <ContextBar
+                    empresaNombre={currentEmpresa?.razonSocial || "IDENTIDAD CARGANDO..."}
+                    empresaRfc={currentEmpresa?.rfc || "---"}
+                    periodoLabel={filtros.mes}
+                    modo={tabPrincipal}
+                    subModo={subTab.toUpperCase()}
+                    sector={currentEmpresa?.sector}
+                    regimenFiscal={currentEmpresa?.regimenFiscal}
+                />
+            </div>
 
-            <div className="space-y-6 mt-6">
+            <div className="space-y-8">
 
-                {/* BLOQUE DE CONTROL SUPERIOR (Selectores + Estado) */}
+                {/* NIVEL 1: KPIs GLOBALES */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    {/* A. BLOQUE ESTADO (3 cols) */}
-                    <div className="lg:col-span-3 bg-gray-900 border border-gray-800 rounded-lg p-4 shadow-lg flex flex-col justify-between relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                            <div className={`w-2 h-2 rounded-full ${dashboardData?.alertasActivas?.alta ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></div>
-                        </div>
-                        <div>
-                            <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-2">IDENTIDAD & ESTADO</span>
-                            <div className="mb-4">
-                                <SelectorEmpresa
-                                    empresaSeleccionada={empresaSeleccionada}
-                                    onSeleccionar={(id) => setEmpresaSeleccionada(id)}
-                                />
-                            </div>
-                        </div>
-                        <div className="mt-2 pt-2 border-t border-gray-800">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs text-gray-500 font-bold">ESTADO SAT</span>
-                                <span className={`text-sm font-bold tracking-wide ${dashboardData?.alertasActivas?.alta ? 'text-red-400' : 'text-emerald-400'}`}>
-                                    {dashboardData?.alertasActivas?.alta ? '⚠️ ALERTA FISCAL' : '✓ EN REGLA'}
+
+                    {/* RIESGO */}
+                    <div className="lg:col-span-3 fiscal-card p-6 border-l-4 border-l-indigo-600 group hover:bg-white/5 transition-all">
+                        <span className="text-[10px] text-gray-500 font-black tracking-[0.2em] block mb-6 uppercase">Dictamen Forense</span>
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-3.5 h-3.5 rounded-full ${summary?.perfilRiesgo === 'CRÍTICO' ? 'bg-rose-500 animate-pulse shadow-[0_0_15px_rgba(244,63,94,0.6)]' : summary?.perfilRiesgo === 'MEDIO' ? 'bg-yellow-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]'}`}></div>
+                                <span className={`text-3xl font-black tracking-tighter ${summary?.perfilRiesgo === 'CRÍTICO' ? 'text-rose-500' : summary?.perfilRiesgo === 'MEDIO' ? 'text-yellow-500' : 'text-emerald-500'}`}>
+                                    {summary?.perfilRiesgo || 'BAJO'}
                                 </span>
                             </div>
+                            <p className="text-[10px] text-gray-600 font-bold mt-2 font-mono uppercase tracking-tighter italic">Validación SAT-Grade Activa</p>
                         </div>
                     </div>
 
-                    {/* B. BLOQUE MAGNITUD (6 cols) - KPIs Centrales */}
-                    <div className="lg:col-span-6 grid grid-cols-2 gap-4">
-                        {/* KPI: Total Monetario */}
-                        <div className="bg-gray-900 border-l-4 border-indigo-500 rounded-r-lg p-5 shadow-lg relative flex flex-col justify-center">
-                            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest block mb-1">
-                                TOTAL {tabPrincipal.toUpperCase()}
-                            </span>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-3xl text-white font-mono font-bold tracking-tight">
-                                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(montoDisplay)}
-                                </span>
+                    {/* IMPORTES */}
+                    <div className="lg:col-span-6 grid grid-cols-2 gap-6">
+                        <div className="fiscal-card p-6 flex flex-col justify-center relative group overflow-hidden">
+                            <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <svg className="w-12 h-12 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" /><path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" /></svg>
                             </div>
-                            {/* Contexto Histórico "Anti-Pánico" */}
-                            {isPeriodoEmpty && historicoDisplay > 0 && (
-                                <div className="mt-2 bg-gray-800/50 rounded px-2 py-1 inline-flex items-center gap-2 max-w-fit">
-                                    <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                    <span className="text-[10px] text-gray-400">
-                                        Histórico Global: <span className="text-white font-mono">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(historicoDisplay)}</span>
-                                    </span>
-                                </div>
+                            <span className="text-[10px] text-gray-500 font-black tracking-[0.2em] block mb-2 uppercase">Importe Acumulado</span>
+                            <div className="text-3xl font-black font-mono text-white tracking-tighter">
+                                {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(summary?.kpis.ingresos || 0)}
+                            </div>
+                            <p className="text-[10px] text-gray-600 mt-2 font-bold uppercase tracking-tight">Periodo Auditado: {filtros.mes}</p>
+                        </div>
+                        <div className="fiscal-card p-6 flex flex-col justify-center relative group overflow-hidden">
+                            <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <svg className="w-12 h-12 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 002-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
+                            </div>
+                            <span className="text-[10px] text-gray-500 font-black tracking-[0.2em] block mb-2 uppercase">Validaciones Forenses</span>
+                            <div className="text-3xl font-black font-mono text-white tracking-tighter">
+                                {summary?.kpis.total || 0}
+                            </div>
+                            <p className="text-[10px] text-gray-600 mt-2 font-bold uppercase tracking-tight">CFDIs en Base de Datos</p>
+                        </div>
+                    </div>
+
+                    {/* FILTROS */}
+                    <div className="lg:col-span-3 fiscal-card p-5 flex flex-col gap-4">
+                        <div>
+                            <span className="text-[10px] text-gray-500 font-black tracking-[0.2em] block mb-2 uppercase">Periodo de Análisis</span>
+                            <div className="relative group" onClick={() => tryShowPicker(dateInputRef)}>
+                                <input
+                                    ref={dateInputRef}
+                                    type="month"
+                                    className="w-full bg-[#080a0f] border border-gray-800 text-white rounded px-3 py-2 text-sm font-mono outline-none group-hover:border-indigo-500 transition-colors cursor-pointer"
+                                    value={filtros.mes}
+                                    onChange={handleFechaChange}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex bg-[#050505] p-1 rounded-lg border border-gray-800 shadow-inner">
+                            <button onClick={() => setTabPrincipal('emitidos')} className={`flex-1 py-1.5 text-[9px] font-black uppercase rounded transition-all ${tabPrincipal === 'emitidos' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-gray-500 hover:text-gray-300'}`}>EMITIDOS</button>
+                            <button onClick={() => setTabPrincipal('recibidos')} className={`flex-1 py-1.5 text-[9px] font-black uppercase rounded transition-all ${tabPrincipal === 'recibidos' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-gray-500 hover:text-gray-300'}`}>RECIBIDOS</button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* NIVEL 2: CLASIFICACIÓN (SENTINEL SELECTORS) */}
+                <div className="fiscal-card p-5 bg-gradient-to-r from-[#151A23] to-[#1a212b]">
+                    <span className="text-[10px] text-gray-500 font-black tracking-[0.2em] block mb-6 uppercase">Flujo Transaccional Validado</span>
+                    <div className="flex flex-wrap gap-2">
+                        {(tabPrincipal === 'emitidos'
+                            ? ['ingresos', 'nomina', 'pagos', 'notas_credito']
+                            : ['gastos', 'pagos', 'notas_credito']
+                        ).map(st => (
+                            <button
+                                key={st}
+                                onClick={() => setSubTab(st)}
+                                className={`px-6 py-2.5 text-[10px] font-black uppercase border rounded-xl transition-all ${subTab === st ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.1)] ring-1 ring-emerald-500/20' : 'bg-transparent text-gray-600 border-gray-800/50 hover:border-gray-600'}`}
+                            >
+                                {st.replace('_', ' ')}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* NIVEL 3: ALERTAS CORE */}
+                <div className="fiscal-card border-l-4 border-l-rose-600 relative overflow-hidden min-h-[140px]">
+                    {loading && (
+                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-20 flex items-center justify-center">
+                            <span className="text-rose-500 text-[11px] font-black tracking-[0.5em] animate-pulse uppercase">Auditing Engine Recalculating...</span>
+                        </div>
+                    )}
+                    <div className="p-8">
+                        <div className="flex justify-between items-center mb-8">
+                            <h3 className="text-gray-400 text-xs font-black uppercase tracking-[0.2em] flex items-center gap-4">
+                                <span className="w-1.5 h-4 bg-rose-600 rounded-full shadow-[0_0_10px_rgba(225,29,72,0.4)]"></span>
+                                ALERTAS FORENSES — {tabPrincipal.toUpperCase()} — {filtros.mes}
+                            </h3>
+                            {summary?.alertas.length === 0 && (
+                                <span className="text-[10px] font-black px-4 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 uppercase tracking-widest ring-1 ring-emerald-500/20">🛡️ Operación Técnicamente Coherente</span>
                             )}
                         </div>
 
-                        {/* KPI: Volumen Operativo */}
-                        <div className="bg-gray-900 border-l-4 border-blue-500 rounded-r-lg p-5 shadow-lg flex flex-col justify-center">
-                            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest block mb-1">
-                                VOLUMEN OPERATIVO
-                            </span>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-3xl text-white font-mono font-bold tracking-tight">
-                                    {metricasSafe.cfdi_del_mes || 0}
-                                </span>
-                                <span className="text-xs text-blue-400 font-bold">CFDI</span>
-                            </div>
-                            <div className="mt-2 text-[10px] text-gray-500">
-                                Transacciones procesadas en este periodo
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* C. BLOQUE PERIODO (3 cols) - Control y Filtros */}
-                    <div className="lg:col-span-3 bg-gray-800/40 border border-gray-700 rounded-lg p-4 flex flex-col justify-center gap-3">
-                        <div>
-                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 block">PERIODO ACTIVO</span>
-                            <div className="relative group cursor-pointer" onClick={() => document.querySelector<HTMLInputElement>('input[name="mes"]')?.showPicker()}>
-                                <input
-                                    type="month"
-                                    name="mes"
-                                    value={filtros.mes || ''}
-                                    onChange={handleFechaChange}
-                                    className="w-full bg-gray-900 border border-gray-600 text-white text-sm rounded px-3 py-2 pl-9 focus:ring-1 focus:ring-emerald-500 outline-none transition-colors cursor-pointer"
-                                />
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none group-hover:text-emerald-400 transition-colors">
-                                    <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        <div className="space-y-4">
+                            {summary?.alertas && summary.alertas.length > 0 ? (
+                                summary.alertas.map((alerta, idx) => (
+                                    <div key={idx} className={`p-6 rounded-2xl border flex flex-col gap-4 transition-all hover:translate-x-1 ${alerta.tipo === 'ROJA' ? 'bg-rose-500/5 border-rose-500/20 shadow-[0_4px_20px_rgba(225,29,72,0.05)]' : 'bg-yellow-500/5 border-yellow-500/20 shadow-[0_4px_20px_rgba(245,158,11,0.05)]'}`}>
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-center gap-5">
+                                                <div className={`w-3 h-3 rounded-full ${alerta.tipo === 'ROJA' ? 'bg-rose-600 shadow-[0_0_12px_rgba(225,29,72,0.6)]' : 'bg-yellow-500 shadow-[0_0_10px_rgba(245,158,11,0.6)]'}`}></div>
+                                                <span className="text-sm font-black text-gray-100 uppercase tracking-wide">{alerta.titulo}</span>
+                                            </div>
+                                            <span className="text-[10px] font-mono font-black text-gray-500 bg-black/60 px-3 py-1.5 rounded-lg border border-white/5 tracking-tighter uppercase">{alerta.fundamento}</span>
+                                        </div>
+                                        <p className="text-[11px] text-gray-400 leading-relaxed pl-8 font-medium tracking-wide border-l border-white/5 ml-1.5 py-1">
+                                            {alerta.desc}
+                                        </p>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="py-20 text-center border-2 border-dashed border-gray-800/40 rounded-3xl bg-black/10">
+                                    <div className="w-20 h-20 bg-emerald-500/5 rounded-full flex items-center justify-center mx-auto mb-8 border border-emerald-500/10">
+                                        <span className="text-3xl">🛡️</span>
+                                    </div>
+                                    <p className="text-gray-400 text-xs font-black uppercase tracking-[0.3em]">{summary?.alertasMeta?.flujo === 'pagos' ? 'Trazabilidad de Complementos Validada' : 'No se detectaron Anomalías'}</p>
+                                    <p className="text-gray-600 text-[11px] mt-4 max-w-sm mx-auto leading-relaxed font-bold italic">
+                                        El Sentinel Engine ha completado el análisis de <strong>{subTab.toUpperCase()}</strong> sin hallazgos forenses críticos para este periodo.
+                                    </p>
                                 </div>
-                            </div>
-                        </div>
-                        <div className="flex rounded-md shadow-sm mt-1" role="group">
-                            <button
-                                onClick={() => setTabPrincipal('emitidos')}
-                                className={`flex-1 px-4 py-2 text-xs font-bold uppercase rounded-l-lg border transition-all ${tabPrincipal === 'emitidos' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-800 text-gray-400 border-gray-600 hover:bg-gray-700 hover:text-white'}`}
-                            >Emitidos</button>
-                            <button
-                                onClick={() => setTabPrincipal('recibidos')}
-                                className={`flex-1 px-4 py-2 text-xs font-bold uppercase rounded-r-lg border-t border-b border-r transition-all ${tabPrincipal === 'recibidos' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-800 text-gray-400 border-gray-600 hover:bg-gray-700 hover:text-white'}`}
-                            >Recibidos</button>
+                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* NIVEL 2: GRÁFICAS (Mission Control Visuals) */}
+                {/* NIVEL 4: ANALÍTICA AVANZADA */}
                 <FiscalCharts
-                    historico={dashboardData?.historico}
-                    topConcentracion={metricasSafe.top_clientes?.map((c: any) => ({ id: c.rfc, total: c.total, nombre: c.razon_social }))}
+                    tendencia={summary?.tendencia}
+                    topConcentracion={summary?.topConcentracion}
                     tipo={tabPrincipal === 'emitidos' ? 'ingresos' : 'gastos'}
                 />
 
-                {/* NIVEL 3: OPERACIÓN (Tabla) */}
-                <div className="bg-white rounded-lg shadow-xl overflow-hidden border border-gray-200 mb-8">
-                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <h3 className="text-gray-800 text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-                            <span className="w-2 h-6 bg-indigo-600 rounded-full"></span>
-                            Auditoría Detallada
-                        </h3>
-                        {/* Selector de Subtabs tipo 'Pill' */}
-                        <div className="flex flex-wrap gap-2">
-                            {(tabPrincipal === 'emitidos' ? ['ingresos', 'nomina', 'pagos', 'notas_credito'] : ['gastos', 'pagos', 'notas_credito']).map(st => (
-                                <button
-                                    key={st}
-                                    onClick={() => setSubTab(st)}
-                                    className={`px-3 py-1 text-[10px] font-bold uppercase rounded-md border transition-all ${subTab === st ? 'bg-indigo-600 text-white border-indigo-600 shadow-md transform scale-105' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}
-                                >
-                                    {st.replace('_', ' ')}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <TablaControlMensualDominio
-                        resumen={resumenHistorico}
-                        dominio={dominio || subTab.toUpperCase()}
-                        loading={loadingTabla}
-                        periodoLabel={periodo || ''}
-                        totalHistorico={metricasSafe.total_general}
-                        onLimpiarFiltros={() => setFiltros({ mes: new Date().toISOString().substring(0, 7), fechaInicio: null, fechaFin: null })}
-                        empresaId={empresaSeleccionada}
-                        rol={rol}
-                        tipo={tipo}
-                    />
-                </div>
             </div>
         </MissionControlLayout>
     );

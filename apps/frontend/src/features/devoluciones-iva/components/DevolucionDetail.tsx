@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { getDevolucionDetail, recalculateCedulas } from '../services/devolucionesIvaService';
 
 interface Expediente {
@@ -20,14 +20,14 @@ interface DevolucionDetailProps {
 const DevolucionDetail: React.FC<DevolucionDetailProps> = ({ id }) => {
   const [expediente, setExpediente] = useState<Expediente | null>(null);
 
+  const fetchExpedienteDetail = useCallback(async () => {
+    const data = await getDevolucionDetail(id);
+    setExpediente(data as unknown as Expediente);
+  }, [id]);
+
   useEffect(() => {
     fetchExpedienteDetail();
-  }, []);
-
-  const fetchExpedienteDetail = async () => {
-    const data = await getDevolucionDetail(id);
-    setExpediente(data as Expediente);
-  };
+  }, [fetchExpedienteDetail]);
 
   const handleRecalculate = async () => {
     await recalculateCedulas(id);

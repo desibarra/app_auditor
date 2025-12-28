@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" 
+                  xmlns:cartaporte30="http://www.sat.gob.mx/CartaPorte30"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  Version="4.0"
+                  Serie="A"
+                  Folio="12345"
+                  Fecha="2025-12-21T10:30:00"
+                  TipoDeComprobante="I"
+                  SubTotal="10000.00"
+                  Total="11600.00"
+                  Moneda="MXN"
+                  FormaPago="01"
+                  MetodoPago="PUE"
+                  LugarExpedicion="64000">
+  
+  <cfdi:Emisor Rfc="XAXX010101000" 
+               Nombre="TRANSPORTES SENTINEL SA DE CV" 
+               RegimenFiscal="601"/>
+  
+  <cfdi:Receptor Rfc="CACX7605101P8" 
+                 Nombre="COMERCIALIZADORA ABC SA DE CV" 
+                 UsoCFDI="G03"
+                 DomicilioFiscalReceptor="64000"
+                 RegimenFiscalReceptor="601"/>
+  
+  <cfdi:Conceptos>
+    <cfdi:Concepto ClaveProdServ="78101800"
+                   Cantidad="1"
+                   ClaveUnidad="E48"
+                   Unidad="Servicio"
+                   Descripcion="Servicio de transporte de carga por autotransporte federal"
+                   ValorUnitario="10000.00"
+                   Importe="10000.00"
+                   ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="10000.00"
+                        Impuesto="002"
+                        TipoFactor="Tasa"
+                        TasaOCuota="0.160000"
+                        Importe="1600.00"/>
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+  </cfdi:Conceptos>
+  
+  <cfdi:Impuestos TotalImpuestosTrasladados="1600.00">
+    <cfdi:Traslados>
+      <cfdi:Traslado Base="10000.00"
+                    Impuesto="002"
+                    TipoFactor="Tasa"
+                    TasaOCuota="0.160000"
+                    Importe="1600.00"/>
+    </cfdi:Traslados>
+  </cfdi:Impuestos>
+  
+  <cfdi:Complemento>
+    <cartaporte30:CartaPorte Version="3.0"
+                            TranspInternac="No"
+                            TotalDistRec="450.50">
+      
+      <cartaporte30:Ubicaciones>
+        <cartaporte30:Ubicacion TipoUbicacion="Origen"
+                               IDUbicacion="OR001"
+                               RFCRemitenteDestinatario="XAXX010101000"
+                               NombreRemitenteDestinatario="ALMACEN ORIGEN SA"
+                               FechaHoraSalidaLlegada="2025-12-21T08:00:00"
+                               DistanciaRecorrida="0">
+          <cartaporte30:Domicilio Calle="Av. Industria"
+                                 NumeroExterior="100"
+                                 Colonia="Industrial"
+                                 Localidad="Monterrey"
+                                 Municipio="Monterrey"
+                                 Estado="NLE"
+                                 Pais="MEX"
+                                 CodigoPostal="64000"/>
+        </cartaporte30:Ubicacion>
+        
+        <cartaporte30:Ubicacion TipoUbicacion="Destino"
+                               IDUbicacion="DE001"
+                               RFCRemitenteDestinatario="CACX7605101P8"
+                               NombreRemitenteDestinatario="COMERCIALIZADORA ABC SA"
+                               FechaHoraSalidaLlegada="2025-12-21T14:00:00"
+                               DistanciaRecorrida="450.50">
+          <cartaporte30:Domicilio Calle="Blvd. Comercio"
+                                 NumeroExterior="500"
+                                 Colonia="Centro"
+                                 Localidad="Ciudad de México"
+                                 Municipio="Cuauhtémoc"
+                                 Estado="CMX"
+                                 Pais="MEX"
+                                 CodigoPostal="06000"/>
+        </cartaporte30:Ubicacion>
+      </cartaporte30:Ubicaciones>
+      
+      <cartaporte30:Mercancias PesoBrutoTotal="15000.00"
+                              UnidadPeso="KGM"
+                              NumTotalMercancias="2">
+        <cartaporte30:Mercancia BienesTransp="10101500"
+                               Descripcion="Productos electrónicos - Laptops"
+                               Cantidad="50"
+                               ClaveUnidad="H87"
+                               Unidad="Pieza"
+                               PesoEnKg="7500.00"
+                               ValorMercancia="500000.00"
+                               Moneda="MXN"/>
+        
+        <cartaporte30:Mercancia BienesTransp="10101600"
+                               Descripcion="Productos electrónicos - Tablets"
+                               Cantidad="100"
+                               ClaveUnidad="H87"
+                               Unidad="Pieza"
+                               PesoEnKg="7500.00"
+                               ValorMercancia="300000.00"
+                               Moneda="MXN"/>
+        
+        <cartaporte30:Autotransporte PermSCT="TPAF01"
+                                    NumPermisoSCT="ABC123456">
+          <cartaporte30:IdentificacionVehicular ConfigVehicular="C2"
+                                               PlacaVM="ABC1234"
+                                               AnioModeloVM="2023"/>
+          
+          <cartaporte30:Seguros AseguraRespCivil="SEGUROS SENTINEL SA"
+                               PolizaRespCivil="POL-2025-001234"/>
+        </cartaporte30:Autotransporte>
+      </cartaporte30:Mercancias>
+      
+      <cartaporte30:FiguraTransporte>
+        <cartaporte30:TiposFigura TipoFigura="01"
+                                  RFCFigura="OPMJ850615HM7"
+                                  NombreFigura="JUAN MANUEL OPERADOR PEREZ"
+                                  NumLicencia="LIC987654321">
+          <cartaporte30:Domicilio Calle="Calle Transportistas"
+                                 NumeroExterior="25"
+                                 Colonia="Transportes"
+                                 Localidad="Monterrey"
+                                 Municipio="Monterrey"
+                                 Estado="NLE"
+                                 Pais="MEX"
+                                 CodigoPostal="64100"/>
+        </cartaporte30:TiposFigura>
+      </cartaporte30:FiguraTransporte>
+    </cartaporte30:CartaPorte>
+  </cfdi:Complemento>
+  
+  <cfdi:Addenda>
+    <InformacionAdicional>
+      <OrdenCompra>OC-2025-5678</OrdenCompra>
+      <Proyecto>PROYECTO LOGISTICA 2025</Proyecto>
+      <ContactoCliente>
+        <Nombre>María González</Nombre>
+        <Email>maria.gonzalez@abc.com</Email>
+        <Telefono>8112345678</Telefono>
+      </ContactoCliente>
+      <NotasEspeciales>
+        Mercancía frágil - Manejar con cuidado.
+        Entrega en horario de 9:00 a 17:00 hrs.
+        Requiere firma del responsable de almacén.
+      </NotasEspeciales>
+    </InformacionAdicional>
+  </cfdi:Addenda>
+  
+</cfdi:Comprobante>

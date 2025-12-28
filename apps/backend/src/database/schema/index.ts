@@ -12,9 +12,11 @@ export * from './pagos_efectivo.schema';
 // ✨ NUEVAS TABLAS - PASO 4: Expedientes de Devolución de IVA
 export * from './expedientes_devolucion.schema';
 export * from './cedulas_iva.schema';
+export * from './devoluciones_iva.schema';
 
 // ✨ NUEVAS TABLAS - ETAPA 2: Motor de Riesgo (Sentinel)
 export * from './cfdi_riesgos.schema';
 
 // ✨ NUEVAS TABLAS - ETAPA 1: Flujo de Efectivo
 export * from './bancos.schema';
+export * from './cfdi_relaciones.schema';

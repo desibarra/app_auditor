@@ -1,4 +1,4 @@
-import { sqliteTable, integer, text, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, integer, text, real, primaryKey } from "drizzle-orm/sqlite-core";
 
 /**
  * Tabla: cfdi_recibidos
@@ -7,7 +7,8 @@ import { sqliteTable, integer, text, real } from "drizzle-orm/sqlite-core";
  */
 export const cfdiRecibidos = sqliteTable("cfdi_recibidos", {
     // Identificador único del CFDI (UUID del SAT)
-    uuid: text("uuid").primaryKey(),
+    // Se elimina .primaryKey() para usar PK compuesta con empresaId
+    uuid: text("uuid").notNull(),
 
     // Datos del Emisor
     emisorRfc: text("emisor_rfc").notNull(),
@@ -28,6 +29,10 @@ export const cfdiRecibidos = sqliteTable("cfdi_recibidos", {
 
     // Tipo de Comprobante (I=Ingreso, E=Egreso, P=Pago, N=Nómina, T=Traslado)
     tipoComprobante: text("tipo_comprobante").notNull(),
+
+    // Multi-Ejercicio Support (2020-2026)
+    ejercicioFiscal: integer("ejercicio_fiscal"), // 2020, 2021, 2022, etc.
+    versionCfdi: text("version_cfdi"), // "3.3" o "4.0"
 
     // Montos
     subtotal: real("subtotal").notNull(),
@@ -63,4 +68,6 @@ export const cfdiRecibidos = sqliteTable("cfdi_recibidos", {
     procesado: integer("procesado", { mode: 'boolean' }).default(false),
     tieneErrores: integer("tiene_errores", { mode: 'boolean' }).default(false),
     mensajeError: text("mensaje_error"),
-});
+}, (table) => ({
+    pk: primaryKey({ columns: [table.uuid, table.empresaId] })
+}));

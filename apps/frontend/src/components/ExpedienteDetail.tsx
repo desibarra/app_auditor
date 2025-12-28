@@ -93,12 +93,12 @@ const ExpedienteDetail: React.FC<ExpedienteDetailProps> = ({ uuid }) => {
               { value: 'importaciones', label: 'Importaciones' },
               { value: 'otros', label: 'Otros' },
             ]}
-            onChange={(value) => setCfdiData((prev) => ({ ...prev, tipoGasto: value }))}
+            onChange={(value) => setCfdiData((prev) => prev ? ({ ...prev, tipoGasto: value }) : null)}
           />
         </Form.Item>
 
         <Form.Item label="Notas Internas">
-          <Input.TextArea rows={4} onChange={(e) => setCfdiData((prev) => ({ ...prev, notas: e.target.value }))} />
+          <Input.TextArea rows={4} onChange={(e) => setCfdiData((prev) => prev ? ({ ...prev, notas: e.target.value }) : null)} />
         </Form.Item>
 
         <Form.Item label="Carga de Documentos">

@@ -9,6 +9,7 @@ export const empresas = sqliteTable('empresas', {
     sector: text('sector'),
     configuracion: text('configuracion'), // JSON stored as text
     fechaAlta: integer('fecha_alta', { mode: 'timestamp_ms' }).notNull().default(sql`(unixepoch() * 1000)`),
+    // lastUpdate: integer('last_update', { mode: 'timestamp_ms' }), // TODO: Agregar después de migración
     activa: integer('activa', { mode: 'boolean' }).notNull().default(true),
 });
 

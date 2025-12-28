@@ -173,7 +173,7 @@ function UploadEvidencia({ cfdiUuid, tipoComprobante, folioControl, onSuccess }:
         }
     };
 
-    const categoriaActual = categorias.find(c => c.id === categoriaSeleccionada);
+
 
     return (
         <div className="space-y-4">
@@ -182,23 +182,46 @@ function UploadEvidencia({ cfdiUuid, tipoComprobante, folioControl, onSuccess }:
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                     Categoría de Evidencia *
                 </label>
-                <select
-                    value={categoriaSeleccionada}
-                    onChange={(e) => setCategoriaSeleccionada(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={uploading}
-                >
-                    {categorias.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                            {cat.icono} {cat.nombre} {cat.requerido ? '(Requerido)' : ''}
-                        </option>
-                    ))}
-                </select>
-                {categoriaActual && (
-                    <p className="text-xs text-gray-500 mt-1">
-                        {categoriaActual.descripcion}
-                    </p>
-                )}
+                <div className="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                    <div className="max-h-60 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                        {categorias.map((cat) => {
+                            const isSelected = categoriaSeleccionada === cat.id;
+                            return (
+                                <div
+                                    key={cat.id}
+                                    onClick={() => !uploading && setCategoriaSeleccionada(cat.id)}
+                                    className={`flex items-start p-3 rounded-md cursor-pointer transition-all border ${isSelected
+                                        ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500 z-10'
+                                        : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'
+                                        }`}
+                                >
+                                    <span className="text-2xl mr-3 mt-0.5">{cat.icono}</span>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-center">
+                                            <p className={`text-sm font-bold ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>
+                                                {cat.nombre}
+                                            </p>
+                                            {cat.requerido && (
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
+                                                    Requerido
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className={`text-xs mt-1 leading-relaxed ${isSelected ? 'text-blue-700' : 'text-gray-500'}`}>
+                                            {cat.descripcion}
+                                        </p>
+                                    </div>
+                                    <div className="ml-3 mt-1">
+                                        <div className={`w-5 h-5 rounded-full border-2 transition-colors flex items-center justify-center ${isSelected ? 'border-blue-600 bg-blue-600' : 'border-gray-300'
+                                            }`}>
+                                            {isSelected && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
 
             {/* Descripción */}
@@ -211,7 +234,7 @@ function UploadEvidencia({ cfdiUuid, tipoComprobante, folioControl, onSuccess }:
                     value={descripcion}
                     onChange={(e) => setDescripcion(e.target.value)}
                     placeholder="Ej: Contrato firmado el 15 de diciembre"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                     disabled={uploading}
                 />
             </div>

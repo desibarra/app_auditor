@@ -1,9 +1,5 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { eq, and, gte, lte, sql, desc } from 'drizzle-orm';
-import { cfdiRecibidos } from '../../database/schema/cfdi_recibidos.schema';
-import { documentosSoporte } from '../../database/schema/documentos_soporte';
-import { empresas } from '../../database/schema/empresas.schema';
-import { cfdiRiesgos } from '../../database/schema/cfdi_riesgos.schema';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
 import { CacheService } from '../../common/cache.service';
 
 @Injectable()
@@ -14,316 +10,233 @@ export class StatsService {
     ) { }
 
     /**
-     * Obtiene el resumen de estadísticas para una empresa
-     * LÓGICA CONTABLE CORRECTA:
-     * - Ingreso: RFC_Emisor == RFC_Empresa AND tipo == 'I'
-     * - Egreso: RFC_Receptor == RFC_Empresa AND tipo == 'I' (compras/gastos)
-     * - Notas de Crédito: tipo == 'E' (restan según quién las emita/reciba)
+     * 📊 DASHBOARD EJECUTIVO - SQL PURO
+     * Consolida métricas reales de Ingresos, Egresos y Alertas.
      */
-    async getResumen(empresaId: string) {
-        // Obtener RFC de la empresa
-        const [empresa] = await this.db
-            .select({ rfc: empresas.rfc })
-            .from(empresas)
-            .where(eq(empresas.id, empresaId));
+    async getDashboard(empresaId: string, periodo?: string, rol: 'emitidos' | 'recibidos' = 'recibidos') {
+        try {
+            const now = new Date();
+            const mesActivo = periodo || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-        if (!empresa) {
-            throw new Error('Empresa no encontrada');
-        }
+            // 1. Obtener RFC de la empresa
+            const empresaResult = await this.db.all(sql`
+                SELECT rfc, razon_social, sector, regimen_fiscal FROM empresas WHERE id = ${empresaId}
+            `);
+            if (!empresaResult.length) throw new BadRequestException('Empresa no encontrada');
+            const { rfc: rfcEmpresa, razon_social, sector, regimen_fiscal } = empresaResult[0];
 
-        const rfcEmpresa = empresa.rfc;
+            const filterClause = rol === 'emitidos'
+                ? sql`emisor_rfc = ${rfcEmpresa}`
+                : sql`receptor_rfc = ${rfcEmpresa}`;
 
-        // Obtener fechas del mes actual
-        const now = new Date();
-        const primerDiaMes = new Date(now.getFullYear(), now.getMonth(), 1);
-        const ultimoDiaMes = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            // 2. Resumen del mes activo
+            const kpis = await this.db.all(sql`
+                SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN tipo_comprobante = 'I' THEN total ELSE 0 END) as ingresos,
+                    SUM(CASE WHEN tipo_comprobante = 'E' THEN total ELSE 0 END) as egresos,
+                    COUNT(CASE WHEN tipo_comprobante = 'I' THEN 1 END) as count_ingresos,
+                    COUNT(CASE WHEN tipo_comprobante = 'E' THEN 1 END) as count_egresos
+                FROM cfdi_recibidos
+                WHERE empresa_id = ${empresaId}
+                AND ${filterClause}
+                AND strftime('%Y-%m', fecha) = ${mesActivo}
+                AND estado_sat != 'Cancelado'
+            `);
 
-        // Formatear fechas para SQLite (YYYY-MM-DD)
-        const fechaInicio = primerDiaMes.toISOString().split('T')[0];
-        const fechaFin = ultimoDiaMes.toISOString().split('T')[0];
+            const counts = kpis[0] || { total: 0, ingresos: 0, egresos: 0, count_ingresos: 0, count_egresos: 0 };
 
-        // 1. Obtener todos los CFDIs del mes
-        const cfdisMes = await this.db
-            .select()
-            .from(cfdiRecibidos)
-            .where(
-                and(
-                    eq(cfdiRecibidos.empresaId, empresaId),
-                    gte(cfdiRecibidos.fecha, fechaInicio),
-                    lte(cfdiRecibidos.fecha, fechaFin),
-                ),
-            );
+            // 3. Alertas rápidas (Simplificadas para evitar errores de esquema)
+            const riesgos = await this.db.all(sql`
+                SELECT 
+                    COUNT(CASE WHEN metodo_pago = 'PPD' THEN 1 END) as ppd_detectados,
+                    COUNT(CASE WHEN version_cfdi = '3.3' AND strftime('%Y', fecha) >= '2024' THEN 1 END) as cfdi_33_extemporaneo
+                FROM cfdi_recibidos
+                WHERE empresa_id = ${empresaId}
+                AND ${filterClause}
+                AND strftime('%Y-%m', fecha) = ${mesActivo}
+                AND estado_sat != 'Cancelado'
+            `);
 
-        // Clasificar contablemente cada CFDI
-        let totalIngresos = 0;
-        let countIngresos = 0;
-        let totalEgresos = 0;
-        let countEgresos = 0;
+            const r = riesgos[0] || { ppd_detectados: 0, cfdi_33_extemporaneo: 0 };
+            const alertasDashboard = [];
+            if (Number(r.ppd_detectados) > 0 && rol === 'recibidos') alertasDashboard.push({ nivel: 'medio', titulo: 'Facturas PPD' });
+            if (Number(r.cfdi_33_extemporaneo) > 0) alertasDashboard.push({ nivel: 'medio', titulo: 'CFDI 3.3 Detectado' });
 
-        cfdisMes.forEach((cfdi) => {
-            const monto = Number(cfdi.total);
-            const tipo = cfdi.tipoComprobante;
-            const emisor = cfdi.emisorRfc;
-            const receptor = cfdi.receptorRfc;
+            // 4. Top Concentración
+            const topConcentracion = await this.db.all(sql`
+                SELECT 
+                    ${rol === 'emitidos' ? sql.raw('receptor_rfc') : sql.raw('emisor_rfc')} as rfc,
+                    ${rol === 'emitidos' ? sql.raw('receptor_nombre') : sql.raw('emisor_nombre')} as nombre,
+                    SUM(total) as total
+                FROM cfdi_recibidos
+                WHERE empresa_id = ${empresaId}
+                AND ${filterClause}
+                AND strftime('%Y-%m', fecha) = ${mesActivo}
+                AND estado_sat != 'Cancelado'
+                AND tipo_comprobante = 'I'
+                GROUP BY rfc, nombre
+                ORDER BY total DESC
+                LIMIT 5
+            `);
 
-            // LÓGICA CONTABLE CORRECTA
-            if (tipo === 'I') {
-                // CFDI de Ingreso
-                if (emisor === rfcEmpresa) {
-                    // Nosotros emitimos → INGRESO (venta)
-                    totalIngresos += monto;
-                    countIngresos++;
-                } else if (receptor === rfcEmpresa) {
-                    // Nosotros recibimos → EGRESO (compra/gasto)
-                    totalEgresos += monto;
-                    countEgresos++;
-                }
-            } else if (tipo === 'E') {
-                // CFDI de Egreso (Nota de Crédito)
-                if (emisor === rfcEmpresa) {
-                    // Nosotros emitimos NC → RESTA a ingresos
-                    totalIngresos -= monto;
-                    countIngresos++;
-                } else if (receptor === rfcEmpresa) {
-                    // Nosotros recibimos NC → RESTA a egresos
-                    totalEgresos -= monto;
-                    countEgresos++;
-                }
-            }
-        });
-
-        // 2. Obtener contador de evidencias por CFDI para calcular alertas
-        const todosLosCfdis = await this.db
-            .select({
-                uuid: cfdiRecibidos.uuid,
-            })
-            .from(cfdiRecibidos)
-            .where(eq(cfdiRecibidos.empresaId, empresaId));
-
-        // Contar evidencias por cada CFDI
-        let alertasAlta = 0; // 0 evidencias = rojo
-        let alertasMedia = 0; // 1-2 evidencias = amarillo
-
-        for (const cfdi of todosLosCfdis) {
-            // Consultar las categorías de las evidencias existentes
-            const evidencias = await this.db
-                .select({
-                    categoria: documentosSoporte.categoriaEvidencia
-                })
-                .from(documentosSoporte)
-                .where(
-                    and(
-                        eq(documentosSoporte.cfdiUuid, cfdi.uuid),
-                        eq(documentosSoporte.estado, 'completado'),
-                    ),
-                );
-
-            const numEvidencias = evidencias.length;
-
-            // Regla de Negocio: Si tiene Contrato, es materialidad FUERTE (Completo)
-            const tieneContrato = evidencias.some(e =>
-                e.categoria && e.categoria.toLowerCase().includes('contrato')
-            );
-
-            // Criterio de "Completo": >= 3 evidencias O tiene contrato
-            const esCompleto = numEvidencias >= 3 || tieneContrato;
-
-            if (numEvidencias === 0) {
-                alertasAlta++;
-            } else if (!esCompleto) {
-                // Solo es alerta media (parcial) si tiene cosas PERO no es suficiente
-                alertasMedia++;
-            }
-        }
-
-        // 3. Gasto Proveedores de Riesgo
-        // Por ahora retornamos 0, se puede implementar con una tabla de EFOS
-        const gastoProveedoresRiesgo = 0;
-
-        // 4. Expedientes Incompletos (CFDIs sin evidencias)
-        const expedientesIncompletos = alertasAlta;
-
-        // 5. OBTENER RIESGOS FORENSES (SENTINEL)
-        const riesgosForense = await this.db
-            .select()
-            .from(cfdiRiesgos)
-            .where(eq(cfdiRiesgos.empresaId, empresaId))
-            .orderBy(desc(cfdiRiesgos.fechaAnalisis))
-            .limit(5);
-
-        return {
-            totalCfdiMes: {
-                ingresos: totalIngresos,
-                egresos: totalEgresos,
-                countIngresos,
-                countEgresos,
-            },
-            alertasActivas: {
-                alta: alertasAlta + riesgosForense.filter(r => r.nivelRiesgo === 'ALTO').length,
-                media: alertasMedia + riesgosForense.filter(r => r.nivelRiesgo === 'MEDIO').length,
-            },
-            gastoProveedoresRiesgo,
-            expedientesIncompletos,
-            topAlertas: this.combinarAlertas(alertasAlta, alertasMedia, riesgosForense),
-        };
-    }
-
-    /**
-     * Genera las alertas prioritarias combinando materialidad y riesgos forenses
-     */
-    private combinarAlertas(alertasAlta: number, alertasMedia: number, riesgosForense: any[]) {
-        const alertas = [];
-
-        // 1. Riesgos Forenses (Prioridad Máxima)
-        riesgosForense.forEach((r, i) => {
-            alertas.push({
-                id: `risk-${r.id}`,
-                mensaje: `${r.titulo}: ${r.descripcion}`,
-                nivel: r.nivelRiesgo.toLowerCase(),
-                fecha: new Date(r.fechaAnalisis).toISOString(),
-            });
-        });
-
-        // 2. Alertas de Materialidad
-        if (alertasAlta > 0) {
-            alertas.push({
-                id: 1,
-                mensaje: `${alertasAlta} CFDI${alertasAlta > 1 ? 's' : ''} sin evidencias de materialidad`,
-                nivel: 'alta' as const,
-                fecha: new Date().toISOString(),
-            });
-        }
-
-        if (alertasMedia > 0) {
-            alertas.push({
-                id: 2,
-                mensaje: `${alertasMedia} CFDI${alertasMedia > 1 ? 's' : ''} con materialización parcial`,
-                nivel: 'media' as const,
-                fecha: new Date().toISOString(),
-            });
-        }
-
-        if (alertasAlta === 0 && alertasMedia === 0) {
-            alertas.push({
-                id: 3,
-                mensaje: 'Todos los CFDIs tienen materialización completa',
-                nivel: 'baja' as const,
-                fecha: new Date().toISOString(),
-            });
-        }
-
-        return alertas;
-    }
-
-    /**
-   * Obtiene datos completos del dashboard incluyendo histórico de 6 meses
-   */
-    async getDashboard(empresaId: string) {
-        // Intentar obtener del caché
-        const cacheKey = `dashboard:${empresaId}`;
-        const cached = this.cacheService.get(cacheKey);
-
-        if (cached) {
-            return cached;
-        }
-
-        // Si no está en caché, calcular
-        const resumen = await this.getResumen(empresaId);
-        const historico = await this.getHistorico6Meses(empresaId);
-
-        const result = {
-            ...resumen,
-            historico,
-        };
-
-        // Guardar en caché por 5 minutos
-        this.cacheService.set(cacheKey, result, 5 * 60 * 1000);
-
-        return result;
-    }
-
-    /**
-     * Obtiene el histórico de ingresos y egresos de los últimos 6 meses
-     * LÓGICA CONTABLE CORRECTA aplicada
-     */
-    private async getHistorico6Meses(empresaId: string) {
-        // Obtener RFC de la empresa
-        const [empresa] = await this.db
-            .select({ rfc: empresas.rfc })
-            .from(empresas)
-            .where(eq(empresas.id, empresaId));
-
-        if (!empresa) {
-            throw new Error('Empresa no encontrada');
-        }
-
-        const rfcEmpresa = empresa.rfc;
-        const meses = [];
-        const now = new Date();
-
-        // Generar los últimos 6 meses
-        for (let i = 5; i >= 0; i--) {
-            const fecha = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const primerDia = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
-            const ultimoDia = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0);
-
-            const fechaInicio = primerDia.toISOString().split('T')[0];
-            const fechaFin = ultimoDia.toISOString().split('T')[0];
-
-            // Consultar todos los CFDIs del mes
-            const cfdisMes = await this.db
-                .select()
-                .from(cfdiRecibidos)
-                .where(
-                    and(
-                        eq(cfdiRecibidos.empresaId, empresaId),
-                        gte(cfdiRecibidos.fecha, fechaInicio),
-                        lte(cfdiRecibidos.fecha, fechaFin),
-                    ),
-                );
-
-            // Clasificar contablemente
-            let ingresos = 0;
-            let egresos = 0;
-
-            cfdisMes.forEach((cfdi) => {
-                const monto = Number(cfdi.total);
-                const tipo = cfdi.tipoComprobante;
-                const emisor = cfdi.emisorRfc;
-                const receptor = cfdi.receptorRfc;
-
-                // LÓGICA CONTABLE CORRECTA
-                if (tipo === 'I') {
-                    if (emisor === rfcEmpresa) {
-                        // Nosotros emitimos → INGRESO
-                        ingresos += monto;
-                    } else if (receptor === rfcEmpresa) {
-                        // Nosotros recibimos → EGRESO
-                        egresos += monto;
+            return {
+                empresa: {
+                    razonSocial: razon_social,
+                    rfc: rfcEmpresa,
+                    sector,
+                    regimenFiscal: regimen_fiscal
+                },
+                kpis: {
+                    cfdiDelMes: {
+                        total: Number(counts.total || 0),
+                        ingresos: Number(counts.ingresos || 0),
+                        egresos: Number(counts.egresos || 0),
+                        countIngresos: Number(counts.count_ingresos || 0),
+                        countEgresos: Number(counts.count_egresos || 0)
+                    },
+                    alertasActivas: {
+                        total: alertasDashboard.length,
+                        alta: alertasDashboard.filter(a => a.nivel === 'alto').length,
+                        media: alertasDashboard.filter(a => a.nivel === 'medio').length
                     }
-                } else if (tipo === 'E') {
-                    // Notas de Crédito
-                    if (emisor === rfcEmpresa) {
-                        // Nosotros emitimos NC → RESTA a ingresos
-                        ingresos -= monto;
-                    } else if (receptor === rfcEmpresa) {
-                        // Nosotros recibimos NC → RESTA a egresos
-                        egresos -= monto;
-                    }
-                }
-            });
+                },
+                topConcentracion: topConcentracion.map(t => ({
+                    id: t.rfc,
+                    nombre: t.nombre,
+                    total: Number(t.total || 0)
+                })),
+                perfilRiesgo: alertasDashboard.length > 5 ? 'CRÍTICO' : (alertasDashboard.length > 0 ? 'MEDIO' : 'BAJO')
+            };
 
-            // Nombre del mes en español
-            const nombreMes = fecha.toLocaleDateString('es-MX', { month: 'short' });
-
-            meses.push({
-                mes: nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1),
-                ingresos,
-                egresos,
-                fecha: fecha.toISOString(),
-            });
+        } catch (error) {
+            console.error('[StatsService] getDashboard Error:', error);
+            throw new BadRequestException('Error en dashboard: ' + error.message);
         }
+    }
 
-        return meses;
+    /**
+     * 🛡️ SENTINEL SUMMARY - PUNTO DE VERDAD UNIFICADO
+     */
+    async getSentinelSummary(empresaId: string, periodo: string, flujoReq: 'EMITIDOS' | 'RECIBIDOS' | 'PAGOS') {
+        try {
+            const vista = (flujoReq === 'EMITIDOS') ? 'emitidos' : 'recibidos';
+            const subFlujo = (flujoReq === 'PAGOS') ? 'pagos' : (flujoReq === 'EMITIDOS' ? 'ingresos' : 'gastos');
+
+            const [dashboardData, alerteData, tendenciaData] = await Promise.all([
+                this.getDashboard(empresaId, periodo, vista) as Promise<any>,
+                this.getAlerts(empresaId, periodo, vista, subFlujo),
+                this.getTendenciaAnual(empresaId)
+            ]);
+
+            return {
+                periodo,
+                flujo: flujoReq,
+                empresaMeta: dashboardData.empresa,
+                kpis: dashboardData.kpis.cfdiDelMes,
+                perfilRiesgo: alerteData.hasAlerts ? (alerteData.alertas.some(a => a.tipo === 'ROJA') ? 'CRÍTICO' : 'MEDIO') : 'BAJO',
+                alertas: alerteData.alertas,
+                alertasMeta: alerteData.contexto,
+                tendencia: tendenciaData,
+                topConcentracion: dashboardData.topConcentracion,
+                timestamp: new Date().toISOString()
+            };
+        } catch (error) {
+            console.error('[StatsService] getSentinelSummary Error:', error);
+            throw new BadRequestException('Error Sentinel Engine: ' + error.message);
+        }
+    }
+
+    /**
+     * 🛡️ ALERTAS FORENSES
+     */
+    async getAlerts(empresaId: string, mes: string, vista: 'emitidos' | 'recibidos', flujo: string) {
+        try {
+            const empresaResult = await this.db.all(sql`SELECT rfc FROM empresas WHERE id = ${empresaId}`);
+            if (!empresaResult.length) throw new BadRequestException('Empresa no encontrada');
+            const rfcEmpresa = empresaResult[0].rfc;
+
+            const filterClause = vista === 'emitidos'
+                ? sql`emisor_rfc = ${rfcEmpresa}`
+                : sql`receptor_rfc = ${rfcEmpresa}`;
+
+            const riesgos = await this.db.all(sql`
+                SELECT 
+                    COUNT(CASE WHEN metodo_pago = 'PPD' THEN 1 END) as ppd_detectados,
+                    COUNT(CASE WHEN version_cfdi = '3.3' AND strftime('%Y', fecha) >= '2024' THEN 1 END) as cfdi_33_extemporaneo
+                FROM cfdi_recibidos
+                WHERE empresa_id = ${empresaId}
+                AND ${filterClause}
+                AND strftime('%Y-%m', fecha) = ${mes}
+                AND estado_sat != 'Cancelado'
+                AND tipo_comprobante = 'I'
+            `);
+
+            const r = riesgos[0] || {};
+            const alertas = [];
+
+            if (vista === 'recibidos' && Number(r.ppd_detectados) > 0) {
+                alertas.push({
+                    tipo: 'AMARILLA',
+                    titulo: 'PAGOS PPD DETECTADOS',
+                    desc: `Se identificaron ${r.ppd_detectados} CFDI en modalidad PPD. Asegúrese de contar con los complementos de pago correspondientes.`,
+                    fundamento: 'Art. 29-A CFF'
+                });
+            }
+
+            if (Number(r.cfdi_33_extemporaneo) > 0 && vista === 'emitidos') {
+                alertas.push({
+                    tipo: 'ROJA',
+                    titulo: 'CFDI 3.3 EXTEMPORÁNEO',
+                    desc: `Se detectaron ${r.cfdi_33_extemporaneo} facturas emitidas en versión 3.3 durante 2024+, lo cual es inválido.`,
+                    fundamento: 'Anexo 20 RMF'
+                });
+            }
+
+            return {
+                alertas,
+                mensaje: alertas.length === 0 ? "✓ OPERACIÓN COHERENTE" : `Se detectaron ${alertas.length} hallazgos.`,
+                timestamp: new Date().toISOString(),
+                hasAlerts: alertas.length > 0,
+                contexto: { vista, flujo, periodo: mes }
+            };
+        } catch (error) {
+            throw new BadRequestException('Error al calcular alertas: ' + error.message);
+        }
+    }
+
+    /**
+     * 📈 TENDENCIA ANUAL - COMPARATIVA
+     */
+    async getTendenciaAnual(empresaId: string) {
+        try {
+            const empresaResult = await this.db.all(sql`SELECT rfc FROM empresas WHERE id = ${empresaId}`);
+            if (!empresaResult.length) throw new BadRequestException('Empresa no encontrada');
+            const rfcEmpresa = empresaResult[0].rfc;
+
+            const historico = await this.db.all(sql`
+                SELECT 
+                    strftime('%Y-%m', fecha) as mes_key,
+                    SUM(CASE WHEN emisor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN total ELSE 0 END) as ingresos,
+                    SUM(CASE WHEN receptor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN total ELSE 0 END) as egresos
+                FROM cfdi_recibidos
+                WHERE empresa_id = ${empresaId}
+                AND estado_sat != 'Cancelado'
+                GROUP BY mes_key
+                ORDER BY mes_key ASC
+            `);
+
+            return {
+                status: historico.length >= 2 ? "OK" : "INSUFICIENTE",
+                mesesDisponibles: historico.length,
+                data: historico.map(h => ({
+                    mes: h.mes_key,
+                    ingresos: Number(h.ingresos || 0),
+                    egresos: Number(h.egresos || 0)
+                }))
+            };
+        } catch (error) {
+            throw new BadRequestException('Error en tendencia: ' + error.message);
+        }
     }
 }

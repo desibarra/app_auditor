@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmpresasModule } from './modules/empresas/empresas.module';
 import { CfdiModule } from './modules/cfdi/cfdi.module';
-import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { SentinelModule } from './modules/dashboard/dashboard.module';
 import { DatabaseModule } from './database/database.module';
 import { ExpedientesModule } from './modules/expedientes/expedientes.module';
 import { EvidenciasModule } from './modules/evidencias/evidencias.module';
@@ -13,6 +13,7 @@ import { SeedModule } from './modules/seed/seed.module';
 import { LegajoModule } from './modules/legajo/legajo.module';
 import { BancosModule } from './modules/bancos/bancos.module';
 import { RiskModule } from './modules/risk/risk.module';
+import { DevolucionesModule } from './modules/devoluciones/devoluciones.module';
 
 @Module({
     imports: [
@@ -24,7 +25,7 @@ import { RiskModule } from './modules/risk/risk.module';
         AuthModule,
         EmpresasModule,
         CfdiModule,
-        DashboardModule,
+        SentinelModule,
         ExpedientesModule,
         EvidenciasModule,
         StatsModule,
@@ -33,6 +34,7 @@ import { RiskModule } from './modules/risk/risk.module';
         LegajoModule,
         BancosModule,
         RiskModule,
+        DevolucionesModule,
     ],
     controllers: [],
     providers: [],

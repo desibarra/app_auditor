@@ -126,190 +126,75 @@ export const TablaControlEmitidos: React.FC<TablaControlEmitidosProps> = ({
     }), { total: 0, importe: 0 });
 
     return (
-        <div className="tabla-control-emitidos">
-            <div className="header-tabla">
-                <h3 className="titulo">📊 Control Mensual de CFDI EMITIDOS</h3>
-                <p className="subtitulo">
-                    {resumen.length} meses • {totales.total} CFDIs • {formatCurrency(totales.importe)}
-                </p>
+
+        <div className="fiscal-card overflow-hidden mt-6">
+            <div className="p-6 border-b border-gray-800 bg-[#0B0E14]/50 backdrop-blur-sm">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-100 flex items-center gap-2">
+                            📊 Control Mensual de CFDI EMITIDOS
+                        </h3>
+                        <p className="text-sm text-gray-400 mt-1 font-mono">
+                            {resumen.length} meses • {totales.total} CFDIs • <span className="text-emerald-400 font-bold">{formatCurrency(totales.importe)}</span>
+                        </p>
+                    </div>
+                    <div className="text-right">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-900/30 text-emerald-400 border border-emerald-900/50">
+                            Ingresos
+                        </span>
+                    </div>
+                </div>
             </div>
 
-            <div className="tabla-wrapper">
-                <table className="tabla-resumen">
+            <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
                     <thead>
-                        <tr>
-                            <th className="mes-col">Mes</th>
-                            <th className="tipo-col" title="Ingresos">I</th>
-                            <th className="importe-col">Total $</th>
-                            <th className="clientes-col">Clientes</th>
-                            <th className="total-col">Total</th>
+                        <tr className="bg-[#0B0E14] border-b border-gray-800">
+                            <th className="px-6 py-4 text-left font-bold text-gray-400 uppercase tracking-wider text-xs">Mes</th>
+                            <th className="px-4 py-4 text-center font-bold text-emerald-500 uppercase tracking-wider text-xs" title="Ingresos">I</th>
+                            <th className="px-4 py-4 text-right font-bold text-emerald-400 uppercase tracking-wider text-xs">Total $</th>
+                            <th className="px-4 py-4 text-center font-bold text-indigo-500 uppercase tracking-wider text-xs">Clientes</th>
+                            <th className="px-6 py-4 text-center font-bold text-gray-400 uppercase tracking-wider text-xs bg-gray-900/50">Total</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-gray-800">
                         {resumen.map((row) => (
-                            <tr key={row.mes}>
-                                <td className="mes-col">
+                            <tr key={row.mes} className="hover:bg-gray-800/30 transition-colors">
+                                <td className="px-6 py-4 text-sm font-medium text-gray-300 font-mono">
                                     {formatMes(row.mes)}
                                 </td>
-                                <td className={`tipo-col tipo-I ${row.I > 0 ? '' : 'vacia'}`}>
+                                <td className={`px-4 py-4 text-center font-mono ${row.I > 0 ? 'text-emerald-400 font-bold' : 'text-gray-700'}`}>
                                     {row.I || '—'}
                                 </td>
-                                <td className="importe-col">
+                                <td className="px-4 py-4 text-right font-bold text-emerald-400 font-mono tracking-tight">
                                     {formatCurrency(row.importe_total)}
                                 </td>
-                                <td className="clientes-col">
+                                <td className="px-4 py-4 text-center font-bold text-indigo-400 font-mono">
                                     {row.clientes}
                                 </td>
-                                <td className="total-col">
-                                    <strong>{row.total}</strong>
+                                <td className="px-6 py-4 text-center font-bold text-gray-300 font-mono bg-gray-900/30">
+                                    {row.total}
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                     <tfoot>
-                        <tr className="total-row">
-                            <td><strong>Total</strong></td>
-                            <td>{totales.total}</td>
-                            <td><strong>{formatCurrency(totales.importe)}</strong></td>
-                            <td>—</td>
-                            <td><strong>{totales.total}</strong></td>
+                        <tr className="bg-[#0B0E14] border-t border-gray-800">
+                            <td className="px-6 py-4 font-bold text-gray-400 uppercase tracking-wider text-xs">TOTAL ANUAL</td>
+                            <td className="px-4 py-4 text-center font-bold text-emerald-500 font-mono">
+                                {totales.total}
+                            </td>
+                            <td className="px-4 py-4 text-right font-bold text-emerald-500 font-mono text-base border-t border-emerald-900/30 shadow-[0_-2px_10px_rgba(16,185,129,0.1)]">
+                                {formatCurrency(totales.importe)}
+                            </td>
+                            <td className="px-4 py-4 text-center text-gray-600 font-mono">—</td>
+                            <td className="px-6 py-4 text-center font-bold text-gray-300 font-mono bg-gray-900/50 shadow-inner">
+                                {totales.total}
+                            </td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
-
-            <style jsx>{`
-                .tabla-control-emitidos {
-                    margin-top: 24px;
-                    background: white;
-                    border-radius: 8px;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                    padding: 20px;
-                }
-
-                .header-tabla {
-                    margin-bottom: 16px;
-                }
-
-                .titulo {
-                    font-size: 1.25rem;
-                    font-weight: 600;
-                    color: #1f2937;
-                    margin: 0 0 4px 0;
-                }
-
-                .subtitulo {
-                    font-size: 0.875rem;
-                    color: #6b7280;
-                    margin: 0;
-                }
-
-                .tabla-wrapper {
-                    overflow-x: auto;
-                }
-
-                .tabla-resumen {
-                    width: 100%;
-                    border-collapse: collapse;
-                    font-size: 0.875rem;
-                }
-
-                .tabla-resumen th {
-                    background: #f9fafb;
-                    color: #374151;
-                    font-weight: 600;
-                    padding: 12px 8px;
-                    text-align: center;
-                    border-bottom: 2px solid #e5e7eb;
-                    font-size: 0.75rem;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                }
-
-                .tabla-resumen td {
-                    padding: 12px 8px;
-                    text-align: center;
-                    border-bottom: 1px solid #f3f4f6;
-                }
-
-                .tabla-resumen tbody tr:hover {
-                    background: #f9fafb;
-                }
-
-                .mes-col {
-                    text-align: left !important;
-                    font-weight: 500;
-                    min-width: 120px;
-                }
-
-                .tipo-col {
-                    min-width: 50px;
-                    color: #28a745;
-                    font-weight: 600;
-                }
-
-                .importe-col {
-                    min-width: 120px;
-                    font-weight: 600;
-                    color: #1a7f3e;
-                }
-
-                .clientes-col {
-                    min-width: 80px;
-                    color: #6366f1;
-                }
-
-                .total-col {
-                    background: #f1f3f5;
-                    font-weight: 600;
-                }
-
-                .vacia {
-                    color: #adb5bd;
-                }
-
-                .tipo-I { color: #28a745; }
-
-                .total-row {
-                    background: #f9fafb;
-                    font-weight: 600;
-                    border-top: 2px solid #e5e7eb;
-                }
-
-                .total-row td {
-                    padding: 14px 8px;
-                }
-
-                .tabla-control-loading,
-                .tabla-control-error,
-                .tabla-control-vacia {
-                    padding: 40px;
-                    text-align: center;
-                    background: #f8f9fa;
-                    border-radius: 8px;
-                }
-
-                .spinner {
-                    border: 3px solid #f3f3f3;
-                    border-top: 3px solid #4ade80;
-                    border-radius: 50%;
-                    width: 40px;
-                    height: 40px;
-                    animation: spin 1s linear infinite;
-                    margin: 0 auto 12px;
-                }
-
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-
-                .text-sm {
-                    font-size: 0.875rem;
-                    color: #6b7280;
-                    margin-top: 8px;
-                }
-            `}</style>
         </div>
     );
 };

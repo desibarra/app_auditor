@@ -139,7 +139,10 @@ export class CfdiController {
      * Para detectar faltantes rápidamente
      */
     @Get('resumen-mensual')
-    async getResumenMensual(@Query('empresaId') empresaId: string) {
+    async getResumenMensual(
+        @Query('empresaId') empresaId: string,
+        @Query('rol') rol?: 'EMITIDO' | 'RECIBIDO' | 'AMBOS'
+    ) {
         if (!empresaId) {
             throw new BadRequestException('Se requiere el ID de la empresa');
         }
@@ -294,5 +297,90 @@ export class CfdiController {
     ) {
         if (!empresaId || !rol || !tipo || !mes) throw new BadRequestException('Faltan parámetros de auditoría');
         return await this.cfdiService.getDetalleAuditoria(empresaId, rol, tipo, mes);
+    }
+
+    /**
+     * 🛡️ ENDPOINT AUDITORÍA 1x1 - DEFENSA FISCAL SAT
+     * GET /api/cfdi/detalle-mes/:empresaId/:mes/:dominio/:tipo
+     * 
+     * Retorna TODOS los CFDIs de un mes específico con información completa
+     * para auditoría forense y defensa ante SAT
+     */
+    @Get('detalle-mes/:empresaId/:mes/:dominio/:tipo')
+    async getDetalleMes(
+        @Param('empresaId') empresaId: string,
+        @Param('mes') mes: string,
+        @Param('dominio') dominio: 'emitidos' | 'recibidos',
+        @Param('tipo') tipo: 'ingresos' | 'egresos' | 'nomina' | 'pagos'
+    ) {
+        return await this.cfdiService.getDetalleAuditoria(
+            empresaId,
+            (dominio === 'emitidos' ? 'EMISOR' : 'RECEPTOR'),
+            (tipo === 'ingresos' ? 'I' : tipo === 'egresos' ? 'E' : tipo === 'nomina' ? 'N' : 'P'),
+            mes
+        );
+    }
+
+
+
+    // TEMPORALMENTE DESHABILITADO - Método no existe en servicio
+    // /**
+    //  * 🛡️ ENDPOINT REPORTE PAGOS Y COMPLEMENTOS (SAT-GRADE)
+    //  * GET /api/cfdi/pagos-complementos
+    //  * Relaciona Facturas PPD con sus Complementos de Pago
+    //  */
+    // @Get('pagos-complementos')
+    // async getPagosComplementos(
+    //     @Query('empresaId') empresaId: string,
+    //     @Query('mes') mes: string
+    // ) {
+    //     if (!empresaId || !mes) throw new BadRequestException('Faltan empresaId o mes (YYYY-MM)');
+    //     return await this.cfdiService.getReportePagosComplementos(empresaId, mes);
+    // }
+
+
+    /**
+     * 🛡️ INFORME MENSUAL DE DEFENSA FISCAL SAT-GRADE
+     * GET /api/cfdi/defense-report
+     * Genera informe completo para devolución de IVA
+     */
+    @Get('defense-report')
+    async defenseReport(
+        @Query('empresaId') empresaId: string,
+        @Query('mes') mes: string,
+    ) {
+        console.log('[DEFENSE REPORT] Iniciando generación...', { empresaId, mes });
+
+        if (!empresaId || !mes) {
+            console.error('[DEFENSE REPORT] ERROR: Faltan parámetros', { empresaId, mes });
+            throw new BadRequestException('Faltan empresaId o mes (YYYY-MM)');
+        }
+
+        const resultado = await this.cfdiService.generateDefenseReport(empresaId, mes);
+        console.log('[DEFENSE REPORT] ✅ Generado exitosamente');
+        return resultado;
+    }
+
+    /**
+     * 💰 COMPLEMENTOS DE PAGO - TRAZABILIDAD FISCAL
+     * GET /api/cfdi/complementos-pago
+     * Muestra qué CFDIs están pagados, cuáles tienen complemento y cuáles NO
+     */
+    @Get('complementos-pago')
+    async getComplementosPago(
+        @Query('empresaId') empresaId: string,
+        @Query('periodo') periodo: string,
+        @Query('origen') origen: 'RECIBIDOS' | 'EMITIDOS' = 'RECIBIDOS'
+    ) {
+        console.log('[COMPLEMENTOS PAGO] Iniciando...', { empresaId, periodo, origen });
+
+        if (!empresaId || !periodo) {
+            console.error('[COMPLEMENTOS PAGO] ERROR: Faltan parámetros', { empresaId, periodo });
+            throw new BadRequestException('Faltan empresaId o periodo (YYYY-MM)');
+        }
+
+        const resultado = await this.cfdiService.getComplementosPago(empresaId, periodo, origen);
+        console.log('[COMPLEMENTOS PAGO] ✅ Completado exitosamente');
+        return resultado;
     }
 }

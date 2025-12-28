@@ -1,77 +1,165 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { DB_CONNECTION } from '../../database/database.module';
-import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import * as schema from '../../database/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { Injectable, Inject, BadRequestException, Logger } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
+import { CfdiService } from '../cfdi/cfdi.service';
 
 @Injectable()
 export class DevolucionesService {
+    private readonly logger = new Logger(DevolucionesService.name);
+
     constructor(
-        @Inject(DB_CONNECTION) private db: NodePgDatabase<typeof schema>
+        @Inject('DRIZZLE_CLIENT') private readonly db: any,
+        private readonly cfdiService: CfdiService
     ) { }
 
-    async findAll(empresaId: string) {
-        return await this.db.query.expedientesDevolucionIva.findMany({
-            where: eq(schema.expedientesDevolucionIva.empresaId, empresaId),
-            orderBy: [sql`${schema.expedientesDevolucionIva.fechaCreacion} DESC`]
-        });
+    /**
+     * 📋 LISTA DE TRÁMITES REALES
+     */
+    async getByEmpresa(empresaId: string) {
+        return await this.db.all(sql`
+            SELECT 
+                id,
+                empresa_id as empresaId,
+                periodo,
+                saldo_favor as saldoFavor,
+                informe_hash as informeHash,
+                estado,
+                created_at as createdAt
+            FROM devoluciones_iva 
+            WHERE empresa_id = ${empresaId} 
+            ORDER BY created_at DESC
+        `);
     }
 
-    async findOne(id: number) {
-        const expediente = await this.db.query.expedientesDevolucionIva.findFirst({
-            where: eq(schema.expedientesDevolucionIva.id, id),
-            with: {
-                // cedulas: true, // If relation defined in DB helpers
+    /**
+     * 🔍 DETALLE DE TRÁMITE (EXPEDIENTE)
+     */
+    async getById(id: number) {
+        const result = await this.db.all(sql`
+            SELECT 
+                id,
+                empresa_id as empresaId,
+                periodo,
+                saldo_favor as saldoFavor,
+                informe_hash as informeHash,
+                estado,
+                uuids_cfdi as uuidsCfdi,
+                uuids_complementos as uuidsComplementos,
+                created_at as createdAt
+            FROM devoluciones_iva 
+            WHERE id = ${id}
+        `);
+
+        if (!result.length) return null;
+
+        const item = result[0];
+        return {
+            ...item,
+            uuidsCfdi: item.uuidsCfdi ? JSON.parse(item.uuidsCfdi) : [],
+            uuidsComplementos: item.uuidsComplementos ? JSON.parse(item.uuidsComplementos) : []
+        };
+    }
+
+    /**
+     * 🚀 CREAR TRÁMITE DESDE INFORME SAT-GRADE
+     * Valida dictamen y vincula evidencias forenses.
+     */
+    async createFromReport(empresaId: string, periodo: string) {
+        this.logger.log(`Creando trámite de devolución para periodo ${periodo}...`);
+
+        // 1. Obtener y Validar el Informe SAT-GRADE
+        const report = await this.cfdiService.generateDefenseReport(empresaId, periodo);
+
+        if (report.dictamen.resultado === 'RED') {
+            throw new BadRequestException('Trámite BLOQUEADO: El informe tiene un dictamen CRÍTICO (RED). Debe solventar las alertas de riesgo antes de proceder.');
+        }
+
+        const warningMsg = report.dictamen.resultado === 'YELLOW'
+            ? 'Atención: Informe con dictamen YELLOW. Es probable que el SAT genere un requerimiento de información.'
+            : null;
+
+        // 2. Extraer datos del reporte
+        const saldoFavor = report.resumenNumerico.ivaSolicitado;
+        // Determinamos un hash si no viene en el reporte (Fallback)
+        const hashIntegritad = report.meta.hashIntegritad || Buffer.from(`${empresaId}-${periodo}-${saldoFavor}`).toString('base64').substring(0, 16);
+
+        // 3. Obtener UUIDs vinculados (CFDI + Pagos) - SQL puro para trazabilidad
+        const cfdis = await this.db.all(sql`
+            SELECT uuid FROM cfdi_recibidos 
+            WHERE empresa_id = ${empresaId} 
+            AND strftime('%Y-%m', fecha) = ${periodo}
+            AND estado_sat != 'Cancelado'
+            AND tipo_comprobante = 'I'
+        `);
+        const uuidsCfdiList = cfdis.map(c => c.uuid);
+
+        const pagos = await this.db.all(sql`
+            SELECT DISTINCT cp.uuid
+            FROM cfdi_recibidos cp
+            JOIN cfdi_relaciones r ON r.cfdi_hijo_uuid = cp.uuid
+            JOIN cfdi_recibidos c ON c.uuid = r.cfdi_padre_uuid
+            WHERE c.empresa_id = ${empresaId}
+            AND strftime('%Y-%m', c.fecha) = ${periodo}
+            AND r.tipo_relacion = '04'
+            AND cp.tipo_comprobante = 'P'
+        `);
+        const uuidsPagosList = pagos.map(p => p.uuid);
+
+        // 4. Persistir Trámite
+        const now = Date.now();
+        await this.db.run(sql`
+            INSERT INTO devoluciones_iva (
+                empresa_id, periodo, saldo_favor, informe_hash, estado, uuids_cfdi, uuids_complementos, created_at
+            ) VALUES (
+                ${empresaId}, ${periodo}, ${saldoFavor}, ${hashIntegritad}, 'BORRADOR', 
+                ${JSON.stringify(uuidsCfdiList)}, ${JSON.stringify(uuidsPagosList)}, ${now}
+            )
+        `);
+
+        return {
+            success: true,
+            warning: warningMsg,
+            data: {
+                periodo,
+                saldoFavor,
+                hashIntegritad,
+                cfdisCount: uuidsCfdiList.length,
+                pagosCount: uuidsPagosList.length
             }
-        });
-        if (!expediente) throw new NotFoundException('Expediente no encontrado');
-        return expediente;
+        };
     }
 
-    async create(empresaId: string, periodo: string, nombre: string) {
-        // 1. Obtener RFC de la empresa
-        const empresa = await this.db.query.empresas.findFirst({
-            where: eq(schema.empresas.id, empresaId)
-        });
-        if (!empresa) throw new NotFoundException('Empresa no encontrada');
+    /**
+     * 🔍 VISTA PREVIA DEL TRÁMITE (PRE-VALUACIÓN)
+     * Ejecuta simulacro de auditoría para mostrar en la interfaz antes de confirmar.
+     */
+    async preValuation(empresaId: string, periodo: string) {
+        const report = await this.cfdiService.generateDefenseReport(empresaId, periodo);
 
-        // 2. Crear Expediente
-        const [nuevoExpediente] = await this.db.insert(schema.expedientesDevolucionIva).values({
-            empresaId,
-            folio: `DEV-${periodo}-${Date.now().toString().slice(-4)}`,
-            nombre,
-            descripcion: `Devolución generada para el periodo ${periodo}`,
-            estado: 'borrador'
-        }).returning();
+        const cfdis = await this.db.all(sql`
+            SELECT COUNT(*) as count FROM cfdi_recibidos 
+            WHERE empresa_id = ${empresaId} 
+            AND strftime('%Y-%m', fecha) = ${periodo}
+            AND estado_sat != 'Cancelado'
+            AND tipo_comprobante = 'I'
+        `);
 
-        // 3. Generar Cédulas Automáticas (Async trigger or immediate)
-        await this.generarCedulasDesdeCfdi(nuevoExpediente.id, empresa.rfc, periodo);
+        const pagos = await this.db.all(sql`
+            SELECT COUNT(DISTINCT cp.uuid) as count
+            FROM cfdi_recibidos cp
+            JOIN cfdi_relaciones r ON r.cfdi_hijo_uuid = cp.uuid
+            JOIN cfdi_recibidos c ON c.uuid = r.cfdi_padre_uuid
+            WHERE c.empresa_id = ${empresaId}
+            AND strftime('%Y-%m', c.fecha) = ${periodo}
+            AND r.tipo_relacion = '04'
+            AND cp.tipo_comprobante = 'P'
+        `);
 
-        return nuevoExpediente;
-    }
-
-    async generarCedulasDesdeCfdi(expedienteId: number, rfcEmpresa: string, periodo: string) {
-        // Periodo format YYYY-MM
-        // Query CFDI Recibidos (Gasto) del periodo
-        // Simplificación: Buscamos en la tabla 'cfdis' (o cfdi_recibidos si existe separada)
-        // Asumiendo tabla unificada 'cfdis' por ahora o adaptando según schema real.
-        // Voy a usar un enfoque agnóstico: Buscar por fecha y receptor.
-
-        // TODO: Ajustar nombre de tabla CFDI según schema real.
-        // Asumo 'cfdi_recibidos' basado en schema index.
-
-        /* 
-           NOTA: Como no tengo el schema de 'cfdis' exacto en memoria, voy a dejar la lógica placeholder
-           pero funcional en estructura.
-        */
-
-        // Mock of logic for now to allow compilation
-        console.log(`Generando cédulas para ${rfcEmpresa} periodo ${periodo}`);
-    }
-
-    async getCedulas(expedienteId: number) {
-        return await this.db.query.cedulasIva.findMany({
-            where: eq(schema.cedulasIva.expedienteId, expedienteId)
-        });
+        return {
+            periodo,
+            saldoFavor: report.resumenNumerico.ivaSolicitado,
+            dictamen: report.dictamen,
+            cfdisCount: cfdis[0].count,
+            pagosCount: pagos[0].count
+        };
     }
 }
