@@ -4,9 +4,10 @@ interface ContextBarProps {
     empresaNombre: string;
     empresaRfc: string;
     periodoLabel: string;
-    modo: 'emitidos' | 'recibidos';
+    modo: string; // Dynamic from backend (EMITIDOS | RECIBIDOS | PAGOS)
     subModo: string;
     // Nuevos props para perfil fiscal dinámico
+    perfilRiesgo?: string;
     sector?: string;
     regimenFiscal?: string;
     // Multi-Ejercicio
@@ -54,6 +55,7 @@ const ContextBar: React.FC<ContextBarProps> = ({
     periodoLabel,
     modo,
     sector,
+    perfilRiesgo,
     regimenFiscal,
     ejercicioFiscal,
     versionCfdi
@@ -132,17 +134,17 @@ const ContextBar: React.FC<ContextBarProps> = ({
             <div className="hidden lg:flex flex-col min-w-[200px]">
                 <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-widest mb-0.5">PERFIL DE RIESGO</span>
                 <div className="flex flex-col leading-tight">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className={`w-2 h-2 rounded-full ${perfilRiesgo === 'CRÍTICO' ? 'bg-rose-500 animate-pulse' : perfilRiesgo === 'MEDIO' ? 'bg-yellow-500' : 'bg-emerald-500'}`}></div>
+                        <span className={`text-xs font-black tracking-tight ${perfilRiesgo === 'CRÍTICO' ? 'text-rose-500' : perfilRiesgo === 'MEDIO' ? 'text-yellow-500' : 'text-emerald-500'}`}>
+                            {perfilRiesgo || 'ANALIZANDO...'}
+                        </span>
+                    </div>
                     <span
-                        className={`${sectorInfo.color} text-xs font-bold font-mono truncate`}
+                        className={`${sectorInfo.color} text-[10px] font-bold font-mono truncate opacity-80`}
                         title={`${sectorInfo.code} - ${sectorInfo.name}`}
                     >
-                        {sectorInfo.icon} {sectorInfo.code}
-                    </span>
-                    <span
-                        className={`text-gray-400 text-[10px] truncate`}
-                        title={`${regimenInfo.code} - ${regimenInfo.name}`}
-                    >
-                        {regimenInfo.name}
+                        {sectorInfo.icon} {sectorInfo.name}
                     </span>
                 </div>
             </div>

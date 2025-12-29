@@ -166,8 +166,9 @@ function DashboardPage() {
                     empresaNombre={currentEmpresa?.razonSocial || "IDENTIDAD CARGANDO..."}
                     empresaRfc={currentEmpresa?.rfc || "---"}
                     periodoLabel={filtros.mes}
-                    modo={tabPrincipal}
+                    modo={summary?.vistaActiva || (tabPrincipal === 'emitidos' ? 'EMITIDOS' : 'RECIBIDOS')}
                     subModo={subTab.toUpperCase()}
+                    perfilRiesgo={summary?.perfilRiesgo}
                     sector={currentEmpresa?.sector}
                     regimenFiscal={currentEmpresa?.regimenFiscal}
                 />
@@ -257,14 +258,14 @@ function DashboardPage() {
                 </div>
 
                 {/* NIVEL 3: ALERTAS CORE */}
-                <div className="fiscal-card border-l-4 border-l-rose-600 relative overflow-hidden min-h-[140px]">
+                <div className={`fiscal-card border-l-4 border-l-rose-600 relative overflow-hidden transition-all duration-300 ${summary?.alertas && summary.alertas.length > 0 ? 'min-h-[140px]' : 'max-h-[220px]'}`}>
                     {loading && (
                         <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-20 flex items-center justify-center">
                             <span className="text-rose-500 text-[11px] font-black tracking-[0.5em] animate-pulse uppercase">Auditing Engine Recalculating...</span>
                         </div>
                     )}
-                    <div className="p-8">
-                        <div className="flex justify-between items-center mb-8">
+                    <div className={`p-8 ${summary?.alertas && summary.alertas.length > 0 ? '' : 'py-4'}`}>
+                        <div className={`flex justify-between items-center ${summary?.alertas && summary.alertas.length > 0 ? 'mb-8' : 'mb-4'}`}>
                             <h3 className="text-gray-400 text-xs font-black uppercase tracking-[0.2em] flex items-center gap-4">
                                 <span className="w-1.5 h-4 bg-rose-600 rounded-full shadow-[0_0_10px_rgba(225,29,72,0.4)]"></span>
                                 ALERTAS FORENSES — {tabPrincipal.toUpperCase()} — {filtros.mes}
@@ -291,13 +292,13 @@ function DashboardPage() {
                                     </div>
                                 ))
                             ) : (
-                                <div className="py-20 text-center border-2 border-dashed border-gray-800/40 rounded-3xl bg-black/10">
-                                    <div className="w-20 h-20 bg-emerald-500/5 rounded-full flex items-center justify-center mx-auto mb-8 border border-emerald-500/10">
-                                        <span className="text-3xl">🛡️</span>
+                                <div className="py-6 text-center border-2 border-dashed border-gray-800/40 rounded-3xl bg-black/10">
+                                    <div className="w-12 h-12 bg-emerald-500/5 rounded-full flex items-center justify-center mx-auto mb-3 border border-emerald-500/10">
+                                        <span className="text-xl">🛡️</span>
                                     </div>
-                                    <p className="text-gray-400 text-xs font-black uppercase tracking-[0.3em]">{summary?.alertasMeta?.flujo === 'pagos' ? 'Trazabilidad de Complementos Validada' : 'No se detectaron Anomalías'}</p>
-                                    <p className="text-gray-600 text-[11px] mt-4 max-w-sm mx-auto leading-relaxed font-bold italic">
-                                        El Sentinel Engine ha completado el análisis de <strong>{subTab.toUpperCase()}</strong> sin hallazgos forenses críticos para este periodo.
+                                    <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em]">{summary?.alertasMeta?.flujo === 'pagos' ? 'Trazabilidad de Complementos Validada' : 'No se detectaron Anomalías'}</p>
+                                    <p className="text-gray-600 text-[9px] mt-2 max-w-sm mx-auto leading-relaxed font-bold italic">
+                                        Análisis de <strong>{subTab.toUpperCase()}</strong> finalizado sin hallazgos forenses críticos.
                                     </p>
                                 </div>
                             )}

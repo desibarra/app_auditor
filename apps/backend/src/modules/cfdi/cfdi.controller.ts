@@ -383,4 +383,22 @@ export class CfdiController {
         console.log('[COMPLEMENTOS PAGO] ✅ Completado exitosamente');
         return resultado;
     }
+
+    /**
+     * 💰 DETALLE AUDITABLE - COMPLEMENTOS DE PAGO
+     * GET /api/cfdi/complementos-pago/detalle
+     */
+    @Get('complementos-pago/detalle')
+    async getComplementosPagoDetalle(
+        @Query('empresaId') empresaId: string,
+        @Query('periodo') periodo: string,
+        @Query('estadoComplemento') estadoComplemento: string,
+        @Query('origen') origen: 'RECIBIDOS' | 'EMITIDOS' = 'RECIBIDOS'
+    ) {
+        if (!empresaId || !periodo || !estadoComplemento) {
+            throw new BadRequestException('Faltan parámetros empresaId, periodo o estadoComplemento');
+        }
+
+        return await this.cfdiService.getComplementosPagoDetalle(empresaId, periodo, estadoComplemento, origen);
+    }
 }

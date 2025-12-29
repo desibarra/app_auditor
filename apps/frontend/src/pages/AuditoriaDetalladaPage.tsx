@@ -144,6 +144,36 @@ function AuditoriaDetalladaPage() {
     const metricasSafe: any = metricas || {};
     const periodo = filtros.mes || (filtros.fechaInicio && filtros.fechaFin ? `${filtros.fechaInicio} a ${filtros.fechaFin}` : null);
 
+    // Sentinel Engine Sync (Fuente de Verdad Única para Header)
+    const [summary, setSummary] = useState<any>(null);
+
+    React.useEffect(() => {
+        const fetchSentinelStatus = async () => {
+            if (!empresaSeleccionada || !filtros.mes) {
+                setSummary(null);
+                return;
+            }
+            try {
+                // Mapear el flujo al formato Sentinel (EMITIDOS | RECIBIDOS | PAGOS)
+                let flujoSentinel: 'EMITIDOS' | 'RECIBIDOS' | 'PAGOS' = 'RECIBIDOS';
+                if (tabPrincipal === 'pagos') flujoSentinel = 'PAGOS';
+                else if (tabPrincipal === 'emitidos') flujoSentinel = 'EMITIDOS';
+
+                const res = await axios.get('/api/stats/sentinel-summary', {
+                    params: {
+                        empresaId: empresaSeleccionada,
+                        periodo: filtros.mes,
+                        flujo: flujoSentinel
+                    }
+                });
+                setSummary(res.data);
+            } catch (err) {
+                console.error("Error syncing Sentinel Status:", err);
+            }
+        };
+        fetchSentinelStatus();
+    }, [empresaSeleccionada, filtros.mes, tabPrincipal]);
+
     // Función para refrescar datos después de importar XML
     const handleRefreshData = () => {
         // El hook useMetricasDominio se actualizará automáticamente
@@ -159,8 +189,9 @@ function AuditoriaDetalladaPage() {
                 empresaNombre={empresaData?.razonSocial || "SELECCIONE EMPRESA"}
                 empresaRfc={empresaData?.rfc || '---'}
                 periodoLabel={filtros.mes || 'HISTÓRICO GLOBAL'}
-                modo={tabPrincipal === 'pagos' ? 'emitidos' : tabPrincipal}
+                modo={summary?.vistaActiva || tabPrincipal.toUpperCase()}
                 subModo={subTab}
+                perfilRiesgo={summary?.perfilRiesgo}
                 sector={empresaData?.sector}
                 regimenFiscal={empresaData?.regimenFiscal}
             />

@@ -135,6 +135,7 @@ export class StatsService {
                 empresaMeta: dashboardData.empresa,
                 kpis: dashboardData.kpis.cfdiDelMes,
                 perfilRiesgo: alerteData.hasAlerts ? (alerteData.alertas.some(a => a.tipo === 'ROJA') ? 'CRÍTICO' : 'MEDIO') : 'BAJO',
+                vistaActiva: flujoReq,
                 alertas: alerteData.alertas,
                 alertasMeta: alerteData.contexto,
                 tendencia: tendenciaData,

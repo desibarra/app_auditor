@@ -1,8 +1,8 @@
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { CfdiParserService, CfdiData } from './services/cfdi-parser.service';
 import { RiskEngineService } from '../risk/risk.service';
-import { cfdiRecibidos, cfdiImpuestos, empresas } from '../../database/schema';
-import { eq, sql } from 'drizzle-orm';
+import { cfdiRecibidos, cfdiImpuestos, cfdiRelaciones, empresas } from '../../database/schema';
+import { eq, sql, and } from 'drizzle-orm';
 
 @Injectable()
 export class CfdiService {
@@ -94,15 +94,7 @@ export class CfdiService {
             if (empresaObj) {
                 const rol = cfdiData.emisorRfc === empresaObj.rfc ? 'EMITIDO' : 'RECIBIDO';
                 const tipo = cfdiData.tipoComprobante;
-                let dominio = 'DESCONOCIDO';
-
-                if (tipo === 'I') dominio = 'INGRESOS';
-                else if (tipo === 'E') dominio = 'EGRESOS';
-                else if (tipo === 'N') dominio = 'NOMINA';
-                else if (tipo === 'P') dominio = 'PAGOS';
-                else if (tipo === 'T') dominio = 'TRASLADOS';
-
-                console.log(`[SAT-Grade] CFDI clasificado correctamente: ROL=${rol} | TIPO=${tipo} | DOMINIO=${dominio}`);
+                console.log(`[SAT-Grade] CFDI clasificado correctamente: ROL=${rol} | TIPO=${tipo}`);
             }
 
             // 6. Verificar si ya existe (ON CONFLICT DO NOTHING manual)
@@ -170,6 +162,27 @@ export class CfdiService {
 
                     await tx.insert(cfdiImpuestos).values(impuestosValues);
                 }
+
+                // 6.3 Insertar Relaciones de Pago (DoctoRelacionado)
+                // NORMALIZACIÓN: Ya sea pago10 o pago20, extraemos la info estandarizada
+                if (cfdiData.complementoPago && cfdiData.complementoPago.length > 0) {
+                    for (const pago of cfdiData.complementoPago) {
+                        if (pago.doctoRelacionado && pago.doctoRelacionado.length > 0) {
+                            const relacionesValues = pago.doctoRelacionado.map(doc => ({
+                                cfdiPadreUuid: cfdiData.uuid,        // El CFDI de Pago (Parent / Container)
+                                cfdiHijoUuid: doc.idDocumento,       // La Factura PPD (Child / Target)
+                                tipoRelacion: 'PAGO',                // Etiqueta interna para conciliación
+                                impSaldoAnt: doc.impSaldoAnt || 0,
+                                impPagado: doc.impPagado || 0,
+                                impSaldoInsoluto: doc.impSaldoInsoluto || 0,
+                                numParcialidad: doc.numParcialidad || 1,
+                                empresaId: empresaId
+                            }));
+
+                            await tx.insert(cfdiRelaciones).values(relacionesValues);
+                        }
+                    }
+                }
             });
 
             // 7. ANÁLISIS DE RIESGO (Sentinel Engine)
@@ -202,6 +215,73 @@ export class CfdiService {
                 `Error al importar CFDI: ${error.message}`,
             );
         }
+    }
+
+    /**
+     * REPARACIÓN DE DATOS HISTÓRICOS
+     * Escanea todos los CFDI de Pago de la empresa y regenera la tabla cfdiRelaciones.
+     * Útil para corregir inconsistencias o actualizar lógica de conciliación.
+     */
+    async regenerarRelacionesPagos(empresaId: string) {
+        console.log(`[REPARACIÓN] Iniciando regeneración de relaciones de pago para empresa ${empresaId}...`);
+
+        // 1. Obtener todos los CFDI de tipo Pago
+        const pagos = await this.db.select()
+            .from(cfdiRecibidos)
+            .where(and(
+                eq(cfdiRecibidos.empresaId, empresaId),
+                eq(cfdiRecibidos.tipoComprobante, 'P')
+            ));
+
+        console.log(`[REPARACIÓN] Se encontraron ${pagos.length} comprobantes de pago para procesar.`);
+        let procesados = 0;
+        let relacionesCreadas = 0;
+
+        // 2. Procesar cada pago
+        for (const pagoCfdi of pagos) {
+            try {
+                // Eliminar relaciones existentes para este pago para evitar duplicados
+                await this.db.delete(cfdiRelaciones)
+                    .where(eq(cfdiRelaciones.cfdiPadreUuid, pagoCfdi.uuid));
+
+                // Parsear XML original
+                if (!pagoCfdi.xmlOriginal) continue;
+
+                const cfdiData = await this.cfdiParserService.parseXML(pagoCfdi.xmlOriginal);
+
+                // Re-insertar relaciones
+                if (cfdiData.complementoPago && cfdiData.complementoPago.length > 0) {
+                    const relacionesToInsert = [];
+                    for (const pago of cfdiData.complementoPago) {
+                        if (pago.doctoRelacionado) {
+                            for (const doc of pago.doctoRelacionado) {
+                                relacionesToInsert.push({
+                                    cfdiPadreUuid: cfdiData.uuid,
+                                    cfdiHijoUuid: doc.idDocumento,
+                                    tipoRelacion: 'PAGO',
+                                    impSaldoAnt: doc.impSaldoAnt || 0,
+                                    impPagado: doc.impPagado || 0,
+                                    impSaldoInsoluto: doc.impSaldoInsoluto || 0,
+                                    numParcialidad: doc.numParcialidad || 1,
+                                    empresaId: empresaId
+                                });
+                            }
+                        }
+                    }
+
+                    if (relacionesToInsert.length > 0) {
+                        await this.db.insert(cfdiRelaciones).values(relacionesToInsert);
+                        relacionesCreadas += relacionesToInsert.length;
+                    }
+                }
+                procesados++;
+            } catch (err) {
+                console.error(`[REPARACIÓN] Error procesando pago ${pagoCfdi.uuid}:`, err);
+            }
+        }
+
+        console.log(`[REPARACIÓN] Finalizado. Pagos procesados: ${procesados}. Relaciones recuperadas: ${relacionesCreadas}.`);
+        return { procesados, relacionesCreadas };
     }
 
     /**
@@ -1320,6 +1400,18 @@ export class CfdiService {
         try {
             console.log('[getComplementosPago] Iniciando...', { empresaId, periodo, origen });
 
+            // 0. AUTO-HEAL: Verificar si existen relaciones de pago. Si no, regenerar.
+            // Esto asegura que bases de datos existentes se actualicen sin intervención manual.
+            const statsRelaciones = await this.db.all(sql`
+                SELECT COUNT(*) as total FROM cfdi_relaciones 
+                WHERE empresa_id = ${empresaId} AND tipo_relacion = 'PAGO'
+            `);
+
+            if (statsRelaciones[0]?.total === 0) {
+                console.warn('[AUTO-HEAL] No se detectaron relaciones de pago. Iniciando regeneración forense...');
+                await this.regenerarRelacionesPagos(empresaId);
+            }
+
             // 1. OBTENER EMPRESA
             const empresaResult = await this.db.all(sql`
                 SELECT id, rfc, razon_social
@@ -1335,16 +1427,13 @@ export class CfdiService {
             const rfcEmpresa = empresa.rfc;
 
             // 2. QUERY PRINCIPAL - TRAZABILIDAD FISCAL REAL
-            // Un CFDI está PAGADO solo si:
-            // - Método = PPD
-            // - Existe CFDI tipo P (Complemento)
-            // - Hay relación TipoRelación = 04
             const data = await this.db.all(sql`
                 SELECT
                     c.uuid                 AS uuid_cfdi,
                     c.fecha                AS fecha_cfdi,
                     c.metodo_pago,
                     c.total,
+                    (SELECT SUM(importe) FROM cfdi_impuestos WHERE cfdi_uuid = c.uuid AND tipo = 'Traslado' AND impuesto = '002') as iva,
                     c.version_cfdi,
                     c.ejercicio_fiscal     AS ejercicio,
                     c.emisor_rfc,
@@ -1360,11 +1449,12 @@ export class CfdiService {
                     END AS estatus_pago
                 FROM cfdi_recibidos c
                 LEFT JOIN cfdi_relaciones r
-                    ON r.cfdi_padre_uuid = c.uuid
-                    AND r.tipo_relacion = '04'
+                    ON r.cfdi_hijo_uuid = c.uuid
+                    AND r.tipo_relacion = 'PAGO'
                 LEFT JOIN cfdi_recibidos cp
-                    ON cp.uuid = r.cfdi_hijo_uuid
+                    ON cp.uuid = r.cfdi_padre_uuid
                     AND cp.tipo_comprobante = 'P'
+                    AND cp.estado_sat != 'Cancelado'
                 WHERE c.empresa_id = ${empresaId}
                 AND strftime('%Y-%m', c.fecha) = ${periodo}
                 AND c.tipo_comprobante = 'I'
@@ -1384,7 +1474,8 @@ export class CfdiService {
                 uuidCfdi: item.uuid_cfdi,
                 fechaCfdi: item.fecha_cfdi,
                 metodoPago: item.metodo_pago,
-                total: item.total,
+                total: item.total || 0,
+                iva: item.iva || 0,
                 uuidComplemento: item.uuid_complemento || null,
                 fechaComplemento: item.fecha_complemento || null,
                 estatusPago: item.estatus_pago,
@@ -1426,5 +1517,23 @@ export class CfdiService {
             console.error('[getComplementosPago] Stack:', error.stack);
             throw new BadRequestException(`Error al obtener complementos de pago: ${error.message}`);
         }
+    }
+
+    async getComplementosPagoDetalle(empresaId: string, periodo: string, estadoComplemento: string, origen: 'RECIBIDOS' | 'EMITIDOS' = 'RECIBIDOS') {
+        const result = await this.getComplementosPago(empresaId, periodo, origen);
+
+        let filteredData = result.data;
+        if (estadoComplemento === 'CON_COMPLEMENTO') {
+            filteredData = result.data.filter(d => d.estatusPago === 'PAGADO');
+        } else if (estadoComplemento === 'SIN_COMPLEMENTO') {
+            filteredData = result.data.filter(d => d.estatusPago === 'SIN_COMPLEMENTO');
+        } else if (estadoComplemento === 'PUE') {
+            filteredData = result.data.filter(d => d.estatusPago === 'PUE');
+        }
+
+        return {
+            meta: result.meta,
+            data: filteredData
+        };
     }
 }
