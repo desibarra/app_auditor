@@ -1,12 +1,16 @@
-import { Controller, Post, Body, Res, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Res, BadRequestException, UseGuards, SetMetadata } from '@nestjs/common';
 import { Response } from 'express';
 import { LegajoService } from './legajo.service';
+import { RolesGuard } from '../../guards/roles.guard';
+import { Permissions } from '../../common/roles.enum';
 
 @Controller('legajo')
 export class LegajoController {
     constructor(private readonly legajoService: LegajoService) { }
 
     @Post('exportar')
+    @UseGuards(RolesGuard)
+    @SetMetadata('roles', Permissions.GENERAR_PDF_EXCEL)
     async exportarLegajo(
         @Body() body: { empresaId: string; anio: number; mes: number },
         @Res() res: Response,
