@@ -4,6 +4,7 @@ import { eq, and } from 'drizzle-orm';
 import { cfdiRecibidos } from '../../database/schema/cfdi_recibidos.schema';
 import { documentosSoporte } from '../../database/schema/documentos_soporte';
 import { empresas } from '../../database/schema/empresas.schema';
+import { analysisSnapshots } from '../../database/schemas/analysis_snapshots.schema';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -29,78 +30,55 @@ export class LegajoService {
     constructor(@Inject('DRIZZLE_CLIENT') private readonly db: any) { }
 
     async generarCierreMensual(empresaId: string, anio: number, mes: number, res: Response) {
-        // 1. Obtener Empresa
-        const [empresa] = await this.db
+        // 1. Validate Snapshot
+        const snapshot = await this.db
             .select()
-            .from(empresas)
-            .where(eq(empresas.id, empresaId));
+            .from(analysisSnapshots)
+            .where(
+                and(
+                    eq(analysisSnapshots.empresaId, empresaId),
+                    eq(analysisSnapshots.periodo, `${anio}-${mes.toString().padStart(2, '0')}`)
+                )
+            );
 
-        if (!empresa) throw new NotFoundException('Empresa no encontrada');
-        const rfcEmpresa = empresa.rfc;
-        const nombreEmpresa = (empresa.razonSocial || rfcEmpresa).replace(/[\r\n]+/g, " ").trim(); // Saneamiento
+        if (!snapshot || snapshot.length === 0) {
+            throw new NotFoundException('No valid snapshot found for the specified period.');
+        }
 
-        console.log(`🔍 [Legajo] Generando cierre para ${rfcEmpresa} (ID: ${empresaId})`);
+        console.log(`🔍 [Legajo] Using snapshot for ${empresaId} - ${anio}/${mes}`);
 
-        // 2. Obtener CFDIs 
-        // Recuperamos TODO del workspace para filtrar con precisión quirúrgica en memoria (Node.js)
-        const todosCfdis = await this.db
-            .select()
-            .from(cfdiRecibidos)
-            .where(eq(cfdiRecibidos.empresaId, empresaId));
+        // Proceed with existing logic using snapshot data
+        const snapshotData = snapshot[0]; // Assuming one snapshot per period
 
-        // Configurar Rango de Fechas (Zona Horaria México - Ajuste simple)
-        // Objetivo: >= 01/11/2025 00:00:00 Y < 01/12/2025 00:00:00
-        const prefijoFecha = `${anio}-${mes.toString().padStart(2, '0')}`;
+        // Replace todosCfdis with snapshotData.cfdis
+        const cfdisDelMes = snapshotData.cfdis;
 
-        const cfdisDelMes = todosCfdis.filter(c => {
-            // 1. Filtro Tipo: Solo Ingreso (I) y Egreso (E)
-            if (!['I', 'E'].includes(c.tipoComprobante)) return false;
-
-            // 2. Filtro Estado: ESTRICTAMENTE 'Vigente'
-            const estado = (c.estadoSat || 'Vigente').toLowerCase();
-            if (estado !== 'vigente') return false;
-
-            // 3. Filtro Fecha SAT: Usamos FECHA DE TIMBRADO (Certificación)
-            // Si por error no tiene timbrado, fallback a fecha emisión, pero el SAT manda timbrado.
-            const fechaCriterio = c.fechaTimbrado || c.fecha;
-
-            // Validación estricta de string para evitar timezone shifts
-            return fechaCriterio.startsWith(prefijoFecha);
-        });
-
-        // 3. Inicializar ZIP
+        // 3. Initialize ZIP
         const archive = archiver('zip', { zlib: { level: 5 } });
-        res.attachment(`Legajo_Fiscal_${rfcEmpresa}_${anio}_${mes.toString().padStart(2, '0')}.zip`);
+        res.attachment(`Legajo_Fiscal_${snapshotData.rfc}_${anio}_${mes.toString().padStart(2, '0')}.zip`);
         archive.pipe(res);
 
-        // 4. Procesar Datos
+        // 4. Process Data
         const reporteItems: ReporteFinanciero[] = [];
 
         for (const cfdi of cfdisDelMes) {
-            const esIngreso = cfdi.tipoComprobante === 'I' && cfdi.emisorRfc === rfcEmpresa;
-            // Si no es ingreso emitido por nosotros, lo tratamos como Gasto/Compra
+            const esIngreso = cfdi.tipoComprobante === 'I' && cfdi.emisorRfc === snapshotData.rfc;
             const rol = esIngreso ? 'INGRESOS' : 'GASTOS';
 
             const contraparteRaw = esIngreso ? (cfdi.receptorNombre || cfdi.receptorRfc) : (cfdi.emisorNombre || cfdi.emisorRfc);
             const contraparte = (contraparteRaw || 'DESCONOCIDO').substring(0, 30).replace(/[^a-zA-Z0-9 ñÑ&]/g, '');
 
-            const evidencias = await this.db
-                .select()
-                .from(documentosSoporte)
-                .where(eq(documentosSoporte.cfdiUuid, cfdi.uuid));
-
+            const evidencias = cfdi.evidencias || [];
             const tipos = evidencias.map(e => e.categoriaEvidencia || 'Genérico');
 
-            // Regla de Negocio: Tener contrato "mata" el requisito de cantidad
             const tieneContrato = tipos.some(t => t.toLowerCase().includes('contrato'));
             const esCompleto = evidencias.length >= 3 || tieneContrato;
 
-            // Cálculo IVA (Aprox. Total - Subtotal para MVP)
             const impuestoCalc = Math.max(0, (cfdi.total || 0) - (cfdi.subtotal || 0));
 
             reporteItems.push({
                 uuid: cfdi.uuid,
-                fecha: cfdi.fechaTimbrado || cfdi.fecha, // Usar fecha SAT
+                fecha: cfdi.fechaTimbrado || cfdi.fecha,
                 rol,
                 rfcoNombre: contraparte,
                 subtotal: cfdi.subtotal || 0,
@@ -111,8 +89,7 @@ export class LegajoService {
                 cumplimiento: esCompleto ? 'OK' : (evidencias.length > 0 ? 'PARCIAL' : 'FALTANTE')
             });
 
-            // Archivos de evidencia al ZIP... (Código existente)
-            const rutaZip = `${rfcEmpresa}/${anio}/${mes.toString().padStart(2, '0')}/${rol}/${cfdi.uuid.substring(0, 8)}`;
+            const rutaZip = `${snapshotData.rfc}/${anio}/${mes.toString().padStart(2, '0')}/${rol}/${cfdi.uuid.substring(0, 8)}`;
             for (const evi of evidencias) {
                 if (evi.archivo) {
                     const absPath = path.isAbsolute(evi.archivo) ? evi.archivo : path.join(process.cwd(), evi.archivo);
@@ -124,13 +101,11 @@ export class LegajoService {
             }
         }
 
-        // Ordenar por fecha ascendente
         reporteItems.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
 
-        // 5. Generar PDF
         try {
-            const pdfBuffer = await this.generarReportePDF(nombreEmpresa, rfcEmpresa, anio, mes, reporteItems);
-            archive.append(pdfBuffer, { name: `${rfcEmpresa}/${anio}/${mes.toString().padStart(2, '0')}/Dictamen_Materialidad.pdf` });
+            const pdfBuffer = await this.generarReportePDF(snapshotData.nombreEmpresa, snapshotData.rfc, anio, mes, reporteItems);
+            archive.append(pdfBuffer, { name: `${snapshotData.rfc}/${anio}/${mes.toString().padStart(2, '0')}/Dictamen_Materialidad.pdf` });
         } catch (error) {
             console.error('Error generando PDF:', error);
         }
