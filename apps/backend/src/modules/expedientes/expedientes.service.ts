@@ -1,8 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { S3Service } from '../../s3/s3.service'; // Ajusta la ruta si es necesario
 import { Express } from 'express'; // Para el tipo Multer
 import { analysisSnapshots } from '../../database/schemas/analysis_snapshots.schema';
 import { DatabaseService } from '../../database/database.service';
+import { setTimeout } from 'timers/promises';
+import { executeWithGuard } from '../../../common/execution-guard';
 
 @Injectable()
 export class ExpedientesService {
@@ -22,29 +24,43 @@ export class ExpedientesService {
   }
 
   async analyzePeriod(empresaId: string, periodo: string): Promise<void> {
-    this.emitEvent('ANALYSIS_STARTED', { empresaId, periodo });
+    return executeWithGuard({
+      operation: 'analyzePeriod',
+      empresaId,
+      periodo,
+      timeoutMs: 60000,
+      action: async () => {
+        this.emitEvent('ANALYSIS_STARTED', { empresaId, periodo });
 
-    try {
-      // Simulate analysis logic
-      const result = await this.performAnalysis(empresaId, periodo);
+        try {
+          const timeoutMs = 30000; // 30 seconds timeout
+          const result = await Promise.race([
+            this.performAnalysis(empresaId, periodo),
+            setTimeout(timeoutMs).then(() => {
+              throw new Error('Analysis timed out');
+            }),
+          ]);
 
-      this.emitEvent('ANALYSIS_COMPLETED', { empresaId, periodo, resultado: result });
+          this.emitEvent('ANALYSIS_COMPLETED', { empresaId, periodo, resultado: result });
 
-      // Persist snapshot
-      await this.createSnapshot({
-        empresaId,
-        periodo,
-        scoreTotal: result.scoreTotal,
-        penalizaciones: JSON.stringify(result.penalizaciones),
-        kpis: JSON.stringify(result.kpis),
-        timestampFinalizacion: Date.now(),
-        versionMotorAnalisis: '1.0.0',
-        analysisEventId: result.eventId,
-      });
-    } catch (error) {
-      this.logger.error(`Analysis failed for empresaId: ${empresaId}, periodo: ${periodo}`, error.stack);
-      this.emitEvent('ANALYSIS_FAILED', { empresaId, periodo, error: error.message });
-    }
+          // Persist snapshot
+          await this.createSnapshot({
+            empresaId,
+            periodo,
+            scoreTotal: result.scoreTotal,
+            penalizaciones: JSON.stringify(result.penalizaciones),
+            kpis: JSON.stringify(result.kpis),
+            timestampFinalizacion: Date.now(),
+            versionMotorAnalisis: '1.0.0',
+            analysisEventId: result.eventId,
+          });
+        } catch (error) {
+          this.logger.error(`Analysis failed for empresaId: ${empresaId}, periodo: ${periodo}`, error.stack);
+          this.emitEvent('ANALYSIS_FAILED', { empresaId, periodo, error: error.message });
+          throw new InternalServerErrorException('Analysis failed', error.message);
+        }
+      },
+    });
   }
 
   private async createSnapshot(snapshot: {
