@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { EmpresaProvider } from './context/EmpresaContext';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import ExpedientesPage from './pages/ExpedientesPage';
@@ -10,19 +11,21 @@ import AuditoriaDetalladaPage from './pages/AuditoriaDetalladaPage';
 
 function App() {
     return (
-        <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/auditoria" element={<AuditoriaDetalladaPage />} />
-                <Route path="/config" element={<ConfiguracionPage />} />
-                <Route path="/expedientes" element={<ExpedientesPage />} />
-                <Route path="/devoluciones" element={<ListaDevolucionesPage />} />
-                <Route path="/devoluciones/:id" element={<DetalleDevolucionPage />} />
-                <Route path="/bancos" element={<BancosPage />} />
-            </Routes>
-        </BrowserRouter>
+        <EmpresaProvider>
+            <BrowserRouter>
+                <Routes>
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/auditoria" element={<AuditoriaDetalladaPage />} />
+                    <Route path="/config" element={<ConfiguracionPage />} />
+                    <Route path="/expedientes" element={<ExpedientesPage />} />
+                    <Route path="/devoluciones" element={<ListaDevolucionesPage />} />
+                    <Route path="/devoluciones/:id" element={<DetalleDevolucionPage />} />
+                    <Route path="/bancos" element={<BancosPage />} />
+                </Routes>
+            </BrowserRouter>
+        </EmpresaProvider>
     );
 }
 

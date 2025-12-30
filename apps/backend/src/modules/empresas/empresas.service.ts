@@ -8,6 +8,7 @@ export interface CrearEmpresaDto {
     regimenFiscal?: string;
     sector?: string;
     configuracion?: any; // JSON Object
+    satAuthMode?: 'NONE' | 'RFC_ONLY' | 'CIEC' | 'FIEL'; // Updated types
 }
 
 @Injectable()
@@ -26,16 +27,12 @@ export class EmpresasService {
         return empresa;
     }
 
-    /**
-     * Obtiene todas las empresas activas
-     */
     async findAll() {
         try {
             const empresasList = await this.db
                 .select()
                 .from(empresas)
                 .where(eq(empresas.activa, true));
-
             return empresasList.map(this.parseConfig);
         } catch (error) {
             console.error('Error al obtener empresas:', error);
@@ -43,9 +40,6 @@ export class EmpresasService {
         }
     }
 
-    /**
-     * Obtiene una empresa por ID
-     */
     async findOne(id: string) {
         try {
             const empresa = await this.db
@@ -57,28 +51,20 @@ export class EmpresasService {
             if (empresa.length === 0) {
                 throw new NotFoundException(`Empresa con ID ${id} no encontrada`);
             }
-
             return this.parseConfig(empresa[0]);
         } catch (error) {
-            if (error instanceof NotFoundException) {
-                throw error;
-            }
+            if (error instanceof NotFoundException) throw error;
             console.error('Error al obtener empresa:', error);
             throw new BadRequestException('Error al obtener empresa');
         }
     }
 
-    /**
-     * Crea una nueva empresa
-     */
     async create(dto: CrearEmpresaDto) {
         try {
-            // Validar RFC
             if (!dto.rfc || dto.rfc.length < 12 || dto.rfc.length > 13) {
-                throw new BadRequestException('RFC inválido (debe tener 12 o 13 caracteres)');
+                throw new BadRequestException('RFC inválido (12-13 caracteres)');
             }
 
-            // Validar que el RFC no exista
             const existente = await this.db
                 .select()
                 .from(empresas)
@@ -89,10 +75,9 @@ export class EmpresasService {
                 throw new BadRequestException(`Ya existe una empresa con el RFC ${dto.rfc}`);
             }
 
-            // Generar ID único basado en RFC
             const id = `empresa-${dto.rfc.toLowerCase()}`;
 
-            // Insertar empresa
+            // CREATE: Reglas de inicialización estrictas
             await this.db.insert(empresas).values({
                 id,
                 rfc: dto.rfc.toUpperCase(),
@@ -101,33 +86,27 @@ export class EmpresasService {
                 sector: dto.sector,
                 activa: true,
                 configuracion: dto.configuracion ? JSON.stringify(dto.configuracion) : null,
+
+                // SAT DEFAULTS (No confiar en entrada para status inicial)
+                satAuthMode: dto.satAuthMode || 'NONE',
+                satStatus: 'DISCONNECTED',
             });
 
             return {
                 success: true,
                 message: 'Empresa creada exitosamente',
-                empresa: {
-                    id,
-                    rfc: dto.rfc.toUpperCase(),
-                    razonSocial: dto.razonSocial,
-                },
+                empresa: { id, rfc: dto.rfc.toUpperCase(), razonSocial: dto.razonSocial, satAuthMode: dto.satAuthMode || 'NONE' },
             };
         } catch (error) {
-            if (error instanceof BadRequestException) {
-                throw error;
-            }
+            if (error instanceof BadRequestException) throw error;
             console.error('Error al crear empresa:', error);
             throw new BadRequestException('Error al crear empresa');
         }
     }
 
-    /**
-     * Actualiza una empresa
-     */
     async update(id: string, dto: Partial<CrearEmpresaDto>) {
         try {
-            // Verificar que existe
-            await this.findOne(id);
+            const currentEmpresa = await this.findOne(id); // Necesario para comparar estado
 
             const updateData: any = {
                 razonSocial: dto.razonSocial,
@@ -139,7 +118,14 @@ export class EmpresasService {
                 updateData.configuracion = JSON.stringify(dto.configuracion);
             }
 
-            // Actualizar
+            // REGLA DE DEFENSA: Reset de seguridad al cambiar modo
+            // Si el usuario cambia el modo de autenticación, cualquier validación previa queda inválida.
+            if (dto.satAuthMode && dto.satAuthMode !== currentEmpresa.satAuthMode) {
+                updateData.satAuthMode = dto.satAuthMode;
+                updateData.satStatus = 'DISCONNECTED'; // Force reset
+                console.log(`[Seguridad] Modo SAT cambiado para ${id}. Status reseteado a DISCONNECTED.`);
+            }
+
             await this.db
                 .update(empresas)
                 .set(updateData)
@@ -150,38 +136,19 @@ export class EmpresasService {
                 message: 'Empresa actualizada exitosamente',
             };
         } catch (error) {
-            if (error instanceof NotFoundException || error instanceof BadRequestException) {
-                throw error;
-            }
+            if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
             console.error('Error al actualizar empresa:', error);
             throw new BadRequestException('Error al actualizar empresa');
         }
     }
 
-
-    /**
-     * Desactiva una empresa (soft delete)
-     */
     async delete(id: string) {
         try {
-            // Verificar que existe
             await this.findOne(id);
-
-            // Desactivar
-            await this.db
-                .update(empresas)
-                .set({ activa: false })
-                .where(eq(empresas.id, id));
-
-            return {
-                success: true,
-                message: 'Empresa desactivada exitosamente',
-            };
+            await this.db.update(empresas).set({ activa: false }).where(eq(empresas.id, id));
+            return { success: true, message: 'Empresa desactivada exitosamente' };
         } catch (error) {
-            if (error instanceof NotFoundException || error instanceof BadRequestException) {
-                throw error;
-            }
-            console.error('Error al desactivar empresa:', error);
+            if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
             throw new BadRequestException('Error al desactivar empresa');
         }
     }

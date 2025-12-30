@@ -1,16 +1,33 @@
 const Database = require('better-sqlite3');
-const db = new Database('data/dev.db');
+const path = require('path');
 
-const total = db.prepare("SELECT COUNT(*) as c FROM cfdi_recibidos").get().c;
-console.log('GLOBAL_Total=' + total);
+const DB_PATH = path.resolve(__dirname, 'data/dev.db');
+console.log(`🛡️ VALIDACIÓN FINAL DE DATOS: ${DB_PATH}`);
 
-const nov = db.prepare("SELECT COUNT(*) as c FROM cfdi_recibidos WHERE fecha LIKE '2025-11%'").get();
-console.log('NOV_2025_Total=' + nov.c);
+try {
+    const db = new Database(DB_PATH, { readonly: true });
 
-if (nov.c > 0) {
-    const tipos = db.prepare("SELECT tipo_comprobante, COUNT(*) as c FROM cfdi_recibidos WHERE fecha LIKE '2025-11%' GROUP BY tipo_comprobante").all();
-    console.log('NOV_2025_Tipos=' + JSON.stringify(tipos));
+    // Verificar tabla empresas
+    const table = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='empresas'").get();
+
+    if (!table) {
+        console.log('❌ FAIL: No existe tabla "empresas".');
+        process.exit(1);
+    }
+
+    const count = db.prepare('SELECT count(*) as c FROM empresas').get().c;
+    console.log(`✅ REGISTROS EN TABLA EMPRESAS: ${count}`);
+
+    if (count > 0) {
+        const rows = db.prepare('SELECT razon_social, rfc FROM empresas').all();
+        console.log('\nEMPRESAS DISPONIBLES:');
+        console.table(rows);
+        console.log('\n[OK] El selector de empresas debería funcionar correctamente.');
+    } else {
+        console.log('⚠️ [WARNING] La tabla existe pero está VACÍA.');
+        console.log('   Si acabas de recuperar de Docker, verifica que el contenedor tenga datos.');
+    }
+
+} catch (err) {
+    console.error(`❌ Error crítico: ${err.message}`);
 }
-
-const last = db.prepare("SELECT fecha FROM cfdi_recibidos ORDER BY fecha DESC LIMIT 5").all();
-console.log('Ultimas_Fechas=' + JSON.stringify(last));

@@ -52,3 +52,43 @@ export class SentinelController {
         return await this.statsService.getTendenciaAnual(empresaId);
     }
 }
+
+
+@Controller('dashboard')
+export class DashboardUIController {
+    @Get('overview/demo-empresa')
+    getDemoOverview() {
+        return {
+            totalCfdiMes: {
+                ingresos: 1250000.50,
+                egresos: 850000.25
+            },
+            alertasActivas: {
+                alta: 3,
+                media: 5
+            },
+            gastoProveedoresRiesgo: 12.5,
+            expedientesIncompletos: 8,
+            topAlertas: [
+                {
+                    id: '1',
+                    mensaje: 'Proveedor en lista negra del SAT (EFOS)',
+                    nivel: 'alta',
+                    fecha: new Date().toISOString()
+                },
+                {
+                    id: '2',
+                    mensaje: 'Factura con fecha futura detectada',
+                    nivel: 'media',
+                    fecha: new Date().toISOString()
+                },
+                {
+                    id: '4',
+                    mensaje: 'Monto inusual en gastos de viaje',
+                    nivel: 'alta',
+                    fecha: new Date().toISOString()
+                }
+            ]
+        };
+    }
+}

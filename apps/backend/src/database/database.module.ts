@@ -1,8 +1,9 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3'; // Updated to use better-sqlite3 directly
+import Database from 'better-sqlite3';
 import * as schema from './schema';
+import { DatabaseService } from './database.service';
 
 @Global()
 @Module({
@@ -14,12 +15,16 @@ import * as schema from './schema';
         const databasePath =
           configService.get<string>('DATABASE_PATH') ?? './data/dev.db';
 
-        const db = new Database(databasePath); // Use better-sqlite3 directly
+        const db = new Database(databasePath);
 
         return drizzle(db, { schema });
       },
     },
+    DatabaseService, // 👈 SE REGISTRA COMO PROVIDER
   ],
-  exports: ['DRIZZLE_CLIENT'],
+  exports: [
+    'DRIZZLE_CLIENT',
+    DatabaseService, // 👈 CLAVE: SE EXPORTA
+  ],
 })
 export class DatabaseModule {}

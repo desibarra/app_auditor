@@ -2,13 +2,12 @@ import { sqliteTable, integer, text, real, primaryKey } from "drizzle-orm/sqlite
 
 /**
  * Tabla: cfdi_recibidos
- * Almacena los CFDI recibidos parseados desde XML
- * Especificación: GAP-001 del Análisis de Brechas
+ * Versión: v2.0 (Soporte Auditoría Viva)
  */
 export const cfdiRecibidos = sqliteTable("cfdi_recibidos", {
-    // Identificador único del CFDI (UUID del SAT)
-    // Se elimina .primaryKey() para usar PK compuesta con empresaId
+    // Identificador único compuesto
     uuid: text("uuid").notNull(),
+    empresaId: text("empresa_id").notNull(),
 
     // Datos del Emisor
     emisorRfc: text("emisor_rfc").notNull(),
@@ -24,15 +23,15 @@ export const cfdiRecibidos = sqliteTable("cfdi_recibidos", {
     // Datos del Comprobante
     serie: text("serie"),
     folio: text("folio"),
-    fecha: text("fecha").notNull(), // ISO 8601: YYYY-MM-DDTHH:mm:ss
-    fechaTimbrado: text("fecha_timbrado"), // ISO 8601
+    fecha: text("fecha").notNull(), // ISO 8601 de emisión
+    fechaTimbrado: text("fecha_timbrado"),
 
-    // Tipo de Comprobante (I=Ingreso, E=Egreso, P=Pago, N=Nómina, T=Traslado)
+    // Tipo de Comprobante (I, E, P, N, T)
     tipoComprobante: text("tipo_comprobante").notNull(),
 
-    // Multi-Ejercicio Support (2020-2026)
-    ejercicioFiscal: integer("ejercicio_fiscal"), // 2020, 2021, 2022, etc.
-    versionCfdi: text("version_cfdi"), // "3.3" o "4.0"
+    // Ejercicio
+    ejercicioFiscal: integer("ejercicio_fiscal"),
+    versionCfdi: text("version_cfdi"),
 
     // Montos
     subtotal: real("subtotal").notNull(),
@@ -41,30 +40,33 @@ export const cfdiRecibidos = sqliteTable("cfdi_recibidos", {
     moneda: text("moneda").default("MXN").notNull(),
     tipoCambio: real("tipo_cambio").default(1),
 
-    // Forma y Método de Pago
-    formaPago: text("forma_pago"), // 01=Efectivo, 02=Cheque, 03=Transferencia, etc.
-    metodoPago: text("metodo_pago"), // PUE=Pago en una exhibición, PPD=Pago en parcialidades
+    // Pago
+    formaPago: text("forma_pago"),
+    metodoPago: text("metodo_pago"),
     condicionesPago: text("condiciones_pago"),
-
-    // Datos Fiscales
     lugarExpedicion: text("lugar_expedicion"),
 
-    // XML Original (almacenado como texto)
+    // XML Raw
     xmlOriginal: text("xml_original"),
 
-    // Estado SAT
-    estadoSat: text("estado_sat").default("Vigente"), // Vigente, Cancelado
-    fechaValidacionSat: integer("fecha_validacion_sat", { mode: 'timestamp_ms' }),
+    // --- INFRAESTRUCTURA DE AUDITORÍA VIVA (NUEVO) ---
+
+    // Estado Legal del CFDI
+    estatusFiscal: text("estatus_fiscal").notNull().default("PENDING"), // 'PENDING' | 'VIGENTE' | 'CANCELADO'
+
+    // Fuente de la Verdad (Quién validó este estatus)
+    estatusFuente: text("estatus_fuente").notNull().default("MANUAL"), // 'MANUAL' | 'RFC_ONLY' | 'SAT_REAL'
+
+    // Momento de la última verificación técnica
+    lastCheckedAt: integer("last_checked_at", { mode: 'timestamp_ms' }),
+
+    // Datos históricos SAT (Legacy mapping)
     fechaCancelacion: integer("fecha_cancelacion", { mode: 'timestamp_ms' }),
 
-    // Relación con Empresa
-    empresaId: text("empresa_id").notNull(),
-
-    // Metadatos
+    // Metadatos Internos
     fechaImportacion: integer("fecha_importacion", { mode: 'timestamp_ms' }).defaultNow().notNull(),
     fechaActualizacion: integer("fecha_actualizacion", { mode: 'timestamp_ms' }).defaultNow().notNull(),
 
-    // Flags de procesamiento
     procesado: integer("procesado", { mode: 'boolean' }).default(false),
     tieneErrores: integer("tiene_errores", { mode: 'boolean' }).default(false),
     mensajeError: text("mensaje_error"),

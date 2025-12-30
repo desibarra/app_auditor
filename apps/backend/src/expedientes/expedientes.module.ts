@@ -5,8 +5,14 @@ import { DatabaseModule } from '../database/database.module';
 import { S3Module } from '../s3/s3.module';
 
 @Module({
-    imports: [DatabaseModule, S3Module],
+    imports: [
+        DatabaseModule, // Provee DatabaseService
+        S3Module,       // Provee S3Service
+    ],
     controllers: [ExpedientesController],
     providers: [ExpedientesService],
+    exports: [
+        ExpedientesService, // 👈 CLAVE para que otros módulos lo usen sin romper DI
+    ],
 })
 export class ExpedientesModule {}

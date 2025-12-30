@@ -38,4 +38,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-// Force restart for BancosModule loading - Cycle v3

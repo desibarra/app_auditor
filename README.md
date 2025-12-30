@@ -1,124 +1,175 @@
-# SaaS Fiscal PyMEs
+# 🚀 Sentinel Fiscal - Plataforma de Auditoría Fiscal
 
-Plataforma SaaS de cumplimiento fiscal para PyMEs en México.
+## ⚡ INICIO RÁPIDO - PRODUCCIÓN LOCAL
 
-## Estructura del Proyecto
+### 1️⃣ Abre Docker Desktop
+Asegúrate que Docker Desktop esté corriendo (ícono de ballena verde en la bandeja del sistema)
 
-```
-saas-fiscal-pymes/
-├── apps/
-│   ├── backend/          # NestJS + Drizzle ORM + PostgreSQL
-│   └── frontend/         # Vite + React + TypeScript + Tailwind CSS
-├── packages/             # Código compartido (futuro)
-├── docs/                 # Documentación
-└── infra/               # Docker Compose y configuración
-```
-
-## Requisitos Previos
-
-- Node.js >= 18.0.0
-- pnpm >= 8.0.0
-- PostgreSQL 15+
-- Docker (opcional, para desarrollo local)
-
-## Instalación
-
-### 1. Clonar repositorio
+### 2️⃣ Ejecuta el script de inicio
 ```bash
-git clone <repo-url>
-cd saas-fiscal-pymes
+START_PRODUCTION.bat
 ```
 
-### 2. Instalar dependencias
-```bash
-pnpm install
-```
+### 3️⃣ Accede a la aplicación
+- **Frontend**: http://localhost:3000
+- **Backend**: http://localhost:4000
 
-### 3. Configurar variables de entorno
+---
 
-**Backend:**
+## 📁 Archivos Importantes
+
+| Archivo | Descripción |
+|---------|-------------|
+| **START_PRODUCTION.bat** ⭐ | Inicio rápido (USA ESTE) |
+| **LEEME_PRIMERO.md** 📖 | Guía completa de inicio |
+| **MANAGE_PRODUCTION.bat** 🎮 | Menú de gestión interactivo |
+| **docker-compose.prod.yml** 🐳 | Configuración Docker |
+
+---
+
+## 🎯 Modos de Ejecución
+
+### Modo Desarrollo (Hot Reload)
 ```bash
+# Backend
 cd apps/backend
-cp .env.example .env
-# Editar .env con tus credenciales de PostgreSQL
-```
+npm run start:dev
 
-**Frontend:**
-```bash
+# Frontend
 cd apps/frontend
-cp .env.example .env
+npm run dev
 ```
 
-### 4. Iniciar base de datos (Docker)
+### Modo Producción Local (Optimizado)
 ```bash
-cd infra/docker
-docker-compose up -d
+START_PRODUCTION.bat
 ```
 
-### 5. Ejecutar migraciones
+---
+
+## 📊 Arquitectura
+
+```
+Frontend (React + Vite)  →  Nginx  →  Backend (NestJS)  →  SQLite
+                                                          →  Redis
+```
+
+---
+
+## 🛠️ Gestión
+
+### Iniciar
 ```bash
-cd apps/backend
-pnpm db:generate
-pnpm db:push
+START_PRODUCTION.bat
 ```
 
-### 6. Iniciar servidores de desarrollo
+### Detener
 ```bash
-# Desde la raíz del proyecto
-pnpm dev
-
-# O individualmente:
-pnpm dev:backend   # Backend en http://localhost:4000
-pnpm dev:frontend  # Frontend en http://localhost:3000
+docker-compose -f docker-compose.prod.yml down
 ```
 
-## Scripts Disponibles
+### Ver Logs
+```bash
+docker-compose -f docker-compose.prod.yml logs -f
+```
 
-### Raíz
-- `pnpm dev` - Inicia backend y frontend
-- `pnpm build` - Build de todos los workspaces
-- `pnpm lint` - Lint de todos los workspaces
+### Menú Interactivo
+```bash
+MANAGE_PRODUCTION.bat
+```
 
-### Backend
-- `pnpm start:dev` - Modo desarrollo con hot reload
-- `pnpm build` - Build para producción
-- `pnpm db:generate` - Generar migraciones de Drizzle
-- `pnpm db:push` - Aplicar migraciones
-- `pnpm db:studio` - Abrir Drizzle Studio
+---
 
-### Frontend
-- `pnpm dev` - Servidor de desarrollo
-- `pnpm build` - Build para producción
-- `pnpm preview` - Preview del build
+## 📚 Documentación
 
-## Tecnologías
+- **LEEME_PRIMERO.md** - Guía de inicio paso a paso
+- **GUIA_PRODUCCION_LOCAL.md** - Documentación completa
+- **PRODUCCION_LOCAL_LISTO.md** - Resumen ejecutivo
 
-### Backend
-- NestJS
-- Drizzle ORM
-- PostgreSQL
-- TypeScript
+---
 
-### Frontend
-- Vite
-- React 18
-- TypeScript
-- Tailwind CSS
-- React Router
-- Axios
+## 🐛 Problemas Comunes
 
-## Documentación
+### Docker no está corriendo
+**Solución**: Abre Docker Desktop y espera a que inicie
 
-Ver carpeta `docs/` para documentación detallada:
-- Arquitectura del sistema
-- Especificación de producto
-- Plan de Sprint 0
-- Estructura del repositorio
+### Puerto en uso
+**Solución**: 
+```bash
+docker-compose -f docker-compose.prod.yml down
+```
 
-## Estado del Proyecto
+### Error al construir
+**Solución**:
+```bash
+docker-compose -f docker-compose.prod.yml down
+docker system prune -f
+START_PRODUCTION.bat
+```
 
-🚧 En desarrollo - MVP Sprint 0
+---
 
-## Licencia
+## 💾 Backup
 
-Privado - Todos los derechos reservados
+### Crear Backup
+```bash
+MANAGE_PRODUCTION.bat
+# Opción 7: Backup de base de datos
+```
+
+### Restaurar Backup
+```bash
+MANAGE_PRODUCTION.bat
+# Opción 8: Restaurar backup
+```
+
+---
+
+## 🔒 Seguridad
+
+Antes de usar en producción real, edita `.env.production`:
+- Cambia `JWT_SECRET`
+- Cambia `SESSION_SECRET`
+- Configura `CORS_ORIGIN` con tu dominio
+
+---
+
+## 📈 Características
+
+✅ Procesamiento de CFDIs 4.0  
+✅ Validación SAT  
+✅ Dashboard analítico  
+✅ Gestión de empresas  
+✅ Reportes PDF/Excel  
+✅ Trazabilidad fiscal  
+✅ Alertas forenses  
+
+---
+
+## 🎓 Stack Tecnológico
+
+- **Frontend**: React 18, TypeScript, Vite, TailwindCSS
+- **Backend**: NestJS, TypeScript
+- **Base de datos**: SQLite (producción local), PostgreSQL (opcional)
+- **Caché**: Redis
+- **Servidor web**: Nginx
+- **Contenedores**: Docker
+
+---
+
+## 📞 Soporte
+
+Para más información, consulta:
+- `LEEME_PRIMERO.md` - Guía completa
+- `GUIA_PRODUCCION_LOCAL.md` - Documentación técnica
+- Logs: `docker-compose -f docker-compose.prod.yml logs -f`
+
+---
+
+## ✨ Versión
+
+**v1.0.0** - Producción Local Lista
+
+---
+
+**Desarrollado con ❤️ para auditoría fiscal en México**

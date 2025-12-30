@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmpresasModule } from './modules/empresas/empresas.module';
+import { AppController } from './app.controller';
 import { CfdiModule } from './modules/cfdi/cfdi.module';
 import { SentinelModule } from './modules/dashboard/dashboard.module';
 import { DatabaseModule } from './database/database.module';
@@ -36,7 +37,7 @@ import { DevolucionesModule } from './modules/devoluciones/devoluciones.module';
         RiskModule,
         DevolucionesModule,
     ],
-    controllers: [],
+    controllers: [AppController],
     providers: [],
 })
 export class AppModule { }

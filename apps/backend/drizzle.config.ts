@@ -1,15 +1,12 @@
 import type { Config } from 'drizzle-kit';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
 
 export default {
     schema: './src/database/schema/**/*.ts',
     out: './src/database/migrations',
     driver: 'better-sqlite',
     dbCredentials: {
-        url: process.env.DATABASE_PATH || './data/dev.db', // Updated to use DATABASE_PATH
+        url: 'data/dev_clean.db',
     },
-    verbose: true, // Enable verbose mode to inspect generated SQL
+    verbose: true,
     strict: false,
 } satisfies Config;

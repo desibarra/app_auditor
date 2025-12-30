@@ -29,9 +29,11 @@ logs/
 npm-debug.log*
 pnpm-debug.log*
 
-# Database
+# Database & Backups
 *.db
 *.sqlite
+backups/
+apps/backend/data/*.db
 
 # Temporary files
 .tmp/

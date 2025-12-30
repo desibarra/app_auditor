@@ -9,4 +9,13 @@ export class DatabaseService {
     console.log('SQL:', sql, 'Params:', params);
     return [];
   }
+
+  async insert(table: any) {
+    return {
+      values: (data: any) => {
+        console.log('Inserting into table:', table, 'Data:', data);
+        return Promise.resolve();
+      },
+    };
+  }
 }

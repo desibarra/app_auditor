@@ -1,0 +1,211 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║           🚀 SENTINEL FISCAL - PRODUCCIÓN LOCAL                      ║
+║                    TARJETA DE REFERENCIA RÁPIDA                      ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  ⚡ INICIO RÁPIDO                                                     │
+└──────────────────────────────────────────────────────────────────────┘
+
+  1. Abre Docker Desktop (ícono de ballena verde)
+  2. Ejecuta: START_PRODUCTION.bat
+  3. Accede a: http://localhost:3000
+
+  ⏱️  Primera vez: 5-10 minutos
+  ⏱️  Siguientes veces: 10-15 segundos
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  📁 SCRIPTS PRINCIPALES                                               │
+└──────────────────────────────────────────────────────────────────────┘
+
+  ⭐ START_PRODUCTION.bat          Inicio rápido (USA ESTE)
+  📋 MANAGE_PRODUCTION.bat         Menú interactivo
+  🔧 DEPLOY_PRODUCTION.bat         Despliegue completo
+  ✔️  VERIFICAR_PRODUCCION.bat     Verificar configuración
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  🌐 URLS DE ACCESO                                                    │
+└──────────────────────────────────────────────────────────────────────┘
+
+  Frontend:     http://localhost:3000
+  Backend:      http://localhost:4000
+  Health:       http://localhost:4000/api/health
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  🎮 COMANDOS ESENCIALES                                               │
+└──────────────────────────────────────────────────────────────────────┘
+
+  Iniciar:
+    START_PRODUCTION.bat
+
+  Detener:
+    docker-compose -f docker-compose.prod.yml down
+
+  Ver logs:
+    docker-compose -f docker-compose.prod.yml logs -f
+
+  Ver estado:
+    docker-compose -f docker-compose.prod.yml ps
+
+  Reiniciar:
+    docker-compose -f docker-compose.prod.yml restart
+
+  Reconstruir:
+    docker-compose -f docker-compose.prod.yml build --no-cache
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  💾 BACKUPS                                                           │
+└──────────────────────────────────────────────────────────────────────┘
+
+  Crear backup:
+    MANAGE_PRODUCTION.bat → Opción 7
+
+  Restaurar backup:
+    MANAGE_PRODUCTION.bat → Opción 8
+
+  Backup manual:
+    docker cp sentinel-backend-prod:/app/data/saas_fiscal.db backups/
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  🐛 SOLUCIÓN RÁPIDA                                                   │
+└──────────────────────────────────────────────────────────────────────┘
+
+  ❌ Docker no está corriendo:
+     → Abre Docker Desktop y espera a que inicie
+
+  ❌ Puerto en uso:
+     → docker-compose -f docker-compose.prod.yml down
+
+  ❌ Error al construir:
+     → docker system prune -f
+     → START_PRODUCTION.bat
+
+  ❌ No carga el frontend:
+     → docker-compose -f docker-compose.prod.yml logs frontend
+
+  ❌ Backend no responde:
+     → docker-compose -f docker-compose.prod.yml logs backend
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  📚 DOCUMENTACIÓN                                                     │
+└──────────────────────────────────────────────────────────────────────┘
+
+  📖 LEEME_PRIMERO.md              Guía paso a paso
+  📘 GUIA_PRODUCCION_LOCAL.md      Documentación completa
+  📊 RESUMEN_PRODUCCION.md         Resumen ejecutivo
+  📄 README.md                     README principal
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  🔍 MONITOREO                                                         │
+└──────────────────────────────────────────────────────────────────────┘
+
+  Ver todos los logs:
+    docker-compose -f docker-compose.prod.yml logs -f
+
+  Ver logs de backend:
+    docker-compose -f docker-compose.prod.yml logs -f backend
+
+  Ver logs de frontend:
+    docker-compose -f docker-compose.prod.yml logs -f frontend
+
+  Ver uso de recursos:
+    docker stats
+
+  Ver contenedores activos:
+    docker ps
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  ⚙️  GESTIÓN AVANZADA                                                 │
+└──────────────────────────────────────────────────────────────────────┘
+
+  Entrar al contenedor backend:
+    docker exec -it sentinel-backend-prod sh
+
+  Entrar al contenedor frontend:
+    docker exec -it sentinel-frontend-prod sh
+
+  Ver volúmenes:
+    docker volume ls
+
+  Limpiar sistema:
+    docker system prune -a -f
+
+  Ver imágenes:
+    docker images
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  📊 ARQUITECTURA                                                      │
+└──────────────────────────────────────────────────────────────────────┘
+
+  Navegador → Nginx (Frontend) → NestJS (Backend) → SQLite + Redis
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  ✨ CARACTERÍSTICAS                                                   │
+└──────────────────────────────────────────────────────────────────────┘
+
+  ✅ Código minificado y optimizado
+  ✅ Compresión GZIP automática
+  ✅ Caché de assets (1 año)
+  ✅ Health checks automáticos
+  ✅ Restart automático en fallos
+  ✅ Persistencia de datos
+  ✅ Backups fáciles
+  ✅ Logs estructurados
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  🎯 DESARROLLO vs PRODUCCIÓN                                          │
+└──────────────────────────────────────────────────────────────────────┘
+
+  Desarrollo:          Producción Local:
+  npm run dev          START_PRODUCTION.bat
+  Hot reload ✅        Hot reload ❌
+  Velocidad normal     3-5x más rápido ⚡
+  ~500MB               ~150MB optimizado
+  Logs verbosos        Logs esenciales
+  Vite Dev Server      Nginx (producción)
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  🔒 SEGURIDAD                                                         │
+└──────────────────────────────────────────────────────────────────────┘
+
+  Antes de producción REAL, edita .env.production:
+
+  JWT_SECRET=CAMBIAR_ESTE_SECRET
+  SESSION_SECRET=CAMBIAR_ESTE_SECRET
+  CORS_ORIGIN=https://tu-dominio.com
+
+  Generar secretos en PowerShell:
+  [Convert]::ToBase64String((1..32|%{Get-Random -Max 256}))
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  📞 AYUDA                                                             │
+└──────────────────────────────────────────────────────────────────────┘
+
+  Documentación:    LEEME_PRIMERO.md
+  Gestión:          MANAGE_PRODUCTION.bat
+  Logs:             docker-compose -f docker-compose.prod.yml logs -f
+
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║  🚀 PARA INICIAR: START_PRODUCTION.bat                               ║
+║  🌐 ACCEDER A: http://localhost:3000                                 ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+Versión: 1.0.0 | Fecha: 2025-12-29 | Estado: ✅ Listo

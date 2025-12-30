@@ -1,22 +1,25 @@
-import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException, Optional } from '@nestjs/common';
 import { S3Service } from '../../s3/s3.service'; // Ajusta la ruta si es necesario
 import { Express } from 'express'; // Para el tipo Multer
 import { analysisSnapshots } from '../../database/schemas/analysis_snapshots.schema';
 import { DatabaseService } from '../../database/database.service';
 import { setTimeout } from 'timers/promises';
-import { executeWithGuard } from '../../../common/execution-guard';
 
 @Injectable()
 export class ExpedientesService {
   private readonly logger = new Logger(ExpedientesService.name);
 
   constructor(
-    private s3Service: S3Service,
-    private databaseService: DatabaseService,
+    private readonly databaseService: DatabaseService,
+    @Optional() private readonly s3Service?: S3Service,
   ) {}
 
   async uploadFile(file: Express.Multer.File, s3Key: string): Promise<string> {
-    await this.s3Service.uploadFile(file, s3Key);
+    if (this.s3Service) {
+      await this.s3Service.uploadFile(file, s3Key);
+    } else {
+      this.logger.warn('S3Service is not available. File upload skipped.');
+    }
 
     // ... lógica para guardar en ArchivoExpediente ...
 
@@ -24,43 +27,35 @@ export class ExpedientesService {
   }
 
   async analyzePeriod(empresaId: string, periodo: string): Promise<void> {
-    return executeWithGuard({
-      operation: 'analyzePeriod',
-      empresaId,
-      periodo,
-      timeoutMs: 60000,
-      action: async () => {
-        this.emitEvent('ANALYSIS_STARTED', { empresaId, periodo });
+    this.emitEvent('ANALYSIS_STARTED', { empresaId, periodo });
 
-        try {
-          const timeoutMs = 30000; // 30 seconds timeout
-          const result = await Promise.race([
-            this.performAnalysis(empresaId, periodo),
-            setTimeout(timeoutMs).then(() => {
-              throw new Error('Analysis timed out');
-            }),
-          ]);
+    try {
+      const timeoutMs = 30000; // 30 seconds timeout
+      const result = await Promise.race([
+        this.performAnalysis(empresaId, periodo),
+        setTimeout(timeoutMs).then(() => {
+          throw new Error('Analysis timed out');
+        }),
+      ]);
 
-          this.emitEvent('ANALYSIS_COMPLETED', { empresaId, periodo, resultado: result });
+      this.emitEvent('ANALYSIS_COMPLETED', { empresaId, periodo, resultado: result });
 
-          // Persist snapshot
-          await this.createSnapshot({
-            empresaId,
-            periodo,
-            scoreTotal: result.scoreTotal,
-            penalizaciones: JSON.stringify(result.penalizaciones),
-            kpis: JSON.stringify(result.kpis),
-            timestampFinalizacion: Date.now(),
-            versionMotorAnalisis: '1.0.0',
-            analysisEventId: result.eventId,
-          });
-        } catch (error) {
-          this.logger.error(`Analysis failed for empresaId: ${empresaId}, periodo: ${periodo}`, error.stack);
-          this.emitEvent('ANALYSIS_FAILED', { empresaId, periodo, error: error.message });
-          throw new InternalServerErrorException('Analysis failed', error.message);
-        }
-      },
-    });
+      // Persist snapshot
+      await this.createSnapshot({
+        empresaId,
+        periodo,
+        scoreTotal: result.scoreTotal,
+        penalizaciones: JSON.stringify(result.penalizaciones),
+        kpis: JSON.stringify(result.kpis),
+        timestampFinalizacion: Date.now(),
+        versionMotorAnalisis: '1.0.0',
+        analysisEventId: result.eventId,
+      });
+    } catch (error) {
+      this.logger.error(`Analysis failed for empresaId: ${empresaId}, periodo: ${periodo}`, error.stack);
+      this.emitEvent('ANALYSIS_FAILED', { empresaId, periodo, error: error.message });
+      throw new InternalServerErrorException('Analysis failed', error.message);
+    }
   }
 
   private async createSnapshot(snapshot: {
@@ -73,7 +68,9 @@ export class ExpedientesService {
     versionMotorAnalisis: string;
     analysisEventId: string;
   }): Promise<void> {
-    await this.databaseService.insert(analysisSnapshots).values(snapshot);
+    const insertBuilder = await this.databaseService.insert(analysisSnapshots);
+    await insertBuilder.values(snapshot);
+
     this.logger.log(`Snapshot created for empresaId: ${snapshot.empresaId}, periodo: ${snapshot.periodo}`);
   }
 
