@@ -1,0 +1,13 @@
+[
+  {
+    "id": "1767074265037",
+    "razonSocial": "TRASLADOS DE VANGUARDIA SA DE CV",
+    "rfc": "TVA060209QL6",
+    "regimen_fiscal": "601",
+    "created_at": "2025-12-30T05:57:45.037Z",
+    "satAuthMode": "FIEL",
+    "satStatus": "ACTIVE",
+    "lastSatSyncAt": "2025-12-30T05:59:57.070Z",
+    "configuracion": "{\"fiel\":{\"hasCer\":true,\"hasKey\":true,\"updatedAt\":\"2025-12-30T05:59:57.070Z\"},\"credentials\":{\"ciec\":\"******\",\"fiel\":\"******\"}}"
+  }
+]

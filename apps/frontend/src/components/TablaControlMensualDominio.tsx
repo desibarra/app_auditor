@@ -131,65 +131,65 @@ export const TablaControlMensualDominio: React.FC<TablaControlMensualDominioProp
                         </thead>
                         <tbody className="divide-y divide-gray-800 bg-transparent">
                             {resumen && resumen.length > 0 ? (
-                                resumen.map((row) => (
-                                    <tr key={row.mes} className="bg-transparent hover:bg-gray-800/30 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-gray-200 whitespace-nowrap font-mono text-xs">
-                                            {row.mes}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gray-800 text-gray-300 border border-gray-700">
-                                                {row.total}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right font-bold text-emerald-400 font-mono text-xs">
-                                            {formatCurrency(row.importe_total)}
-                                        </td>
-                                        <td className="px-6 py-4 text-center text-gray-500 text-xs">
-                                            {row.clientes} Únicos
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <button
-                                                onClick={() => handleAuditar(row.mes)}
-                                                className="text-indigo-400 hover:text-white text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 mx-auto border border-indigo-500/30 hover:bg-indigo-600 hover:border-indigo-500 rounded px-3 py-1.5 transition-all shadow-lg hover:shadow-indigo-500/20"
-                                            >
-                                                <span>🔍</span> AUDITAR 1x1
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                resumen.map((row) => {
+                                    const tieneDatos = row.total > 0;
+                                    const esMesActivo = periodoLabel && (row.mes === periodoLabel || row.mes.includes(periodoLabel.split('/').reverse().join('-')));
+
+                                    return (
+                                        <tr
+                                            key={row.mes}
+                                            className={`transition-colors ${esMesActivo ? 'bg-indigo-500/5' : 'bg-transparent'
+                                                } ${tieneDatos ? 'hover:bg-gray-800/30' : 'opacity-40 hover:opacity-100'}`}
+                                        >
+                                            <td className="px-6 py-4 font-bold text-gray-200 whitespace-nowrap font-mono text-xs">
+                                                <div className="flex items-center gap-2">
+                                                    {esMesActivo && <span className="w-1 h-1 bg-indigo-500 rounded-full"></span>}
+                                                    {row.mes}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${tieneDatos
+                                                        ? 'bg-gray-800 text-gray-300 border-gray-700'
+                                                        : 'bg-transparent text-gray-600 border-gray-800'
+                                                    }`}>
+                                                    {row.total}
+                                                </span>
+                                            </td>
+                                            <td className={`px-6 py-4 text-right font-bold font-mono text-xs ${tieneDatos ? 'text-emerald-400' : 'text-gray-600'
+                                                }`}>
+                                                {formatCurrency(row.importe_total)}
+                                            </td>
+                                            <td className={`px-6 py-4 text-center text-xs ${tieneDatos ? 'text-gray-500' : 'text-gray-700'
+                                                }`}>
+                                                {tieneDatos ? `${row.clientes} Únicos` : '0 Entidades'}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <button
+                                                    onClick={() => tieneDatos && handleAuditar(row.mes)}
+                                                    disabled={!tieneDatos}
+                                                    title={!tieneDatos ? "Sin XML registrados en este mes" : undefined}
+                                                    className={`text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 mx-auto border rounded px-3 py-1.5 transition-all ${tieneDatos
+                                                            ? 'text-indigo-400 border-indigo-500/30 hover:bg-indigo-600 hover:text-white hover:border-indigo-500 shadow-lg hover:shadow-indigo-500/20'
+                                                            : 'text-gray-600 border-gray-800 cursor-not-allowed opacity-50'
+                                                        }`}
+                                                >
+                                                    <span>🔍</span> AUDITAR 1x1
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             ) : (
                                 <tr>
                                     <td colSpan={5} className="py-20 text-center bg-gray-900/20">
                                         <div className="max-w-md mx-auto">
-                                            {totalHistorico > 0 ? (
-                                                <>
-                                                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-900/20 mb-4 border border-yellow-700/30">
-                                                        <span className="text-xl text-yellow-500">🔍</span>
-                                                    </div>
-                                                    <h3 className="text-sm font-bold text-gray-300">No hay resultados en este periodo</h3>
-                                                    <p className="text-xs text-gray-600 mt-2">
-                                                        El filtro <strong>{periodoLabel}</strong> no muestra datos, pero existen <strong className="text-indigo-400">{totalHistorico}</strong> históricos.
-                                                    </p>
-                                                    {onLimpiarFiltros && (
-                                                        <button
-                                                            onClick={onLimpiarFiltros}
-                                                            className="mt-6 inline-flex items-center px-4 py-2 border border-indigo-500/50 text-xs font-bold uppercase tracking-wider rounded text-indigo-400 hover:bg-indigo-500/10 transition-colors"
-                                                        >
-                                                            Ver Histórico Completo
-                                                        </button>
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-800/50 mb-4 border border-gray-700">
-                                                        <span className="text-xl opacity-50">📂</span>
-                                                    </div>
-                                                    <h3 className="text-sm font-bold text-gray-400">Sin historial registrado</h3>
-                                                    <p className="text-xs text-gray-600 mt-1">
-                                                        No existen CFDI registrados para este dominio.
-                                                    </p>
-                                                </>
-                                            )}
+                                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-800/50 mb-4 border border-gray-700">
+                                                <span className="text-xl opacity-50">📂</span>
+                                            </div>
+                                            <h3 className="text-sm font-bold text-gray-400">Sin historial registrado</h3>
+                                            <p className="text-xs text-gray-600 mt-1">
+                                                No existen CFDI registrados para este dominio.
+                                            </p>
                                         </div>
                                     </td>
                                 </tr>

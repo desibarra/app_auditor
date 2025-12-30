@@ -48,6 +48,7 @@ export const cfdiRecibidos = sqliteTable("cfdi_recibidos", {
 
     // XML Raw
     xmlOriginal: text("xml_original"),
+    xmlHash: text("xml_hash"),
 
     // --- INFRAESTRUCTURA DE AUDITORÍA VIVA (NUEVO) ---
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import MissionControlLayout from '../components/MissionControlLayout';
+import { useEmpresa } from '../context/EmpresaContext';
 
 // Interfaces for UI only (Mapping from Backend)
 interface ConfigData {
@@ -28,52 +29,16 @@ interface ConfigData {
 }
 
 const ConfiguracionPage: React.FC = () => {
-    const [empresaId, setEmpresaId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
-
-    const [config, setConfig] = useState<ConfigData>({
-        perfil: { rfc: '', razonSocial: '', regimenFiscal: '', sector: '' },
-        sat: { authMode: 'NONE', status: 'DISCONNECTED', lastSync: null },
-        umbrales: { maxEgresosFueraGiro: 10, isrBajo: 8, concentracionProveedor: 30 },
-        preferencias: { emailAlertas: false, emailDestino: '', temaOscuro: true }
-    });
-
-    const [activeTab, setActiveTab] = useState<'perfil' | 'umbrales' | 'integraciones' | 'preferencias'>('integraciones');
-
-    useEffect(() => {
-        // Cargar desde URL hash o props si fuera necesario
-    }, []);
-
-    // Escuchar cambios de empresa (Esta página usa el selector del Layout, pero necesitamos saber cuál es la activa)
-    // El Layout maneja el contexto global, pero aquí necesitamos leerlo.
-    // Como simplificación extrema para este paso:
-    // El usuario debe usar el selector del layout, el cual refresca la página o contexto.
-    // Si queremos que esta página reaccione REACTIVAMENTE al contexto, debemos usar useEmpresa.
-    // IMPORTANTE: MissionControlLayout envuelve children, pero los children pueden usar hooks.
-    // Vamos a importar useEmpresa.
-
-    // PERO, para evitar refactorizar imports ahora si no tengo el path exacto del context (lo tengo, src/context/EmpresaContext.tsx), 
-    // voy a usar un patrón más simple: leer de localStorage o window para inicializar, 
-    // y confiar en que el usuario refresca al cambiar empresa (el layout hace window.location.reload() al crear).
-    // Mejor aún: Usar el hook si puedo. Sí, lo tengo disponible.
-
-    // Voy a simular la conexión con el layout mediante props implícitos o asumiendo que el usuario ya seleccionó.
-    // En la versión anterior usaba un useEffect local con 'empresaId'.
-    // Ahora usaré el hook real.
-
-    return <ConfiguracionContent />;
-};
-
-// Separamos en subcomponente para poder usar Hooks limpiamente si fuera necesario, 
-// o simplemente reescribimos el componente principal.
-
-import { useEmpresa } from '../context/EmpresaContext';
-
-const ConfiguracionContent = () => {
-    const { empresa, loading: contextLoading } = useEmpresa();
+    const { empresa, loading: contextLoading, refreshEmpresas } = useEmpresa();
     const [localLoading, setLocalLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
+
+    // Estados para archivos y credenciales
+    const [fileCer, setFileCer] = useState<File | null>(null);
+    const [fileKey, setFileKey] = useState<File | null>(null);
+    const [passFiel, setPassFiel] = useState('');
+    const [passCiec, setPassCiec] = useState('');
 
     const [config, setConfig] = useState<ConfigData>({
         perfil: { rfc: '', razonSocial: '', regimenFiscal: '', sector: '' },
@@ -127,6 +92,38 @@ const ConfiguracionContent = () => {
         }
     };
 
+    const handleFielUpload = async () => {
+        if (!empresa?.id) return;
+        if (!fileCer || !fileKey || !passFiel) {
+            alert('Por favor cargue el certificado (.cer), la llave (.key) y la contraseña de la FIEL.');
+            return;
+        }
+
+        try {
+            setUploading(true);
+            const formData = new FormData();
+            formData.append('cer', fileCer);
+            formData.append('key', fileKey);
+            formData.append('passwordFiel', passFiel);
+            if (passCiec) formData.append('passwordCiec', passCiec);
+
+            const res = await axios.post(`/api/empresas/${empresa.id}/fiel`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            if (res.data.success) {
+                alert('¡Configuración Exitosa! La empresa ahora está vinculada legalmente.');
+                await fetchConfig(empresa.id);
+                if (refreshEmpresas) await refreshEmpresas();
+            }
+        } catch (error: any) {
+            console.error("Error uploading FIEL", error);
+            alert('Error al procesar los certificados: ' + (error.response?.data?.error || error.message));
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const handleSave = async () => {
         if (!empresa?.id) return;
         try {
@@ -142,10 +139,7 @@ const ConfiguracionContent = () => {
                 }
             };
             await axios.put(`/api/empresas/${empresa.id}`, payload);
-
-            // Si cambió el modo, refrescar para ver el nuevo status (DISCONNECTED)
             await fetchConfig(empresa.id);
-
             alert('Configuración actualizada correctamente');
         } catch (error) {
             console.error("Error saving config", error);
@@ -157,12 +151,11 @@ const ConfiguracionContent = () => {
 
     const isLoading = contextLoading || localLoading;
 
-    // Helper UI components
     const StatusBadge = ({ status }: { status: string }) => {
         const styles = {
             'DISCONNECTED': 'bg-zinc-100 text-zinc-500',
             'CONFIGURED': 'bg-blue-100 text-blue-700',
-            'ACTIVE': 'bg-green-100 text-green-700',
+            'ACTIVE': 'bg-green-100 text-green-700 font-bold',
             'ERROR': 'bg-red-100 text-red-700'
         };
         const labels = {
@@ -172,7 +165,7 @@ const ConfiguracionContent = () => {
             'ERROR': 'ERROR'
         };
         // @ts-ignore
-        return <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${styles[status] || styles['DISCONNECTED']}`}>{labels[status] || status}</span>;
+        return <span className={`text-[10px] px-2 py-0.5 rounded-full ${styles[status] || styles['DISCONNECTED']}`}>{labels[status] || status}</span>;
     };
 
     return (
@@ -245,7 +238,6 @@ const ConfiguracionContent = () => {
                                     <h2 className="text-xl font-bold text-zinc-900 mb-2">Modo de Autenticación</h2>
                                     <p className="text-sm text-zinc-500">
                                         Seleccione el nivel de integración deseado.
-                                        <span className="font-bold text-zinc-700 ml-1">Nota: Cambiar el modo reiniciará el estado de conexión.</span>
                                     </p>
                                 </div>
 
@@ -269,38 +261,135 @@ const ConfiguracionContent = () => {
                                         <p className="text-xs text-zinc-500">Consulta pública de listas negras y metadatos públicos sin credenciales.</p>
                                     </label>
 
-                                    {/* MODO: FIEL (Placeholder) */}
+                                    {/* MODO: FIEL */}
                                     <label className={`cursor-pointer border p-4 rounded transition-all ${config.sat.authMode === 'FIEL' ? 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600' : 'border-zinc-200 hover:border-zinc-400'}`}>
                                         <div className="flex items-center gap-3 mb-2">
                                             <input type="radio" name="authMode" checked={config.sat.authMode === 'FIEL'} onChange={() => setConfig({ ...config, sat: { ...config.sat, authMode: 'FIEL' } })} className="accent-indigo-600" />
                                             <span className="font-bold text-zinc-800">e.Firma (FIEL)</span>
-                                            <span className="text-[10px] bg-zinc-200 px-1 rounded text-zinc-600">No Activo</span>
+                                            {config.sat.status === 'ACTIVE' && config.sat.authMode === 'FIEL' && (
+                                                <span className="text-[10px] bg-green-200 px-1 rounded text-green-700 font-bold uppercase transition-all animate-bounce">Vinculada</span>
+                                            )}
                                         </div>
                                         <p className="text-xs text-zinc-500">Requiere archivos .cer y .key. Habilita descarga masiva y validación profunda.</p>
                                     </label>
 
-                                    {/* MODO: CIEC (Placeholder) */}
+                                    {/* MODO: CIEC */}
                                     <label className={`cursor-pointer border p-4 rounded transition-all ${config.sat.authMode === 'CIEC' ? 'border-amber-600 bg-amber-50 ring-1 ring-amber-600' : 'border-zinc-200 hover:border-zinc-400'}`}>
                                         <div className="flex items-center gap-3 mb-2">
                                             <input type="radio" name="authMode" checked={config.sat.authMode === 'CIEC'} onChange={() => setConfig({ ...config, sat: { ...config.sat, authMode: 'CIEC' } })} className="accent-amber-600" />
                                             <span className="font-bold text-zinc-800">Contraseña CIEC</span>
-                                            <span className="text-[10px] bg-zinc-200 px-1 rounded text-zinc-600">No Activo</span>
                                         </div>
                                         <p className="text-xs text-zinc-500">Acceso legado. Menos estable y seguro que la e.Firma.</p>
                                     </label>
                                 </div>
 
-                                {/* AVISO LEGAL DE INFRAESTRUCTURA */}
+                                {/* FORMULARIO DE CARGA FIEL / CIEC */}
                                 {(config.sat.authMode === 'FIEL' || config.sat.authMode === 'CIEC') && (
-                                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded text-sm text-yellow-800 flex gap-3 items-start">
-                                        <span className="text-xl">🛠️</span>
-                                        <div>
-                                            <p className="font-bold">Módulo en Preparación</p>
-                                            <p className="mt-1">
-                                                Ha seleccionado un modo de conexión avanzado.
-                                                Actualmente el sistema preparará la estructura de datos, pero <strong>no realizará ninguna conexión al SAT</strong> ni solicitará sus archivos todavía.
-                                                Esta funcionalidad se habilitará en la siguiente actualización del módulo de seguridad.
-                                            </p>
+                                    <div className="bg-zinc-50 border border-zinc-200 p-6 rounded-sm space-y-6 animate-fade-in shadow-inner">
+                                        <div className="flex items-center justify-between border-b border-zinc-200 pb-4">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-xl">🔐</span>
+                                                <div>
+                                                    <h3 className="font-bold text-zinc-900">Configuración de Credenciales SAT</h3>
+                                                    <p className="text-xs text-zinc-500">Cargue sus archivos de firma electrónica para habilitar la sincronización real.</p>
+                                                </div>
+                                            </div>
+                                            {config.sat.status === 'ACTIVE' && (
+                                                <div className="bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 animate-pulse">
+                                                    <span>●</span> CONECTADO
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {/* Sección FIEL */}
+                                            <div className="space-y-4">
+                                                <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">e.Firma (FIEL)</h4>
+
+                                                <div>
+                                                    <label className="block text-[11px] font-bold text-zinc-700 mb-1">Archivo Certificado (.cer)</label>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="file"
+                                                            id="fileCer"
+                                                            accept=".cer"
+                                                            onChange={(e) => setFileCer(e.target.files?.[0] || null)}
+                                                            className="hidden"
+                                                        />
+                                                        <label htmlFor="fileCer" className="bg-zinc-900 text-white px-3 py-2 rounded-sm text-[10px] font-bold cursor-pointer hover:bg-zinc-800 transition-colors">
+                                                            {fileCer ? 'CAMBIAR' : 'SELECCIONAR .CER'}
+                                                        </label>
+                                                        <span className="text-[10px] text-zinc-500 truncate max-w-[150px]">
+                                                            {fileCer ? fileCer.name : 'Ninguno seleccionado'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-[11px] font-bold text-zinc-700 mb-1">Archivo Llave Privada (.key)</label>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="file"
+                                                            id="fileKey"
+                                                            accept=".key"
+                                                            onChange={(e) => setFileKey(e.target.files?.[0] || null)}
+                                                            className="hidden"
+                                                        />
+                                                        <label htmlFor="fileKey" className="bg-zinc-900 text-white px-3 py-2 rounded-sm text-[10px] font-bold cursor-pointer hover:bg-zinc-800 transition-colors">
+                                                            {fileKey ? 'CAMBIAR' : 'SELECCIONAR .KEY'}
+                                                        </label>
+                                                        <span className="text-[10px] text-zinc-500 truncate max-w-[150px]">
+                                                            {fileKey ? fileKey.name : 'Ninguno seleccionado'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-[11px] font-bold text-zinc-700 mb-1">Contraseña de la Llave</label>
+                                                    <input
+                                                        type="password"
+                                                        placeholder="••••••••"
+                                                        value={passFiel}
+                                                        onChange={(e) => setPassFiel(e.target.value)}
+                                                        className="w-full border border-zinc-300 rounded-sm px-3 py-2 text-xs outline-none focus:border-zinc-500"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Sección CIEC */}
+                                            <div className="space-y-4 border-l border-zinc-200 pl-6">
+                                                <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Contraseña CIEC</h4>
+
+                                                <div className="pt-2">
+                                                    <label className="block text-[11px] font-bold text-zinc-700 mb-1">Contraseña CIEC (8 caracteres)</label>
+                                                    <input
+                                                        type="password"
+                                                        placeholder="••••••••"
+                                                        value={passCiec}
+                                                        onChange={(e) => setPassCiec(e.target.value)}
+                                                        className="w-full border border-zinc-300 rounded-sm px-3 py-2 text-xs outline-none focus:border-zinc-500"
+                                                    />
+                                                    <p className="text-[10px] text-zinc-400 mt-2">
+                                                        La contraseña CIEC permite consultar metadatos y listas negras en tiempo real.
+                                                    </p>
+                                                </div>
+
+                                                <div className="bg-blue-50 p-3 rounded-sm border border-blue-100 mt-4">
+                                                    <p className="text-[10px] text-blue-700 font-medium leading-relaxed">
+                                                        <span className="font-bold text-blue-800">Cifrado de Seguridad:</span> Sus credenciales nunca se almacenan en texto plano y solo se usan para autenticar ante el SAT.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-zinc-200 flex justify-end">
+                                            <button
+                                                onClick={handleFielUpload}
+                                                disabled={uploading || !empresa}
+                                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-8 rounded-sm shadow-md transition-all text-xs disabled:opacity-50"
+                                            >
+                                                {uploading ? 'Procesando...' : '🚀 Finalizar Configuración Real'}
+                                            </button>
                                         </div>
                                     </div>
                                 )}
@@ -318,7 +407,6 @@ const ConfiguracionContent = () => {
                             <div className="space-y-6 animate-fade-in">
                                 <h2 className="text-xl font-bold text-zinc-900">Perfil Fiscal</h2>
                                 <div className="grid grid-cols-2 gap-6">
-                                    {/* Mismos campos de perfil... simplificado para este update */}
                                     <div className="md:col-span-1">
                                         <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">RFC</label>
                                         <input type="text" value={config.perfil.rfc} disabled className="w-full bg-zinc-100 border border-zinc-200 rounded px-4 py-2 text-zinc-500 font-mono cursor-not-allowed" />
@@ -336,6 +424,6 @@ const ConfiguracionContent = () => {
             </div>
         </MissionControlLayout>
     );
-}
+};
 
 export default ConfiguracionPage;

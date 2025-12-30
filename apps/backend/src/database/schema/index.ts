@@ -20,3 +20,4 @@ export * from './cfdi_riesgos.schema';
 // ✨ NUEVAS TABLAS - ETAPA 1: Flujo de Efectivo
 export * from './bancos.schema';
 export * from './cfdi_relaciones.schema';
+export * from './audit_logs.schema';

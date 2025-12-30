@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditor Fiscal - Emergencia</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .container {
+            background: #f5f5f5;
+            padding: 30px;
+            border-radius: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .error {
+            color: #dc3545;
+            margin-top: 5px;
+        }
+
+        .success {
+            color: #28a745;
+            margin-top: 5px;
+        }
+
+        .empresas-list {
+            margin-top: 30px;
+        }
+
+        .empresa-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Auditor Fiscal - Registro de Empresas</h1>
+
+        <div class="form-group">
+            <label>RFC:</label>
+            <input type="text" id="rfc" placeholder="TVA060209QL6" value="TVA060209QL6">
+            <small>Formato: 3-4 letras, 6 números, homoclave (3 caracteres)</small>
+        </div>
+
+        <div class="form-group">
+            <label>Razón Social:</label>
+            <input type="text" id="nombre" placeholder="BRASLADOS DE VANGUARDIA SA DE CV"
+                value="TRASLADOS DE VANGUARDIA SA DE CV">
+        </div>
+
+        <button onclick="registrarEmpresa()">Registrar Empresa</button>
+
+        <div id="message"></div>
+
+        <div class="empresas-list">
+            <h3>Empresas Registradas</h3>
+            <div id="empresas-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001/api/empresas';
+
+        async function cargarEmpresas() {
+            try {
+                const response = await fetch(API_URL);
+                const empresas = await response.json();
+                mostrarEmpresas(empresas);
+            } catch (error) {
+                console.error('Error cargando empresas:', error);
+            }
+        }
+
+        function mostrarEmpresas(empresas) {
+            const container = document.getElementById('empresas-container');
+            container.innerHTML = empresas.map(empresa => `
+                <div class="empresa-item">
+                    <strong>${empresa.nombre}</strong><br>
+                    RFC: ${empresa.rfc}<br>
+                    ID: ${empresa.id}
+                </div>
+            `).join('');
+        }
+
+        async function registrarEmpresa() {
+            const rfc = document.getElementById('rfc').value;
+            const nombre = document.getElementById('nombre').value;
+            const messageDiv = document.getElementById('message');
+
+            messageDiv.innerHTML = '';
+            messageDiv.className = '';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, rfc, regimen_fiscal: '601' })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    messageDiv.innerHTML = `✅ ${result.message}`;
+                    messageDiv.className = 'success';
+                    cargarEmpresas();
+                } else {
+                    messageDiv.innerHTML = `❌ ${result.error}`;
+                    messageDiv.className = 'error';
+                }
+            } catch (error) {
+                messageDiv.innerHTML = `❌ Error de conexión: ${error.message}`;
+                messageDiv.className = 'error';
+            }
+        }
+
+        // Cargar empresas al iniciar
+        cargarEmpresas();
+    </script>
+</body>
+
+</html>

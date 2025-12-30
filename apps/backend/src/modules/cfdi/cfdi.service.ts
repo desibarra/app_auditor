@@ -101,7 +101,10 @@ export class CfdiService {
             const existente = await this.db
                 .select()
                 .from(cfdiRecibidos)
-                .where(eq(cfdiRecibidos.uuid, cfdiData.uuid))
+                .where(and(
+                    eq(cfdiRecibidos.uuid, cfdiData.uuid),
+                    eq(cfdiRecibidos.empresaId, empresaId)
+                ))
                 .limit(1);
 
             if (existente.length > 0) {
@@ -140,7 +143,8 @@ export class CfdiService {
                     condicionesPago: cfdiData.condicionesPago,
                     lugarExpedicion: cfdiData.lugarExpedicion,
                     xmlOriginal: cfdiData.xmlOriginal,
-                    estadoSat: 'Vigente', // Por defecto, se validará después
+                    estatusFiscal: 'PENDING', // Estado inicial hasta validación
+                    estatusFuente: 'MANUAL',
                     empresaId: empresaId,
                     procesado: true,
                     tieneErrores: false,
@@ -300,7 +304,7 @@ export class CfdiService {
                     tipoComprobante: cfdiRecibidos.tipoComprobante,
                     total: cfdiRecibidos.total,
                     moneda: cfdiRecibidos.moneda,
-                    estadoSat: cfdiRecibidos.estadoSat,
+                    estatusFiscal: cfdiRecibidos.estatusFiscal,
                     fechaImportacion: cfdiRecibidos.fechaImportacion,
                 })
                 .from(cfdiRecibidos)
@@ -450,7 +454,7 @@ export class CfdiService {
                     forma_pago AS formaPago, 
                     metodo_pago AS metodoPago,
                     xml_original AS xmlOriginal, 
-                    estado_sat AS estadoSat
+                    estatus_fiscal AS estatusFiscal
                 FROM cfdi_recibidos
                 WHERE uuid = ${uuid}
                 LIMIT 1
@@ -593,13 +597,14 @@ export class CfdiService {
                 await this.db
                     .update(cfdiRecibidos)
                     .set({
-                        estadoSat: estadoReal,
-                        fechaValidacionSat: new Date()
+                        estatusFiscal: estadoReal.toUpperCase(), // Asegurar VIGENTE/CANCELADO
+                        estatusFuente: 'SAT_REAL',
+                        lastCheckedAt: new Date()
                     })
                     .where(eq(cfdiRecibidos.uuid, cfdi.uuid));
 
                 actualizados++;
-                if (estadoReal === 'Cancelado' && cfdi.estadoSat !== 'Cancelado') {
+                if (estadoReal === 'Cancelado' && cfdi.estatusFiscal !== 'CANCELADO') {
                     canceladosDetectados++;
                 }
             }
@@ -751,7 +756,7 @@ export class CfdiService {
             const stats = await this.db.all(sql`
                 SELECT 
                     COUNT(*) as total_mes,
-                    COUNT(CASE WHEN estado_sat = 'Cancelado' THEN 1 END) as alertas_activas,
+                    COUNT(CASE WHEN estatus_fiscal = 'CANCELADO' THEN 1 END) as alertas_activas,
                     SUM(CASE WHEN emisor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN 1 ELSE 0 END) as emitidos_count,
                     SUM(CASE WHEN receptor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN 1 ELSE 0 END) as recibidos_count,
                     SUM(CASE WHEN tipo_comprobante = 'P' THEN 1 ELSE 0 END) as pagos_count,
@@ -1054,8 +1059,7 @@ export class CfdiService {
             }
 
             // 1. Resumen Mensual (Tabla) - SIEMPRE HISTÓRICO COMPLETO (Autoaditoría)
-            // No filtramos por fecha aquí porque la tabla DEBE mostrar la tendencia completa para auditar
-            const resumen = await this.db.all(sql`
+            const rows = await this.db.all(sql`
                 SELECT
                     strftime('%Y-%m', fecha) AS mes,
                     COUNT(*) AS total,
@@ -1067,6 +1071,35 @@ export class CfdiService {
                 GROUP BY mes
                 ORDER BY mes DESC
             `);
+
+            // RELLENO DE 12 MESES (Normalization Protocol)
+            // Extraemos el año del filtro o el actual
+            const yearTarget = filtros.mes ? filtros.mes.split('-')[0] : new Date().getFullYear().toString();
+
+            const resumenMap = new Map();
+            // Inicializar los 12 meses en cero
+            for (let m = 1; m <= 12; m++) {
+                const mesStr = `${yearTarget}-${String(m).padStart(2, '0')}`;
+                resumenMap.set(mesStr, {
+                    mes: mesStr,
+                    total: 0,
+                    importe_total: 0,
+                    clientes: 0
+                });
+            }
+
+            // Mezclar con datos reales
+            rows.forEach((row: any) => {
+                if (resumenMap.has(row.mes)) {
+                    resumenMap.set(row.mes, row);
+                } else if (row.mes.startsWith(yearTarget)) {
+                    // Si por alguna razón no estaba pero es del año, lo agregamos (no debería pasar por el loop arriba)
+                    resumenMap.set(row.mes, row);
+                }
+            });
+
+            const resumen = Array.from(resumenMap.values())
+                .sort((a: any, b: any) => b.mes.localeCompare(a.mes));
 
             // 2. KPIs del Periodo (Mes o Rango) - ESTOS SÍ OBEDECEN EL FILTRO
             const metricasRaw = await this.db.all(sql`

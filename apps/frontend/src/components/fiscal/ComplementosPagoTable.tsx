@@ -110,7 +110,8 @@ const ComplementosPagoTable: React.FC<Props> = ({ empresaId, periodo }) => {
     };
 
     // Aplicar filtros y ordenamiento
-    let dataFiltrada = response?.data.filter(item => {
+    let dataFiltrada = (response?.data || []).filter(item => {
+        if (!item) return false;
         // Filtro por Tab Secundario (Estatus)
         if (filtros.estatus !== 'TODOS' && item.estatusPago !== filtros.estatus) return false;
 
@@ -202,7 +203,7 @@ const ComplementosPagoTable: React.FC<Props> = ({ empresaId, periodo }) => {
             </div>
 
             {/* ALERTA DE RIESGO */}
-            {response?.meta.riesgoFiscal && tipoComplemento === 'RECIBIDOS' && (
+            {response?.meta?.riesgoFiscal && tipoComplemento === 'RECIBIDOS' && (
                 <div className="bg-rose-500/10 border-2 border-rose-500/30 rounded-xl p-5 flex items-start gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                     <div className="text-3xl">⚠️</div>
                     <div>
@@ -215,23 +216,23 @@ const ComplementosPagoTable: React.FC<Props> = ({ empresaId, periodo }) => {
             )}
 
             {/* MÉTRICAS (KPIs) */}
-            {response && (
+            {response?.meta && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-[#0B0E14] border border-gray-800 p-5 rounded-xl shadow-inner">
                         <div className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Total Analizados</div>
-                        <div className="text-2xl font-bold text-white font-mono">{response.meta.totalCFDI}</div>
+                        <div className="text-2xl font-bold text-white font-mono">{response.meta.totalCFDI || 0}</div>
                     </div>
                     <div className="bg-[#0B0E14] border border-gray-800 p-5 rounded-xl shadow-inner">
                         <div className="text-emerald-500 text-[10px] font-bold uppercase tracking-widest mb-2">Pagados / Conciliados</div>
-                        <div className="text-2xl font-bold text-emerald-400 font-mono">{response.meta.pagados}</div>
+                        <div className="text-2xl font-bold text-emerald-400 font-mono">{response.meta.pagados || 0}</div>
                     </div>
                     <div className="bg-[#0B0E14] border border-gray-800 p-5 rounded-xl shadow-inner">
                         <div className="text-rose-500 text-[10px] font-bold uppercase tracking-widest mb-2">PPD sin Complemento</div>
-                        <div className="text-2xl font-bold text-rose-400 font-mono">{response.meta.ppdSinComplemento}</div>
+                        <div className="text-2xl font-bold text-rose-400 font-mono">{response.meta.ppdSinComplemento || 0}</div>
                     </div>
                     <div className="bg-[#0B0E14] border border-gray-800 p-5 rounded-xl shadow-inner">
                         <div className="text-blue-500 text-[10px] font-bold uppercase tracking-widest mb-2">Ventas/Gastos PUE</div>
-                        <div className="text-2xl font-bold text-blue-400 font-mono">{response.meta.pue}</div>
+                        <div className="text-2xl font-bold text-blue-400 font-mono">{response.meta.pue || 0}</div>
                     </div>
                 </div>
             )}

@@ -1,6 +1,6 @@
-import type { Config } from 'drizzle-kit';
+import { defineConfig } from 'drizzle-kit';
 
-export default {
+export default defineConfig({
     schema: './src/database/schema/**/*.ts',
     out: './src/database/migrations',
     driver: 'better-sqlite',
@@ -9,4 +9,4 @@ export default {
     },
     verbose: true,
     strict: false,
-} satisfies Config;
+});

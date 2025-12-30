@@ -5,6 +5,7 @@ import { CfdiService } from './cfdi.service';
 import { CfdiParserService } from './services/cfdi-parser.service';
 import { memoryStorage } from 'multer';
 import { RiskModule } from '../risk/risk.module';
+import { CfdiBulkService } from './services/cfdi-bulk.service';
 import { CfdiValidatorService } from './services/cfdi-validator.service';
 
 @Module({
@@ -19,7 +20,7 @@ import { CfdiValidatorService } from './services/cfdi-validator.service';
         RiskModule,
     ],
     controllers: [CfdiController],
-    providers: [CfdiService, CfdiParserService, CfdiValidatorService],
-    exports: [CfdiService, CfdiParserService, CfdiValidatorService],
+    providers: [CfdiService, CfdiParserService, CfdiValidatorService, CfdiBulkService],
+    exports: [CfdiService, CfdiParserService, CfdiValidatorService, CfdiBulkService],
 })
 export class CfdiModule { }

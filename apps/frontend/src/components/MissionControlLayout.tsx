@@ -25,10 +25,13 @@ const MissionControlLayout: React.FC<LayoutProps> = ({ children, title, lastUpda
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({ rfc: '', razonSocial: '' });
     const [submitting, setSubmitting] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null); // Nuevo estado de error visual
 
     const handleEmpresaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const value = e.target.value;
         if (value === 'NEW') {
+            setErrorMsg(null); // Reset error al abrir
+            setFormData({ rfc: '', razonSocial: '' });
             setShowModal(true);
             return;
         }
@@ -40,27 +43,42 @@ const MissionControlLayout: React.FC<LayoutProps> = ({ children, title, lastUpda
 
     const handleCrearEmpresa = async (e: React.FormEvent) => {
         e.preventDefault();
+        setErrorMsg(null); // Limpiar errores previos
+
         if (!formData.rfc || !formData.razonSocial) return;
 
         try {
             setSubmitting(true);
             const res = await axios.post('/api/empresas', formData);
             if (res.data.success) {
-                await refreshEmpresas(); // Recargar lista del contexto
-                const nueva = res.data.empresa;
-                // Seleccionar explícitamente la nueva empresa
-                // (refreshEmpresas podría no seleccionarla automáticamente si ya había una seleccionada)
-                // Pero aquí queremos forzar el cambio a la nueva creada
-                // Sin embargo seleccionarEmpresa espera un objeto completo que viene de la lista
-                // Esperamos a que el contexto se actualice... o mejor, forzamos reloading
+                // Éxito: Cerrar modal y recargar
+                setShowModal(false);
+                await refreshEmpresas();
                 window.location.reload();
             }
-        } catch (error) {
-            console.error(error);
-            alert('Error al crear empresa. Verifique el RFC.');
+        } catch (error: any) {
+            console.error("Error creating company:", error);
+
+            // Extracción inteligente del mensaje de error del backend
+            let message = 'Error desconocido al crear la empresa.';
+
+            if (error.response?.data) {
+                const data = error.response.data;
+                // Si el backend envía { message: "..." } o { error: "...", message: "..." }
+                if (data.message) {
+                    if (Array.isArray(data.message)) {
+                        message = data.message[0]; // NestJS class-validator devuelve arrays
+                    } else {
+                        message = data.message;
+                    }
+                }
+            } else if (error.message) {
+                message = error.message;
+            }
+
+            setErrorMsg(message);
         } finally {
             setSubmitting(false);
-            setShowModal(false);
         }
     };
 
@@ -157,6 +175,17 @@ const MissionControlLayout: React.FC<LayoutProps> = ({ children, title, lastUpda
                             </button>
                         </div>
 
+                        {/* ÁREA DE ERROR VISUAL */}
+                        {errorMsg && (
+                            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-sm flex items-start gap-3">
+                                <span className="text-red-500 mt-0.5">⚠️</span>
+                                <div>
+                                    <p className="text-xs font-bold text-red-800">No se pudo registrar</p>
+                                    <p className="text-xs text-red-600 mt-0.5">{errorMsg}</p>
+                                </div>
+                            </div>
+                        )}
+
                         <form onSubmit={handleCrearEmpresa}>
                             <div className="space-y-4">
                                 <div>
@@ -164,12 +193,17 @@ const MissionControlLayout: React.FC<LayoutProps> = ({ children, title, lastUpda
                                     <input
                                         type="text"
                                         placeholder="XAXX010101000"
-                                        className="w-full border border-zinc-300 px-3 py-2 rounded-sm focus:border-blue-500 focus:outline-none font-mono text-sm uppercase"
+                                        className={`w-full border px-3 py-2 rounded-sm focus:outline-none font-mono text-sm uppercase ${errorMsg ? 'border-red-300 focus:border-red-500' : 'border-zinc-300 focus:border-blue-500'
+                                            }`}
                                         maxLength={13}
                                         value={formData.rfc}
-                                        onChange={e => setFormData({ ...formData, rfc: e.target.value.toUpperCase() })}
+                                        onChange={e => {
+                                            if (errorMsg) setErrorMsg(null); // Limpiar error al editar
+                                            setFormData({ ...formData, rfc: e.target.value.toUpperCase() })
+                                        }}
                                         required
                                     />
+                                    <p className="text-[10px] text-zinc-400 mt-1">Debe cumplir formato oficial (3-4 letras, 6 números, homoclave).</p>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Razón Social</label>
@@ -195,8 +229,9 @@ const MissionControlLayout: React.FC<LayoutProps> = ({ children, title, lastUpda
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="px-4 py-2 text-sm bg-zinc-900 text-white hover:bg-zinc-800 rounded-sm font-medium disabled:opacity-50"
+                                    className="px-4 py-2 text-sm bg-zinc-900 text-white hover:bg-zinc-800 rounded-sm font-medium disabled:opacity-50 flex items-center gap-2"
                                 >
+                                    {submitting && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
                                     {submitting ? 'Registrando...' : 'Dar de Alta'}
                                 </button>
                             </div>

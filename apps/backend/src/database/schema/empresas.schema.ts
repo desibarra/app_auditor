@@ -32,7 +32,7 @@ export const empresas = sqliteTable('empresas', {
     fielCerEncrypted: text('fiel_cer_encrypted'),
     fielPassEncrypted: text('fiel_pass_encrypted'),
 
-    fechaAlta: integer('fecha_alta', { mode: 'timestamp_ms' }).notNull().default(sql`(unixepoch() * 1000)`),
+    fechaAlta: integer('fecha_alta', { mode: 'timestamp_ms' }).notNull().default(sql`(strftime('%s', 'now') * 1000)`),
     activa: integer('activa', { mode: 'boolean' }).notNull().default(true),
 });
 

@@ -1,155 +1,198 @@
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
-import { empresas } from '../../database/schema';
-import { eq } from 'drizzle-orm';
+import { Injectable, BadRequestException, ConflictException, Logger } from '@nestjs/common';
+import Database from 'better-sqlite3';
+import path from 'path';
 
 export interface CrearEmpresaDto {
     rfc: string;
     razonSocial: string;
     regimenFiscal?: string;
     sector?: string;
-    configuracion?: any; // JSON Object
-    satAuthMode?: 'NONE' | 'RFC_ONLY' | 'CIEC' | 'FIEL'; // Updated types
+    configuracion?: any;
+    satAuthMode?: 'NONE' | 'RFC_ONLY' | 'CIEC' | 'FIEL';
 }
 
 @Injectable()
 export class EmpresasService {
-    constructor(@Inject('DRIZZLE_CLIENT') private db: any) { }
+    private readonly logger = new Logger(EmpresasService.name);
+    private readonly db: Database.Database;
 
-    private parseConfig(empresa: any) {
-        if (!empresa) return empresa;
-        try {
-            if (empresa.configuracion && typeof empresa.configuracion === 'string') {
-                empresa.configuracion = JSON.parse(empresa.configuracion);
-            }
-        } catch (e) {
-            empresa.configuracion = {};
-        }
-        return empresa;
+    constructor() {
+        // Conexión directa a SQLite sin Drizzle (Legacy compatible)
+        const dbPath = path.join(process.cwd(), 'data/dev_clean.db');
+
+        console.log('[EmpresasService] CWD:', process.cwd());
+        console.log('[EmpresasService] __dirname:', __dirname);
+        console.log(`[EmpresasService] Intentando conectar a: ${dbPath}`);
+
+        this.db = new Database(dbPath);
+        this.logger.log(`✅ Conectado a DB: ${dbPath}`);
     }
 
     async findAll() {
         try {
-            const empresasList = await this.db
-                .select()
-                .from(empresas)
-                .where(eq(empresas.activa, true));
-            return empresasList.map(this.parseConfig);
-        } catch (error) {
-            console.error('Error al obtener empresas:', error);
-            throw new BadRequestException('Error al obtener empresas');
+            const stmt = this.db.prepare('SELECT * FROM empresas WHERE activa = 1');
+            const empresas = stmt.all();
+            return empresas.map((e: any) => {
+                if (e.configuracion && typeof e.configuracion === 'string') {
+                    try {
+                        e.configuracion = JSON.parse(e.configuracion);
+                    } catch {
+                        e.configuracion = {};
+                    }
+                }
+                return e;
+            });
+        } catch (error: any) {
+            this.logger.error(`Error al obtener empresas: ${error.message}`);
+            return [];
         }
     }
 
     async findOne(id: string) {
         try {
-            const empresa = await this.db
-                .select()
-                .from(empresas)
-                .where(eq(empresas.id, id))
-                .limit(1);
+            const stmt = this.db.prepare('SELECT * FROM empresas WHERE id = ?');
+            const empresa = stmt.get(id);
+            if (!empresa) return null;
 
-            if (empresa.length === 0) {
-                throw new NotFoundException(`Empresa con ID ${id} no encontrada`);
+            if ((empresa as any).configuracion && typeof (empresa as any).configuracion === 'string') {
+                try {
+                    (empresa as any).configuracion = JSON.parse((empresa as any).configuracion);
+                } catch {
+                    (empresa as any).configuracion = {};
+                }
             }
-            return this.parseConfig(empresa[0]);
+            return empresa;
         } catch (error) {
-            if (error instanceof NotFoundException) throw error;
-            console.error('Error al obtener empresa:', error);
-            throw new BadRequestException('Error al obtener empresa');
+            this.logger.error(`Error al buscar empresa ${id}`, error);
+            throw new BadRequestException('Error al buscar la empresa.');
         }
     }
 
     async create(dto: CrearEmpresaDto) {
-        try {
-            if (!dto.rfc || dto.rfc.length < 12 || dto.rfc.length > 13) {
-                throw new BadRequestException('RFC inválido (12-13 caracteres)');
-            }
+        this.logger.log(`Iniciando alta de empresa: ${dto.rfc || 'SIN RFC'}`);
 
-            const existente = await this.db
-                .select()
-                .from(empresas)
-                .where(eq(empresas.rfc, dto.rfc.toUpperCase()))
-                .limit(1);
+        // Validaciones
+        if (!dto.rfc) {
+            throw new BadRequestException('El campo RFC es obligatorio.');
+        }
 
-            if (existente.length > 0) {
-                throw new BadRequestException(`Ya existe una empresa con el RFC ${dto.rfc}`);
-            }
+        if (!dto.razonSocial) {
+            throw new BadRequestException('El campo Razón Social es obligatorio.');
+        }
 
-            const id = `empresa-${dto.rfc.toLowerCase()}`;
+        // Normalización
+        const rfcNormalizado = dto.rfc.trim().toUpperCase();
 
-            // CREATE: Reglas de inicialización estrictas
-            await this.db.insert(empresas).values({
-                id,
-                rfc: dto.rfc.toUpperCase(),
-                razonSocial: dto.razonSocial,
-                regimenFiscal: dto.regimenFiscal,
-                sector: dto.sector,
-                activa: true,
-                configuracion: dto.configuracion ? JSON.stringify(dto.configuracion) : null,
+        // Validación Regex RFC
+        const rfcRegexOficial = /^([A-ZÑ&]{3,4})([0-9]{6})([A-Z0-9]{3})$/;
 
-                // SAT DEFAULTS (No confiar en entrada para status inicial)
-                satAuthMode: dto.satAuthMode || 'NONE',
-                satStatus: 'DISCONNECTED',
+        if (!rfcRegexOficial.test(rfcNormalizado)) {
+            this.logger.warn(`Validación fallida: RFC inválido (${rfcNormalizado})`);
+            throw new BadRequestException({
+                error: 'RFC_INVALIDO',
+                message: 'El RFC no cumple con el formato oficial del SAT.'
             });
+        }
+
+        try {
+            // Verificación de Duplicados con SQL puro
+            const checkStmt = this.db.prepare('SELECT id FROM empresas WHERE rfc = ?');
+            const existente = checkStmt.get(rfcNormalizado);
+
+            if (existente) {
+                this.logger.warn(`Intento de duplicado: ${rfcNormalizado}`);
+                throw new ConflictException({
+                    error: 'RFC_DUPLICADO',
+                    message: 'La empresa ya se encuentra registrada con este RFC.'
+                });
+            }
+
+            // ID
+            const nuevoId = `empresa-${rfcNormalizado.toLowerCase()}`;
+
+            // INSERT con SQL puro
+            const insertStmt = this.db.prepare(`
+                INSERT INTO empresas (id, rfc, razon_social, activa, sat_auth_mode, sat_status)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `);
+
+            insertStmt.run(
+                nuevoId,
+                rfcNormalizado,
+                dto.razonSocial.trim(),
+                1,
+                'NONE',
+                'DISCONNECTED'
+            );
+
+            this.logger.log(`✅ Empresa insertada: ${nuevoId}`);
+
+            // SELECT para obtener el registro completo
+            const selectStmt = this.db.prepare('SELECT * FROM empresas WHERE id = ?');
+            const empresaCreada = selectStmt.get(nuevoId);
+
+            if (!empresaCreada) {
+                throw new Error('Empresa insertada pero no encontrada en SELECT');
+            }
 
             return {
                 success: true,
-                message: 'Empresa creada exitosamente',
-                empresa: { id, rfc: dto.rfc.toUpperCase(), razonSocial: dto.razonSocial, satAuthMode: dto.satAuthMode || 'NONE' },
+                message: 'Empresa creada exitosamente.',
+                empresa: empresaCreada
             };
-        } catch (error) {
-            if (error instanceof BadRequestException) throw error;
-            console.error('Error al crear empresa:', error);
-            throw new BadRequestException('Error al crear empresa');
+
+        } catch (error: any) {
+            console.error('========== INSERT EMPRESA ERROR ==========');
+            console.error('Mensaje:', error.message);
+            console.error('==========================================');
+
+            if (error instanceof BadRequestException || error instanceof ConflictException) {
+                throw error;
+            }
+
+            this.logger.error(`Error crítico creando empresa: ${error.message}`);
+
+            if (error.code === 'SQLITE_CONSTRAINT' || error.message?.includes('UNIQUE')) {
+                throw new ConflictException({
+                    error: 'RFC_DUPLICADO',
+                    message: 'La empresa ya existe (validación de base de datos).'
+                });
+            }
+
+            throw new BadRequestException({
+                error: 'INTERNAL_ERROR',
+                message: 'No se pudo crear la empresa. Intente nuevamente.'
+            });
         }
     }
 
     async update(id: string, dto: Partial<CrearEmpresaDto>) {
         try {
-            const currentEmpresa = await this.findOne(id); // Necesario para comparar estado
+            const current = await this.findOne(id);
+            if (!current) throw new BadRequestException('Empresa no encontrada');
 
-            const updateData: any = {
-                razonSocial: dto.razonSocial,
-                regimenFiscal: dto.regimenFiscal,
-                sector: dto.sector,
-            };
+            const stmt = this.db.prepare(`
+                UPDATE empresas 
+                SET razon_social = COALESCE(?, razon_social)
+                WHERE id = ?
+            `);
 
-            if (dto.configuracion !== undefined) {
-                updateData.configuracion = JSON.stringify(dto.configuracion);
-            }
-
-            // REGLA DE DEFENSA: Reset de seguridad al cambiar modo
-            // Si el usuario cambia el modo de autenticación, cualquier validación previa queda inválida.
-            if (dto.satAuthMode && dto.satAuthMode !== currentEmpresa.satAuthMode) {
-                updateData.satAuthMode = dto.satAuthMode;
-                updateData.satStatus = 'DISCONNECTED'; // Force reset
-                console.log(`[Seguridad] Modo SAT cambiado para ${id}. Status reseteado a DISCONNECTED.`);
-            }
-
-            await this.db
-                .update(empresas)
-                .set(updateData)
-                .where(eq(empresas.id, id));
-
-            return {
-                success: true,
-                message: 'Empresa actualizada exitosamente',
-            };
+            stmt.run(dto.razonSocial?.trim(), id);
+            return { success: true, message: 'Actualizado correctamente' };
         } catch (error) {
-            if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
-            console.error('Error al actualizar empresa:', error);
-            throw new BadRequestException('Error al actualizar empresa');
+            this.logger.error(`Error actualizando ${id}`, error);
+            throw new BadRequestException('No se pudo actualizar la empresa');
         }
     }
 
     async delete(id: string) {
         try {
-            await this.findOne(id);
-            await this.db.update(empresas).set({ activa: false }).where(eq(empresas.id, id));
-            return { success: true, message: 'Empresa desactivada exitosamente' };
+            const stmt = this.db.prepare('UPDATE empresas SET activa = 0 WHERE id = ?');
+            stmt.run(id);
+            return { success: true, message: 'Empresa desactivada' };
         } catch (error) {
-            if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
-            throw new BadRequestException('Error al desactivar empresa');
+            this.logger.error(`Error eliminando ${id}`, error);
+            throw new BadRequestException('No se pudo eliminar la empresa');
         }
     }
 }

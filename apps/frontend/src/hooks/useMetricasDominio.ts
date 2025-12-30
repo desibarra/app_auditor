@@ -90,29 +90,34 @@ export const useMetricasDominio = (
 
         try {
             setLoading(true);
-            // Construir Query Params
+            // Construir Query Params (Soporte Anual/Mensual)
             const params = new URLSearchParams();
             if (filtros.mes) params.append('mes', filtros.mes);
             if (filtros.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
             if (filtros.fechaFin) params.append('fechaFin', filtros.fechaFin);
-            params.append('empresaId', empresaId); // 👈 FIXED: Backend expects Query Param
+
+            // Extraer año del mes si es posible
+            const anio = filtros.mes ? filtros.mes.split('-')[0] : '2025';
+            params.append('anio', anio);
+            params.append('empresaId', empresaId);
 
             const url = `${endpoint}?${params.toString()}`;
-
             const response = await axios.get(url);
 
             const data = response.data;
-            setMetricas(data.metricas);
-            setResumen(data.resumen);
-            setDominio(data.dominio);
-            setRol(data.rol);
-            setTipo(data.tipo);
-            setPeriodo(data.periodo);
+
+            // Lógica Defensiva: Fallback a estructuras consistentes
+            setMetricas(data.metricas || null);
+            setResumen(data.resumen || []);
+            setDominio(data.dominio || 'Sentinel');
+            setRol(data.rol || null);
+            setTipo(data.tipo || null);
+            setPeriodo(data.periodo || null);
             setError(null);
 
         } catch (err) {
-            console.error('Error fetching metricas dominio:', err);
-            setError('No se pudieron cargar las métricas');
+            console.error('[SENTINEL ERROR] Fetching metricas:', err);
+            setError('Error de sincronización con la bóveda fiscal');
         } finally {
             setLoading(false);
         }

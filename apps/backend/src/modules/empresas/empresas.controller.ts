@@ -17,7 +17,21 @@ export class EmpresasController {
 
     @Post()
     async create(@Body() body: CrearEmpresaDto) {
-        return this.empresasService.create(body);
+        try {
+            return await this.empresasService.create(body);
+        } catch (error: any) {
+            // DEBUG: Devolver error completo
+            return {
+                _debug: true,
+                error: {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack,
+                    response: error.response,
+                    status: error.status
+                }
+            };
+        }
     }
 
     @Put(':id')
