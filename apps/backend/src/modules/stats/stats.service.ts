@@ -25,26 +25,26 @@ export class StatsService {
             if (!empresaResult.length) throw new BadRequestException('Empresa no encontrada');
             const { rfc: rfcEmpresa, razon_social, sector, regimen_fiscal } = empresaResult[0];
 
+            // 2. Resumen Consolidado (Ingresos Emitidos vs Gastos Recibidos)
+            const kpis = await this.db.all(sql`
+                SELECT 
+                    COUNT(*) as total_general,
+                    SUM(CASE WHEN emisor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN total ELSE 0 END) as ingresos_totales,
+                    SUM(CASE WHEN receptor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN total ELSE 0 END) as egresos_totales,
+                    COUNT(CASE WHEN emisor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN 1 END) as count_ingresos,
+                    COUNT(CASE WHEN receptor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN 1 END) as count_egresos
+                FROM cfdi_recibidos
+                WHERE empresa_id = ${empresaId}
+                AND strftime('%Y-%m', fecha) = ${mesActivo}
+                AND UPPER(estatus_fiscal) = 'VIGENTE'
+            `);
+
+            const counts = kpis[0] || { total_general: 0, ingresos_totales: 0, egresos_totales: 0, count_ingresos: 0, count_egresos: 0 };
+
+            // 2.1 Filtro específico para Alertas y Concentración (basado en rol)
             const filterClause = rol === 'emitidos'
                 ? sql`emisor_rfc = ${rfcEmpresa}`
                 : sql`receptor_rfc = ${rfcEmpresa}`;
-
-            // 2. Resumen del mes activo
-            const kpis = await this.db.all(sql`
-                SELECT 
-                    COUNT(*) as total,
-                    SUM(CASE WHEN tipo_comprobante = 'I' THEN total ELSE 0 END) as ingresos,
-                    SUM(CASE WHEN tipo_comprobante = 'E' THEN total ELSE 0 END) as egresos,
-                    COUNT(CASE WHEN tipo_comprobante = 'I' THEN 1 END) as count_ingresos,
-                    COUNT(CASE WHEN tipo_comprobante = 'E' THEN 1 END) as count_egresos
-                FROM cfdi_recibidos
-                WHERE empresa_id = ${empresaId}
-                AND ${filterClause}
-                AND strftime('%Y-%m', fecha) = ${mesActivo}
-                AND estado_sat != 'Cancelado'
-            `);
-
-            const counts = kpis[0] || { total: 0, ingresos: 0, egresos: 0, count_ingresos: 0, count_egresos: 0 };
 
             // 3. Alertas rápidas (Simplificadas para evitar errores de esquema)
             const riesgos = await this.db.all(sql`
@@ -55,7 +55,7 @@ export class StatsService {
                 WHERE empresa_id = ${empresaId}
                 AND ${filterClause}
                 AND strftime('%Y-%m', fecha) = ${mesActivo}
-                AND estado_sat != 'Cancelado'
+                AND UPPER(estatus_fiscal) = 'VIGENTE'
             `);
 
             const r = riesgos[0] || { ppd_detectados: 0, cfdi_33_extemporaneo: 0 };
@@ -73,7 +73,7 @@ export class StatsService {
                 WHERE empresa_id = ${empresaId}
                 AND ${filterClause}
                 AND strftime('%Y-%m', fecha) = ${mesActivo}
-                AND estado_sat != 'Cancelado'
+                AND UPPER(estatus_fiscal) = 'VIGENTE'
                 AND tipo_comprobante = 'I'
                 GROUP BY rfc, nombre
                 ORDER BY total DESC
@@ -89,9 +89,9 @@ export class StatsService {
                 },
                 kpis: {
                     cfdiDelMes: {
-                        total: Number(counts.total || 0),
-                        ingresos: Number(counts.ingresos || 0),
-                        egresos: Number(counts.egresos || 0),
+                        total: Number(counts.total_general || 0),
+                        ingresos: Number(counts.ingresos_totales || 0),
+                        egresos: Number(counts.egresos_totales || 0),
                         countIngresos: Number(counts.count_ingresos || 0),
                         countEgresos: Number(counts.count_egresos || 0)
                     },
@@ -169,7 +169,7 @@ export class StatsService {
                 WHERE empresa_id = ${empresaId}
                 AND ${filterClause}
                 AND strftime('%Y-%m', fecha) = ${mes}
-                AND estado_sat != 'Cancelado'
+                AND UPPER(estatus_fiscal) = 'VIGENTE'
                 AND tipo_comprobante = 'I'
             `);
 
@@ -222,19 +222,32 @@ export class StatsService {
                     SUM(CASE WHEN receptor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN total ELSE 0 END) as egresos
                 FROM cfdi_recibidos
                 WHERE empresa_id = ${empresaId}
-                AND estado_sat != 'Cancelado'
+                AND UPPER(estatus_fiscal) = 'VIGENTE'
                 GROUP BY mes_key
                 ORDER BY mes_key ASC
             `);
 
+            // 🆕 Garantizar 12 meses para el año actual
+            const currentYear = new Date().getFullYear();
+            const mesesDelAnio = Array.from({ length: 12 }, (_, i) => {
+                const mes = String(i + 1).padStart(2, '0');
+                return `${currentYear}-${mes}`;
+            });
+
+            const dataMap = new Map(historico.map((h: any) => [h.mes_key, h]));
+            const fullHistory = mesesDelAnio.map(mesKey => {
+                const h = dataMap.get(mesKey) as any;
+                return {
+                    mes: mesKey,
+                    ingresos: Number(h?.ingresos || 0),
+                    egresos: Number(h?.egresos || 0)
+                };
+            });
+
             return {
                 status: historico.length >= 2 ? "OK" : "INSUFICIENTE",
                 mesesDisponibles: historico.length,
-                data: historico.map(h => ({
-                    mes: h.mes_key,
-                    ingresos: Number(h.ingresos || 0),
-                    egresos: Number(h.egresos || 0)
-                }))
+                data: fullHistory
             };
         } catch (error) {
             throw new BadRequestException('Error en tendencia: ' + error.message);

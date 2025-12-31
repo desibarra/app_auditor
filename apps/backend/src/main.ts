@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
@@ -38,3 +39,19 @@ async function bootstrap() {
 }
 
 bootstrap();
+// Force restart for BancosModule loading - Cycle v3
+import { Controller, Get } from '@nestjs/common';
+
+@Controller('')
+export class HealthController {
+  @Get('health')
+  health() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      service: 'SaaS Fiscal PyMEs API',
+    };
+  }
+}
+
+// Ensure this controller is registered in the application module

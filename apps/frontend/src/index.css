@@ -6,64 +6,144 @@
 
 @layer base {
   :root {
-    --color-bg-app: #0B0E14;
-    /* Deep fiscal dark */
-    --color-bg-card: #151A23;
-    /* Panel background */
-    --color-border: #2A3241;
-    /* Subtle borders */
-    --color-text-primary: #F3F4F6;
-    --color-text-secondary: #9CA3AF;
-    --font-sans: 'Inter', sans-serif;
+    /* MODO CLARO - Paleta Forensic */
+    --color-bg-app: #f1f5f9;
+    --color-bg-card: #ffffff;
+    --color-border: #e2e8f0;
+    --color-text-main: #0f172a;
+    --color-text-muted: #475569;
+    --color-text-dim: #94a3b8;
+    --color-primary: #0f172a;
+    --color-primary-soft: #f1f5f9;
+    --color-success: #10b981;
+    --color-success-soft: #ecfdf5;
+    --color-warning: #f59e0b;
+    --color-error: #ef4444;
+
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
   }
 
+  .dark {
+    /* MODO OSCURO - Estética Premium OLED */
+    --color-bg-app: #05070a;
+    --color-bg-card: #0d1117;
+    --color-border: #1f2937;
+    --color-text-main: #f1f5f9;
+    --color-text-muted: #94a3b8;
+    --color-text-dim: #4b5563;
+    --color-primary: #3b82f6;
+    --color-primary-soft: #1e293b;
+    --color-success: #10b981;
+    --color-success-soft: #064e3b;
+    --color-warning: #f59e0b;
+    --color-error: #ef4444;
+  }
+
   * {
-    @apply border-gray-800;
+    border-color: var(--color-border);
   }
 
   body {
     background-color: var(--color-bg-app);
-    color: var(--color-text-primary);
+    color: var(--color-text-main);
     font-family: var(--font-sans);
-    @apply antialiased selection:bg-emerald-500/30 selection:text-emerald-200;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    @apply antialiased selection:bg-blue-500/30 selection:text-white;
   }
 }
 
 @layer components {
   .fiscal-card {
     background-color: var(--color-bg-card);
-    @apply border border-gray-800 rounded-lg shadow-lg relative overflow-hidden;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    @apply border border-slate-200 rounded-xl relative overflow-hidden transition-all duration-300;
   }
 
   .fiscal-card-hover {
-    @apply hover:border-gray-700 transition-all duration-300;
+    @apply hover:shadow-xl hover:shadow-slate-200/60 hover:border-slate-400 transform hover:-translate-y-1;
   }
 
   .btn-primary {
-    @apply bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-500/20 font-medium text-sm tracking-wide;
+    @apply bg-[#0f172a] text-white px-6 py-3 rounded-lg hover:bg-black hover:shadow-lg transition-all font-bold text-[11px] uppercase tracking-widest flex items-center justify-center gap-2;
+  }
+
+  .btn-success {
+    @apply bg-[#10b981] text-white px-6 py-3 rounded-lg hover:bg-emerald-600 hover:shadow-lg transition-all font-bold text-[11px] uppercase tracking-widest flex items-center justify-center gap-2;
   }
 
   .btn-secondary {
-    @apply bg-gray-800 text-gray-300 border border-gray-700 px-4 py-2 rounded-md hover:bg-gray-700 hover:text-white transition-all font-medium text-sm;
+    @apply bg-white text-slate-700 border border-slate-200 px-6 py-3 rounded-lg hover:bg-slate-50 hover:border-slate-400 transition-all font-bold text-[11px] uppercase tracking-widest flex items-center justify-center gap-2;
   }
 
+  .badge-success {
+    @apply px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center gap-1.5;
+  }
 
-  .badge-fiscal {
-    @apply px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border;
+  .badge-primary {
+    @apply px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-1.5;
+  }
+
+  /* Tipografía Forense */
+  .text-forensic-label {
+    @apply text-[10px] font-black text-slate-400 uppercase tracking-widest;
+  }
+
+  .text-forensic-value {
+    @apply font-mono font-bold text-slate-900 tracking-tight;
   }
 }
 
-/* Reglas de impresión para modal de informe */
-@media print {
+@layer utilities {
+  .bg-glass {
+    @apply bg-white/70 backdrop-blur-md;
+  }
 
-  /* Resetear estilos del body para impresión */
+  .border-glass {
+    @apply border-white/20;
+  }
+
+  /* DARK OVERRIDES FOR LEGACY TAILWIND CLASSES */
+  .dark .bg-white {
+    background-color: var(--color-bg-card) !important;
+  }
+
+  .dark .bg-slate-50 {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+  }
+
+  .dark .bg-slate-100 {
+    background-color: #1a202c !important;
+  }
+
+  .dark .text-slate-900 {
+    color: var(--color-text-main) !important;
+  }
+
+  .dark .text-slate-400,
+  .dark .text-slate-500 {
+    color: var(--color-text-muted) !important;
+  }
+
+  .dark .border-slate-100,
+  .dark .border-slate-200,
+  .dark .border-slate-50 {
+    border-color: var(--color-border) !important;
+  }
+
+  .dark .bg-slate-900,
+  .dark .bg-slate-800 {
+    background-color: var(--color-bg-card) !important;
+  }
+}
+
+/* Reglas de impresión */
+@media print {
   body {
     background: white !important;
     color: black !important;
   }
 
-  /* Ocultar el layout principal al imprimir */
   #root {
     background: white !important;
   }

@@ -17,6 +17,8 @@ interface CfdiDetalle {
     importeMxn: number;
     importeUsd?: number;
     status: string;
+    estatusFuente?: string;
+    lastCheckedAt?: string;
     complementos: string[];
 }
 
@@ -40,6 +42,7 @@ const ModalAuditoria1x1: React.FC<ModalAuditoria1x1Props> = ({
     const [error, setError] = useState<string | null>(null);
     const [uuidSeleccionado, setUuidSeleccionado] = useState<string | null>(null);
     const [cfdiEvidencias, setCfdiEvidencias] = useState<CfdiDetalle | null>(null);
+    const [syncingSat, setSyncingSat] = useState(false);
 
     // Filtros y paginación
     const [filtroRfc, setFiltroRfc] = useState('');
@@ -70,6 +73,32 @@ const ModalAuditoria1x1: React.FC<ModalAuditoria1x1Props> = ({
             setError(err.response?.data?.message || 'Error al cargar los CFDIs');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSyncSat = async () => {
+        if (!empresaId || !mes) return;
+
+        try {
+            setSyncingSat(true);
+            // El mes viene como YYYY-MM
+            const res = await axios.post('/api/cfdi/sincronizar-sat', {
+                empresaId,
+                periodo: mes
+            });
+
+            // Si la respuesta es exitosa (suponiendo que ya arreglé el backend para que devuelva 'resumen')
+            const resumen = res.data.resumen || res.data; // Compatibilidad temporal
+
+            alert(`✅ Sincronización SAT Completada.\n\nFacturas auditadas: ${resumen.procesados}\nCambios detectados: ${resumen.totalCambios || resumen.actualizados}`);
+
+            // Recargar la lista 1x1
+            await fetchCfdis();
+        } catch (e: any) {
+            console.error('Error Sync SAT 1x1:', e);
+            alert('Error al conectar con los servidores del SAT. Intente de nuevo.');
+        } finally {
+            setSyncingSat(false);
         }
     };
 
@@ -242,9 +271,26 @@ const ModalAuditoria1x1: React.FC<ModalAuditoria1x1Props> = ({
                                     <div className="text-[11px] text-gray-500 font-bold">BASE MXN: <span className="text-emerald-500 font-black">{formatearMoneda(totalMxn)}</span></div>
                                     {totalUsd > 0 && <div className="text-[11px] text-gray-500 font-bold">BASE USD: <span className="text-blue-500 font-black">{formatearMoneda(totalUsd, 'USD')}</span></div>}
                                 </div>
-                                <button onClick={exportarExcel} disabled={cfdisFiltrados.length === 0} className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed text-white text-xs font-black px-5 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/10">
-                                    <span>📥</span> EXPORTAR REPORTE
-                                </button>
+                                <div className="flex gap-2 w-full md:w-auto">
+                                    <button
+                                        onClick={handleSyncSat}
+                                        disabled={syncingSat || cfdis.length === 0}
+                                        className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed text-white text-[10px] font-black px-5 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/10"
+                                    >
+                                        {syncingSat ? (
+                                            <>
+                                                <span className="animate-spin text-xl">⏳</span> SINCRONIZANDO CON SAT...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>📡</span> VALIDAR ESTATUS (TIEMPO REAL)
+                                            </>
+                                        )}
+                                    </button>
+                                    <button onClick={exportarExcel} disabled={cfdisFiltrados.length === 0} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed text-white text-[10px] font-black px-5 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/10">
+                                        <span>📥</span> EXPORTAR REPORTE
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -318,6 +364,19 @@ const ModalAuditoria1x1: React.FC<ModalAuditoria1x1Props> = ({
                                                     <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${cfdi.status === 'VIGENTE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : cfdi.status === 'CANCELADO' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-gray-800 text-gray-400'}`}>
                                                         {cfdi.status}
                                                     </span>
+                                                    {cfdi.estatusFuente === 'SAT_REAL' && (
+                                                        <div className="flex flex-col gap-1 mt-1">
+                                                            <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest flex items-center justify-center gap-1">
+                                                                <span className="w-1 h-1 bg-indigo-400 rounded-full animate-pulse"></span>
+                                                                VALIDADO SAT
+                                                            </span>
+                                                            {cfdi.status === 'CANCELADO' && (
+                                                                <span className="bg-rose-600 text-white text-[7px] font-black px-2 py-0.5 rounded-sm animate-bounce">
+                                                                    CAMBIO RECIENTE
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-4 md:py-3 flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-center md:table-cell bg-white/[0.02] md:bg-transparent">
                                                     <div className="flex items-center justify-center gap-2">

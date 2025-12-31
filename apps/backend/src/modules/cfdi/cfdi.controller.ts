@@ -26,12 +26,14 @@ export class CfdiController {
     @UseInterceptors(FileInterceptor('file'))
     async importarXml(
         @UploadedFile() file: Express.Multer.File,
-        @Query('empresaId') empresaId?: string,
+        @Query('empresaId') empresaIdQuery?: string,
+        @Body('empresaId') empresaIdBody?: string,
     ) {
+        const empresaId = empresaIdQuery || empresaIdBody;
         try {
             console.log('[CFDI Upload] Iniciando importación de XML...');
             console.log('[CFDI Upload] Archivo recibido:', file ? file.originalname : 'NO FILE');
-            console.log('[CFDI Upload] EmpresaId param:', empresaId);
+            console.log('[CFDI Upload] EmpresaId (Query|Body):', empresaId);
 
             if (!file) {
                 console.error('[CFDI Upload] ERROR: No se proporcionó ningún archivo');
@@ -124,11 +126,11 @@ export class CfdiController {
     }
 
     @Post('sincronizar-sat')
-    async sincronizarSat(@Body() body: { empresaId: string }) {
+    async sincronizarSat(@Body() body: { empresaId: string, periodo?: string }) {
         if (!body.empresaId) {
             throw new BadRequestException('Se requiere empresaId');
         }
-        return await this.cfdiService.sincronizarEmpresa(body.empresaId);
+        return await this.cfdiService.sincronizarEmpresa(body.empresaId, body.periodo);
     }
 
     /**
@@ -400,5 +402,15 @@ export class CfdiController {
         }
 
         return await this.cfdiService.getComplementosPagoDetalle(empresaId, periodo, estadoComplemento, origen);
+    }
+
+    /**
+     * GET /api/cfdi/historial-estatus
+     * Retorna bitácora de cambios de estatus SAT
+     */
+    @Get('historial-estatus')
+    async getHistorialEstatus(@Query('empresaId') empresaId: string) {
+        if (!empresaId) throw new BadRequestException('Se requiere empresaId');
+        return await this.cfdiService.getHistorialCambiosEstatus(empresaId);
     }
 }

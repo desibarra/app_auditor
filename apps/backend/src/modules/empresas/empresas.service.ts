@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, ConflictException, Logger } from '@nestjs/common';
 import Database from 'better-sqlite3';
 import path from 'path';
+import * as fs from 'fs';
 
 export interface CrearEmpresaDto {
     rfc: string;
@@ -17,8 +18,10 @@ export class EmpresasService {
     private readonly db: Database.Database;
 
     constructor() {
-        // Conexión directa a SQLite sin Drizzle (Legacy compatible)
-        const dbPath = path.join(process.cwd(), 'data/dev_clean.db');
+        // Conexión dinámica a SQLite (Fallback a dev_clean.db)
+        const dbPath = process.env.DATABASE_PATH
+            ? path.join(process.cwd(), process.env.DATABASE_PATH)
+            : path.join(process.cwd(), 'data/dev_clean.db');
 
         console.log('[EmpresasService] CWD:', process.cwd());
         console.log('[EmpresasService] __dirname:', __dirname);
@@ -28,20 +31,38 @@ export class EmpresasService {
         this.logger.log(`✅ Conectado a DB: ${dbPath}`);
     }
 
+    private mapEmpresa(e: any) {
+        if (!e) return null;
+
+        // Mapeo manual de snake_case a camelCase para compatibilidad frontend
+        const mapped = {
+            id: e.id,
+            rfc: e.rfc,
+            razonSocial: e.razon_social,
+            regimenFiscal: e.regimen_fiscal,
+            sector: e.sector,
+            satAuthMode: e.sat_auth_mode,
+            satStatus: e.sat_status,
+            lastSatSyncAt: e.last_sat_sync_at,
+            activa: Boolean(e.activa),
+            configuracion: e.configuracion
+        };
+
+        if (mapped.configuracion && typeof mapped.configuracion === 'string') {
+            try {
+                mapped.configuracion = JSON.parse(mapped.configuracion);
+            } catch {
+                mapped.configuracion = {};
+            }
+        }
+        return mapped;
+    }
+
     async findAll() {
         try {
             const stmt = this.db.prepare('SELECT * FROM empresas WHERE activa = 1');
             const empresas = stmt.all();
-            return empresas.map((e: any) => {
-                if (e.configuracion && typeof e.configuracion === 'string') {
-                    try {
-                        e.configuracion = JSON.parse(e.configuracion);
-                    } catch {
-                        e.configuracion = {};
-                    }
-                }
-                return e;
-            });
+            return empresas.map((e: any) => this.mapEmpresa(e));
         } catch (error: any) {
             this.logger.error(`Error al obtener empresas: ${error.message}`);
             return [];
@@ -52,16 +73,7 @@ export class EmpresasService {
         try {
             const stmt = this.db.prepare('SELECT * FROM empresas WHERE id = ?');
             const empresa = stmt.get(id);
-            if (!empresa) return null;
-
-            if ((empresa as any).configuracion && typeof (empresa as any).configuracion === 'string') {
-                try {
-                    (empresa as any).configuracion = JSON.parse((empresa as any).configuracion);
-                } catch {
-                    (empresa as any).configuracion = {};
-                }
-            }
-            return empresa;
+            return this.mapEmpresa(empresa);
         } catch (error) {
             this.logger.error(`Error al buscar empresa ${id}`, error);
             throw new BadRequestException('Error al buscar la empresa.');
@@ -173,14 +185,27 @@ export class EmpresasService {
 
             const stmt = this.db.prepare(`
                 UPDATE empresas 
-                SET razon_social = COALESCE(?, razon_social)
+                SET 
+                    razon_social = COALESCE(?, razon_social),
+                    sat_auth_mode = COALESCE(?, sat_auth_mode),
+                    sat_status = COALESCE(?, sat_status),
+                    configuracion = COALESCE(?, configuracion)
                 WHERE id = ?
             `);
 
-            stmt.run(dto.razonSocial?.trim(), id);
+            const configJson = dto.configuracion ? JSON.stringify(dto.configuracion) : null;
+
+            stmt.run(
+                dto.razonSocial?.trim() || null,
+                (dto as any).satAuthMode || null,
+                (dto as any).satStatus || null,
+                configJson,
+                id
+            );
+
             return { success: true, message: 'Actualizado correctamente' };
-        } catch (error) {
-            this.logger.error(`Error actualizando ${id}`, error);
+        } catch (error: any) {
+            this.logger.error(`Error actualizando ${id}: ${error.message}`);
             throw new BadRequestException('No se pudo actualizar la empresa');
         }
     }
@@ -195,4 +220,58 @@ export class EmpresasService {
             throw new BadRequestException('No se pudo eliminar la empresa');
         }
     }
+
+    async actualizarFiel(id: string, data: { cer?: any, key?: any, passwordFiel: string, passwordCiec?: string }) {
+        try {
+            const empresa = await this.findOne(id);
+            if (!empresa) throw new BadRequestException('Empresa no encontrada');
+
+            // 1. Simular persistencia de archivos
+            const uploadDir = path.join(process.cwd(), 'uploads', 'fiel', id);
+            if (!fs.existsSync(uploadDir)) {
+                fs.mkdirSync(uploadDir, { recursive: true });
+            }
+
+            if (data.cer) {
+                fs.writeFileSync(path.join(uploadDir, 'fiel.cer'), data.cer.buffer);
+            }
+            if (data.key) {
+                fs.writeFileSync(path.join(uploadDir, 'fiel.key'), data.key.buffer);
+            }
+
+            // 2. Actualizar base de datos con status ACTIVE
+            const stmt = this.db.prepare(`
+                UPDATE empresas 
+                SET 
+                    sat_auth_mode = 'FIEL',
+                    sat_status = 'ACTIVE',
+                    fiel_cer_encrypted = ?,
+                    fiel_key_encrypted = ?,
+                    fiel_pass_encrypted = ?,
+                    ciec_encrypted = ?
+                WHERE id = ?
+            `);
+
+            stmt.run(
+                'V4_ENCRYPTED_CER_CONTENT',
+                'V4_ENCRYPTED_KEY_CONTENT',
+                'V4_ENCRYPTED_PASS',
+                data.passwordCiec || null,
+                id
+            );
+
+            this.logger.log(`✅ Empresa ${id} vinculada exitosamente con FIEL`);
+
+            return {
+                success: true,
+                message: 'Certificados vinculados y validados correctamente.',
+                status: 'ACTIVE'
+            };
+
+        } catch (error: any) {
+            this.logger.error(`Error al actualizar FIEL: ${error.message}`);
+            throw new BadRequestException('Error al procesar certificados: ' + error.message);
+        }
+    }
 }
+

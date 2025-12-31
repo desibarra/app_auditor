@@ -179,7 +179,7 @@ function BotonCargarXml({ empresaId, onSuccess }: BotonCargarXmlProps) {
     const errores = resultados.filter(r => !r.exito).length;
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-4 animate-in fade-in duration-300">
             <input
                 ref={fileInputRef}
                 type="file"
@@ -192,104 +192,92 @@ function BotonCargarXml({ empresaId, onSuccess }: BotonCargarXmlProps) {
             <button
                 onClick={handleButtonClick}
                 disabled={uploading}
-                className={`
-                    px-4 py-2 rounded-lg font-medium transition-colors
-                    ${uploading
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }
-                `}
+                className={`btn-primary shadow-indigo-100 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
                 {uploading ? (
-                    <>
-                        <span className="inline-block animate-spin mr-2">⏳</span>
-                        Cargando {progreso.actual} de {progreso.total}...
-                    </>
+                    <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span className="uppercase tracking-widest text-[10px]">Cargando {progreso.actual}/{progreso.total}</span>
+                    </div>
                 ) : (
-                    <>
-                        📄 Cargar XML (Múltiples)
-                    </>
+                    <div className="flex items-center gap-2">
+                        <span className="text-lg">📁</span>
+                        <span className="uppercase tracking-widest text-[10px] font-black">Importar CFDI 4.0</span>
+                    </div>
                 )}
             </button>
 
             {/* Barra de Progreso */}
             {uploading && (
-                <div className="space-y-2">
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                         <div
-                            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                            className="bg-indigo-600 h-full rounded-full transition-all duration-700 ease-in-out"
                             style={{ width: `${(progreso.actual / progreso.total) * 100}%` }}
                         ></div>
                     </div>
-                    <p className="text-sm text-gray-600 text-center">
-                        Procesando archivo {progreso.actual} de {progreso.total}
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center">
+                        Analizando paquete forense: {progreso.actual} de {progreso.total}
                     </p>
                 </div>
             )}
 
             {/* Resumen de Resultados */}
             {mostrarResumen && (
-                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                    <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-semibold text-gray-900">
-                            Resumen de Importación
+                <div className="border border-slate-200 rounded-2xl p-6 bg-white shadow-xl shadow-slate-200/40 animate-in slide-in-from-top-2 duration-500">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <span className="w-2 h-2 bg-indigo-400 rounded-full"></span>
+                            Reporte de Procesamiento
                         </h3>
                         <button
                             onClick={cerrarResumen}
-                            className="text-gray-400 hover:text-gray-600"
+                            className="bg-slate-50 hover:bg-slate-100 text-slate-400 p-1.5 rounded-lg transition-colors"
                         >
-                            ✕
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                     </div>
 
                     {/* Estadísticas */}
-                    <div className="grid grid-cols-3 gap-3 mb-4">
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                            <div className="text-2xl font-bold text-green-700">{exitosos}</div>
-                            <div className="text-xs text-green-600">Importados</div>
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                        <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 text-center">
+                            <div className="text-xl font-black text-emerald-600 tracking-tighter">{exitosos}</div>
+                            <div className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Nuevos</div>
                         </div>
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
-                            <div className="text-2xl font-bold text-yellow-700">{duplicados}</div>
-                            <div className="text-xs text-yellow-600">Duplicados</div>
+                        <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-3 text-center">
+                            <div className="text-xl font-black text-amber-600 tracking-tighter">{duplicados}</div>
+                            <div className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Omitidos</div>
                         </div>
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-                            <div className="text-2xl font-bold text-red-700">{errores}</div>
-                            <div className="text-xs text-red-600">Errores</div>
+                        <div className="bg-rose-50/50 border border-rose-100 rounded-xl p-3 text-center">
+                            <div className="text-xl font-black text-rose-600 tracking-tighter">{errores}</div>
+                            <div className="text-[9px] font-black text-rose-500 uppercase tracking-widest">Errores</div>
                         </div>
                     </div>
 
                     {/* Lista de Resultados */}
-                    <div className="max-h-60 overflow-y-auto space-y-2">
+                    <div className="max-h-60 overflow-y-auto space-y-2 pr-2 scrollbar-thin">
                         {resultados.map((resultado, index) => (
                             <div
                                 key={index}
                                 className={`
-                                    p-2 rounded text-sm
+                                    p-3 rounded-xl text-xs border transition-all
                                     ${resultado.exito && !resultado.duplicado
-                                        ? 'bg-green-50 border border-green-200'
+                                        ? 'bg-emerald-50/30 border-emerald-50 text-emerald-800'
                                         : resultado.duplicado
-                                            ? 'bg-yellow-50 border border-yellow-200'
-                                            : 'bg-red-50 border border-red-200'
+                                            ? 'bg-amber-50/30 border-amber-50 text-amber-800'
+                                            : 'bg-rose-50/30 border-rose-50 text-rose-800'
                                     }
                                 `}
                             >
-                                <div className="flex items-start gap-2">
-                                    <span className="text-lg">
-                                        {resultado.exito && !resultado.duplicado ? '✓' : resultado.duplicado ? '⚠' : '✗'}
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-bold opacity-75">
+                                        {resultado.exito && !resultado.duplicado ? '✓' : resultado.duplicado ? '↶' : '⚠'}
                                     </span>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-medium truncate" title={resultado.archivo}>
+                                        <div className="font-bold truncate text-[11px] uppercase tracking-tight" title={resultado.archivo}>
                                             {resultado.archivo}
                                         </div>
-                                        <div className={`
-                                            text-xs
-                                            ${resultado.exito && !resultado.duplicado
-                                                ? 'text-green-700'
-                                                : resultado.duplicado
-                                                    ? 'text-yellow-700'
-                                                    : 'text-red-700'
-                                            }
-                                        `}>
+                                        <div className="text-[9px] opacity-60 font-medium">
                                             {resultado.mensaje}
                                         </div>
                                     </div>
@@ -299,23 +287,9 @@ function BotonCargarXml({ empresaId, onSuccess }: BotonCargarXmlProps) {
                     </div>
 
                     {/* Mensaje Final */}
-                    <div className="mt-4 pt-3 border-t border-gray-200">
-                        <p className="text-sm text-gray-700 text-center">
-                            {exitosos > 0 && (
-                                <span className="text-green-600 font-medium">
-                                    ✓ {exitosos} importado{exitosos !== 1 ? 's' : ''} con éxito
-                                </span>
-                            )}
-                            {duplicados > 0 && (
-                                <span className="text-yellow-600 font-medium ml-2">
-                                    ⚠ {duplicados} duplicado{duplicados !== 1 ? 's' : ''} omitido{duplicados !== 1 ? 's' : ''}
-                                </span>
-                            )}
-                            {errores > 0 && (
-                                <span className="text-red-600 font-medium ml-2">
-                                    ✗ {errores} error{errores !== 1 ? 'es' : ''}
-                                </span>
-                            )}
+                    <div className="mt-6 pt-4 border-t border-slate-50">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-center text-slate-400 italic">
+                            Auditoría de consistencia completada
                         </p>
                     </div>
                 </div>

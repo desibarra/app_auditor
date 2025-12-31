@@ -28,6 +28,9 @@ export interface ResumenMes {
     total: number;
     importe_total: number;
     clientes: number;
+    count_vigentes: number;
+    count_cancelados: number;
+    count_pendientes: number;
 }
 
 export interface FiltrosDominio {

@@ -1,8 +1,8 @@
-import { Injectable, Logger, InternalServerErrorException, Optional } from '@nestjs/common';
-import { S3Service } from '../../s3/s3.service'; // Ajusta la ruta si es necesario
-import { Express } from 'express'; // Para el tipo Multer
+import { Injectable, Logger, InternalServerErrorException, Optional, Inject } from '@nestjs/common';
+import { S3Service } from '../../s3/s3.service';
+import { Express } from 'express';
 import { analysisSnapshots } from '../../database/schemas/analysis_snapshots.schema';
-import { DatabaseService } from '../../database/database.service';
+import { eq, desc } from 'drizzle-orm';
 import { setTimeout } from 'timers/promises';
 
 @Injectable()
@@ -10,9 +10,9 @@ export class ExpedientesService {
   private readonly logger = new Logger(ExpedientesService.name);
 
   constructor(
-    private readonly databaseService: DatabaseService,
+    @Inject('DRIZZLE_CLIENT') private readonly db: any,
     @Optional() private readonly s3Service?: S3Service,
-  ) {}
+  ) { }
 
   async uploadFile(file: Express.Multer.File, s3Key: string): Promise<string> {
     if (this.s3Service) {
@@ -20,10 +20,31 @@ export class ExpedientesService {
     } else {
       this.logger.warn('S3Service is not available. File upload skipped.');
     }
+    return;
+  }
 
-    // ... lógica para guardar en ArchivoExpediente ...
+  async findAllByEmpresa(empresaId: string) {
+    try {
+      const snapshots = await this.db
+        .select()
+        .from(analysisSnapshots)
+        .where(eq(analysisSnapshots.empresaId, empresaId))
+        .orderBy(desc(analysisSnapshots.timestampFinalizacion));
 
-    return; // ← ahora sí existe
+      // Mapear a la interfaz que espera el frontend
+      return snapshots.map(s => ({
+        id: s.id,
+        folio: s.analysisEventId.substring(0, 8).toUpperCase(),
+        nombre: `CIERRE MENSUAL ${s.periodo}`,
+        montoTotalIva: 0, // Placeholder
+        cantidadCfdis: 0, // Placeholder
+        estado: 'COMPLETO',
+        fechaCreacion: new Date(s.timestampFinalizacion).toISOString()
+      }));
+    } catch (error) {
+      this.logger.error(`Error fetching expedientes for ${empresaId}`, error.stack);
+      return [];
+    }
   }
 
   async analyzePeriod(empresaId: string, periodo: string): Promise<void> {
@@ -58,19 +79,8 @@ export class ExpedientesService {
     }
   }
 
-  private async createSnapshot(snapshot: {
-    empresaId: string;
-    periodo: string;
-    scoreTotal: number;
-    penalizaciones: string;
-    kpis: string;
-    timestampFinalizacion: number;
-    versionMotorAnalisis: string;
-    analysisEventId: string;
-  }): Promise<void> {
-    const insertBuilder = await this.databaseService.insert(analysisSnapshots);
-    await insertBuilder.values(snapshot);
-
+  private async createSnapshot(snapshot: any): Promise<void> {
+    await this.db.insert(analysisSnapshots).values(snapshot);
     this.logger.log(`Snapshot created for empresaId: ${snapshot.empresaId}, periodo: ${snapshot.periodo}`);
   }
 
@@ -80,14 +90,12 @@ export class ExpedientesService {
       scoreTotal: 85,
       penalizaciones: [{ tipo: 'delay', valor: 5 }],
       kpis: { indicador1: 100, indicador2: 200 },
-      eventId: 'event-12345',
+      eventId: `EV-${Date.now().toString().substring(8)}`,
     };
   }
 
   private emitEvent(eventType: string, payload: Record<string, any>): void {
     const timestamp = new Date().toISOString();
     this.logger.log(`Event: ${eventType}, Payload: ${JSON.stringify({ ...payload, timestamp })}`);
-
-    // Optionally, save to a database or external system
   }
 }

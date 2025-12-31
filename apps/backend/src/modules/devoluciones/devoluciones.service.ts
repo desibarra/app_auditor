@@ -87,7 +87,7 @@ export class DevolucionesService {
             SELECT uuid FROM cfdi_recibidos 
             WHERE empresa_id = ${empresaId} 
             AND strftime('%Y-%m', fecha) = ${periodo}
-            AND estado_sat != 'Cancelado'
+            AND estatus_fiscal != 'CANCELADO'
             AND tipo_comprobante = 'I'
         `);
         const uuidsCfdiList = cfdis.map(c => c.uuid);
@@ -139,7 +139,7 @@ export class DevolucionesService {
             SELECT COUNT(*) as count FROM cfdi_recibidos 
             WHERE empresa_id = ${empresaId} 
             AND strftime('%Y-%m', fecha) = ${periodo}
-            AND estado_sat != 'Cancelado'
+            AND estatus_fiscal != 'CANCELADO'
             AND tipo_comprobante = 'I'
         `);
 

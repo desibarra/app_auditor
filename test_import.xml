@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4" Version="4.0" Serie="A" Folio="1" Fecha="2025-12-01T10:00:00" Sello="DUMMY" NoCertificado="DUMMY" Certificado="DUMMY" SubTotal="100.00" Moneda="MXN" Total="116.00" TipoDeComprobante="I" Exportacion="01" MetodoPago="PUE" LugarExpedicion="01234">
+    <cfdi:Emisor Rfc="TVA060209QL6" Nombre="TRASLADOS DE VANGUARDIA SA DE CV" RegimenFiscal="601"/>
+    <cfdi:Receptor Rfc="XAXX010101000" Nombre="PUBLICO EN GENERAL" DomicilioFiscalReceptor="01234" RegimenFiscalReceptor="605" UsoCFDI="G03"/>
+    <cfdi:Conceptos>
+        <cfdi:Concepto ClaveProdServ="01010101" NoIdentificacion="1" Cantidad="1" ClaveUnidad="ACT" Unidad="ACTIVIDAD" Descripcion="SERVICIO" ValorUnitario="100.00" Importe="100.00" ObjetoImp="02">
+            <cfdi:Impuestos>
+                <cfdi:Traslados>
+                    <cfdi:Traslado Base="100.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="16.00"/>
+                </cfdi:Traslados>
+            </cfdi:Impuestos>
+        </cfdi:Concepto>
+    </cfdi:Conceptos>
+    <cfdi:Impuestos TotalImpuestosTrasladados="16.00">
+        <cfdi:Traslados>
+            <cfdi:Traslado Base="100.00" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="16.00"/>
+        </cfdi:Traslados>
+    </cfdi:Impuestos>
+    <cfdi:Complemento>
+        <tfd:TimbreFiscalDigital xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital" Version="1.1" UUID="D28A2534-1F2A-4C2E-8E5A-6FBC15392D4A" FechaTimbrado="2025-12-01T10:05:00" RfcProvCertif="DUMMY" SelloCFD="DUMMY" NoCertificadoSAT="DUMMY" SelloSAT="DUMMY"/>
+    </cfdi:Complemento>
+</cfdi:Comprobante>

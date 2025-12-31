@@ -55,118 +55,120 @@ function ModalRevisionXml({ archivos, onConfirmar, onCancelar }: ModalRevisionXm
     const archivosConError = archivosActuales.filter(a => a.error);
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-6 animate-in fade-in duration-300">
+            <div className="bg-white rounded-3xl w-full max-w-6xl max-h-[90vh] flex flex-col shadow-2xl shadow-indigo-500/10 border border-slate-200 overflow-hidden">
                 {/* Header */}
-                <div className="p-6 border-b border-gray-200">
+                <div className="p-8 border-b border-slate-100 bg-white">
                     <div className="flex justify-between items-start">
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-900">
-                                Revisión de Archivos XML
+                            <h2 className="text-3xl font-black text-slate-800 tracking-tight">
+                                Revisión Pre-Auditoría
                             </h2>
-                            <p className="text-sm text-gray-600 mt-1">
-                                Revisa los archivos antes de importarlos. Puedes eliminar los que no desees.
+                            <p className="text-xs text-slate-500 mt-2 font-medium">
+                                Análisis forense preliminar de los documentos seleccionados.
                             </p>
                         </div>
                         <button
                             onClick={onCancelar}
-                            className="text-gray-400 hover:text-gray-600 text-2xl"
+                            className="bg-slate-50 hover:bg-slate-100 text-slate-400 p-2 rounded-xl transition-all"
                         >
-                            ✕
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                     </div>
 
                     {/* Estadísticas */}
-                    <div className="grid grid-cols-3 gap-4 mt-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                            <div className="text-2xl font-bold text-blue-700">{archivosActuales.length}</div>
-                            <div className="text-xs text-blue-600">Total Seleccionados</div>
+                    <div className="grid grid-cols-3 gap-6 mt-8">
+                        <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 flex flex-col items-center">
+                            <div className="text-2xl font-black text-indigo-600 tracking-tighter">{archivosActuales.length}</div>
+                            <div className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-1">Paquete Total</div>
                         </div>
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                            <div className="text-2xl font-bold text-green-700">{archivosValidos.length}</div>
-                            <div className="text-xs text-green-600">Válidos</div>
+                        <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 flex flex-col items-center">
+                            <div className="text-2xl font-black text-emerald-600 tracking-tighter">{archivosValidos.length}</div>
+                            <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mt-1">Sanos/Válidos</div>
                         </div>
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                            <div className="text-2xl font-bold text-red-700">{archivosConError.length}</div>
-                            <div className="text-xs text-red-600">Con Errores</div>
+                        <div className="bg-rose-50/50 border border-rose-100 rounded-2xl p-4 flex flex-col items-center">
+                            <div className="text-2xl font-black text-rose-600 tracking-tighter">{archivosConError.length}</div>
+                            <div className="text-[10px] font-black text-rose-500 uppercase tracking-widest mt-1">Con Riesgo/Error</div>
                         </div>
                     </div>
                 </div>
 
                 {/* Tabla de Archivos */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-8 bg-slate-50/30">
                     {archivosActuales.length === 0 ? (
-                        <div className="text-center py-12">
-                            <p className="text-gray-500">No hay archivos para revisar</p>
+                        <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+                            <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em]">No hay documentos para procesar</p>
                         </div>
                     ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             {archivosActuales.map((archivo, index) => (
                                 <div
                                     key={index}
                                     className={`
-                                        border rounded-lg overflow-hidden transition-all
+                                        rounded-2xl border transition-all duration-300
                                         ${archivo.error
-                                            ? 'border-red-300 bg-red-50'
-                                            : 'border-gray-200 bg-white hover:border-blue-300'
+                                            ? 'border-rose-200 bg-rose-50/30'
+                                            : 'border-slate-100 bg-white hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-500/5'
                                         }
                                     `}
                                 >
                                     {/* Fila Principal */}
-                                    <div className="p-4">
-                                        <div className="flex items-center gap-4">
+                                    <div className="p-5">
+                                        <div className="flex items-center gap-6">
                                             {/* Número */}
-                                            <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
-                                                {index + 1}
+                                            <div className="flex-shrink-0 w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-xs font-black text-slate-400 border border-slate-100">
+                                                {String(index + 1).padStart(2, '0')}
                                             </div>
 
                                             {/* Información Principal */}
-                                            <div className="flex-1 grid grid-cols-5 gap-4 items-center">
+                                            <div className="flex-1 grid grid-cols-5 gap-6 items-center">
                                                 {/* Archivo */}
                                                 <div className="col-span-1">
-                                                    <div className="text-xs text-gray-500">Archivo</div>
-                                                    <div className="text-sm font-medium text-gray-900 truncate" title={archivo.archivo}>
+                                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Archivo</div>
+                                                    <div className="text-[11px] font-bold text-slate-700 truncate font-mono bg-slate-50 px-2 py-0.5 rounded" title={archivo.archivo}>
                                                         {archivo.archivo}
                                                     </div>
                                                 </div>
 
                                                 {/* Emisor */}
                                                 <div className="col-span-1">
-                                                    <div className="text-xs text-gray-500">Emisor</div>
-                                                    <div className="text-sm text-gray-900 truncate" title={archivo.emisorNombre}>
+                                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Emisor/RFC</div>
+                                                    <div className="text-[11px] font-bold text-slate-800 truncate" title={archivo.emisorNombre}>
                                                         {archivo.emisorNombre || 'N/A'}
                                                     </div>
-                                                    <div className="text-xs text-gray-500 font-mono">
+                                                    <div className="text-[10px] text-indigo-500 font-black tracking-tight mt-0.5">
                                                         {archivo.emisorRfc || 'N/A'}
                                                     </div>
                                                 </div>
 
                                                 {/* Receptor */}
                                                 <div className="col-span-1">
-                                                    <div className="text-xs text-gray-500">Receptor</div>
-                                                    <div className="text-sm text-gray-900 truncate" title={archivo.receptorNombre}>
+                                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Receptor/RFC</div>
+                                                    <div className="text-[11px] font-bold text-slate-800 truncate" title={archivo.receptorNombre}>
                                                         {archivo.receptorNombre || 'N/A'}
                                                     </div>
-                                                    <div className="text-xs text-gray-500 font-mono">
+                                                    <div className="text-[10px] text-slate-500 font-black tracking-tight mt-0.5">
                                                         {archivo.receptorRfc || 'N/A'}
                                                     </div>
                                                 </div>
 
                                                 {/* Tipo y Fecha */}
                                                 <div className="col-span-1">
-                                                    <div className="text-xs text-gray-500">Tipo / Fecha</div>
-                                                    <div className="text-sm text-gray-900">
-                                                        {getTipoComprobanteLabel(archivo.tipoComprobante)}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500">
-                                                        {formatearFecha(archivo.fecha)}
+                                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Metadatos</div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-black px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded">
+                                                            {getTipoComprobanteLabel(archivo.tipoComprobante)}
+                                                        </span>
+                                                        <span className="text-[10px] font-bold text-slate-600">
+                                                            {formatearFecha(archivo.fecha)}
+                                                        </span>
                                                     </div>
                                                 </div>
 
                                                 {/* Total */}
                                                 <div className="col-span-1 text-right">
-                                                    <div className="text-xs text-gray-500">Total</div>
-                                                    <div className="text-lg font-bold text-gray-900">
+                                                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Cuantía</div>
+                                                    <div className="text-sm font-black text-slate-900 tracking-tighter">
                                                         {formatearMoneda(archivo.total, archivo.moneda)}
                                                     </div>
                                                 </div>
@@ -177,7 +179,7 @@ function ModalRevisionXml({ archivos, onConfirmar, onCancelar }: ModalRevisionXm
                                                 {!archivo.error && (
                                                     <button
                                                         onClick={() => toggleExpansion(archivo.archivo)}
-                                                        className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        className="w-10 h-10 flex items-center justify-center text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
                                                         title="Ver detalles"
                                                     >
                                                         {archivoExpandido === archivo.archivo ? '▼' : '▶'}
@@ -185,7 +187,7 @@ function ModalRevisionXml({ archivos, onConfirmar, onCancelar }: ModalRevisionXm
                                                 )}
                                                 <button
                                                     onClick={() => eliminarArchivo(archivo.archivo)}
-                                                    className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    className="w-10 h-10 flex items-center justify-center text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                                                     title="Eliminar"
                                                 >
                                                     🗑️
@@ -193,14 +195,13 @@ function ModalRevisionXml({ archivos, onConfirmar, onCancelar }: ModalRevisionXm
                                             </div>
                                         </div>
 
-                                        {/* Error */}
+                                        {/* Error Case */}
                                         {archivo.error && (
-                                            <div className="mt-3 p-3 bg-red-100 border border-red-200 rounded-lg">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-red-600">⚠</span>
-                                                    <span className="text-sm text-red-700 font-medium">
-                                                        {archivo.error}
-                                                    </span>
+                                            <div className="mt-4 p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3">
+                                                <span className="text-lg">🚫</span>
+                                                <div>
+                                                    <div className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Atención: Anomalía técnica</div>
+                                                    <div className="text-[11px] text-rose-700 font-bold">{archivo.error}</div>
                                                 </div>
                                             </div>
                                         )}
@@ -208,50 +209,46 @@ function ModalRevisionXml({ archivos, onConfirmar, onCancelar }: ModalRevisionXm
 
                                     {/* Detalles Expandidos */}
                                     {archivoExpandido === archivo.archivo && !archivo.error && (
-                                        <div className="border-t border-gray-200 bg-gray-50 p-4">
-                                            <div className="grid grid-cols-2 gap-6">
+                                        <div className="border-t border-slate-100 bg-slate-50/50 p-6 animate-in slide-in-from-top-2 duration-300">
+                                            <div className="grid grid-cols-2 gap-8">
                                                 {/* Conceptos */}
                                                 <div>
-                                                    <h4 className="font-semibold text-gray-900 mb-2">
-                                                        Conceptos ({archivo.conceptos?.length || 0})
+                                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex justify-between">
+                                                        Conceptos <span>{archivo.conceptos?.length || 0}</span>
                                                     </h4>
                                                     {archivo.conceptos && archivo.conceptos.length > 0 ? (
                                                         <div className="space-y-2">
                                                             {archivo.conceptos.map((concepto, idx) => (
-                                                                <div key={idx} className="bg-white p-2 rounded border border-gray-200">
-                                                                    <div className="text-sm font-medium text-gray-900 truncate">
+                                                                <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                                    <div className="text-[11px] font-bold text-slate-800 truncate" title={concepto.descripcion}>
                                                                         {concepto.descripcion}
                                                                     </div>
-                                                                    <div className="text-xs text-gray-600 mt-1">
-                                                                        {concepto.cantidad} × {formatearMoneda(concepto.valorUnitario)} = {formatearMoneda(concepto.importe)}
+                                                                    <div className="text-[10px] text-slate-500 font-medium mt-1 flex justify-between font-mono">
+                                                                        <span>{concepto.cantidad} × {formatearMoneda(concepto.valorUnitario)}</span>
+                                                                        <span className="font-bold text-indigo-600">{formatearMoneda(concepto.importe)}</span>
                                                                     </div>
                                                                 </div>
                                                             ))}
-                                                            {(archivo.conceptos.length > 5) && (
-                                                                <div className="text-xs text-gray-500 italic">
-                                                                    ... y {archivo.conceptos.length - 5} conceptos más
-                                                                </div>
-                                                            )}
                                                         </div>
                                                     ) : (
-                                                        <p className="text-sm text-gray-500 italic">Sin conceptos</p>
+                                                        <p className="text-[10px] text-slate-400 italic">No se detectaron conceptos base</p>
                                                     )}
                                                 </div>
 
                                                 {/* Impuestos */}
                                                 <div>
-                                                    <h4 className="font-semibold text-gray-900 mb-2">
-                                                        Impuestos ({archivo.impuestos?.length || 0})
+                                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex justify-between">
+                                                        Gravámenes <span>{archivo.impuestos?.length || 0}</span>
                                                     </h4>
                                                     {archivo.impuestos && archivo.impuestos.length > 0 ? (
                                                         <div className="space-y-2">
                                                             {archivo.impuestos.map((impuesto, idx) => (
-                                                                <div key={idx} className="bg-white p-2 rounded border border-gray-200">
+                                                                <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
                                                                     <div className="flex justify-between items-center">
-                                                                        <span className="text-sm font-medium text-gray-900">
+                                                                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-tighter">
                                                                             {impuesto.tipo} - {impuesto.impuesto}
                                                                         </span>
-                                                                        <span className="text-sm font-bold text-gray-900">
+                                                                        <span className="text-[11px] font-black text-slate-900 font-mono">
                                                                             {formatearMoneda(impuesto.importe)}
                                                                         </span>
                                                                     </div>
@@ -259,7 +256,7 @@ function ModalRevisionXml({ archivos, onConfirmar, onCancelar }: ModalRevisionXm
                                                             ))}
                                                         </div>
                                                     ) : (
-                                                        <p className="text-sm text-gray-500 italic">Sin impuestos</p>
+                                                        <p className="text-[10px] text-slate-400 italic">CFDI sin desglose de impuestos</p>
                                                     )}
                                                 </div>
                                             </div>
@@ -272,33 +269,31 @@ function ModalRevisionXml({ archivos, onConfirmar, onCancelar }: ModalRevisionXm
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-gray-200 bg-gray-50">
+                <div className="p-8 border-t border-slate-100 bg-white">
                     <div className="flex justify-between items-center">
-                        <div className="text-sm text-gray-600">
-                            {archivosValidos.length > 0 && (
-                                <span>
-                                    Se importarán <strong>{archivosValidos.length}</strong> archivo{archivosValidos.length !== 1 ? 's' : ''}
-                                </span>
-                            )}
-                            {archivosConError.length > 0 && (
-                                <span className="ml-2 text-red-600">
-                                    ({archivosConError.length} con errores serán omitidos)
-                                </span>
-                            )}
+                        <div className="flex flex-col">
+                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Resumen del Lote</div>
+                            <div className="text-xs font-bold text-slate-600">
+                                {archivosValidos.length > 0 ? (
+                                    <span>
+                                        Importando <span className="text-indigo-600">{archivosValidos.length}</span> documentos íntegros.
+                                    </span>
+                                ) : 'Seleccione archivos válidos para proceder.'}
+                            </div>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex gap-4">
                             <button
                                 onClick={onCancelar}
-                                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                className="btn-secondary px-8 py-3"
                             >
-                                Cancelar
+                                Cancelar Análisis
                             </button>
                             <button
                                 onClick={() => onConfirmar(archivosValidos)}
                                 disabled={archivosValidos.length === 0}
-                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                className="btn-primary px-10 py-3 shadow-indigo-100 disabled:opacity-50 disabled:grayscale"
                             >
-                                Confirmar e Importar ({archivosValidos.length})
+                                Confirmar y Sincronizar ({archivosValidos.length})
                             </button>
                         </div>
                     </div>

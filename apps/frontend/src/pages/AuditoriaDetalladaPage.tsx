@@ -23,6 +23,8 @@ const AuditoriaDetalladaPage: React.FC = () => {
     const [showReporteModal, setShowReporteModal] = useState(false);
     const [empresaData, setEmpresaData] = useState<any>(null);
     const [sentinelStatus, setSentinelStatus] = useState<any>(null);
+    const [showHistorialModal, setShowHistorialModal] = useState(false);
+    const [historialCambios, setHistorialCambios] = useState<any[]>([]);
 
     const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -56,6 +58,19 @@ const AuditoriaDetalladaPage: React.FC = () => {
         } catch (e) { console.error(e); }
     }, [empresaId, periodo, tabPrincipal]);
 
+
+
+    const fetchHistorial = async () => {
+        if (!empresaId) return;
+        try {
+            const res = await axios.get(`/api/cfdi/historial-estatus?empresaId=${empresaId}`);
+            setHistorialCambios(res.data);
+            setShowHistorialModal(true);
+        } catch (e) {
+            console.error('Error fetching historial:', e);
+        }
+    };
+
     useEffect(() => { syncSentinel(); }, [syncSentinel]);
 
     // HOOK DE MÉTRICAS (VISIÓN ANUAL CON FILTRO REACTIVO)
@@ -81,88 +96,130 @@ const AuditoriaDetalladaPage: React.FC = () => {
                 subModo={subTab.toUpperCase()}
                 perfilRiesgo={sentinelStatus?.perfilRiesgo || 0}
                 sector={empresaData?.sector || 'General'}
-                regimenFiscal={empresaData?.regimen_fiscal || '---'}
+                satStatus={empresaData?.satStatus}
             />
 
-            <div className="space-y-6 mt-6">
+            <div className="space-y-10 mt-10 animate-in fade-in duration-700">
                 {/* CONFIGURACIÓN DE VISTA */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="fiscal-card p-6 lg:col-span-2">
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 block">Bóveda Fiscal: Empresa Activa</label>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="bg-white border border-slate-100 p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/40 lg:col-span-2 group hover:shadow-2xl transition-all duration-500">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-5 block">Bóveda Fiscal: Entidad bajo Auditoría</label>
                         <SelectorEmpresa empresaSeleccionada={empresaId} onSeleccionar={handleSeleccionarEmpresa} />
                     </div>
-                    <div className="fiscal-card p-6" onClick={tryShowPicker}>
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 block">Ejercicio y Mes de Auditoría</label>
-                        <div className="flex items-center gap-3 bg-[#0B0E14] px-4 py-2.5 rounded-lg border border-gray-700 hover:border-indigo-500 transition-colors cursor-pointer">
-                            <span className="text-xl">📅</span>
-                            <input
-                                ref={dateInputRef}
-                                type="month"
-                                value={`${periodo.anio}-${periodo.mes}`}
-                                onChange={(e) => {
-                                    const [y, m] = e.target.value.split('-');
-                                    if (y && m) setPeriodo({ anio: y, mes: m });
-                                }}
-                                className="bg-transparent border-none text-white font-mono text-sm focus:ring-0 w-full"
-                                style={{ colorScheme: 'dark' }}
-                            />
+                    <div className="bg-white border border-slate-100 p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/40 group hover:shadow-2xl transition-all duration-500 cursor-pointer" onClick={tryShowPicker}>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-5 block">Ejercicio y Mes de Análisis</label>
+                        <div className="flex items-center gap-5 bg-slate-50 border border-slate-100 rounded-[1.5rem] px-6 py-4 hover:border-[#0f172a]/20 transition-all group-hover:bg-white shadow-inner">
+                            <span className="text-2xl grayscale group-hover:grayscale-0 transition-all">📅</span>
+                            <div className="flex-1">
+                                <input
+                                    ref={dateInputRef}
+                                    type="month"
+                                    value={`${periodo.anio}-${periodo.mes}`}
+                                    onChange={(e) => {
+                                        const [y, m] = e.target.value.split('-');
+                                        if (y && m) setPeriodo({ anio: y, mes: m });
+                                    }}
+                                    className="bg-transparent border-none text-[#0f172a] font-black text-sm focus:ring-0 w-full uppercase cursor-pointer"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* NAVEGACIÓN DE DOMINIOS */}
-                <div className="flex flex-wrap gap-2 p-1.5 bg-[#0B0E14] rounded-xl border border-gray-800">
-                    <button onClick={() => setTabPrincipal('emitidos')} className={`flex-1 py-3 px-6 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${tabPrincipal === 'emitidos' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-gray-500 hover:text-gray-300'}`}>📤 Emitidos (Ventas)</button>
-                    <button onClick={() => setTabPrincipal('recibidos')} className={`flex-1 py-3 px-6 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${tabPrincipal === 'recibidos' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'text-gray-500 hover:text-gray-300'}`}>📥 Recibidos (Gastos)</button>
-                    <button onClick={() => setTabPrincipal('pagos')} className={`flex-1 py-3 px-6 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${tabPrincipal === 'pagos' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'text-gray-500 hover:text-gray-300'}`}>💰 Pagos y Reps</button>
+                {/* NAVEGACIÓN DE DOMINIOS (SEGMENTED CONTROL PREMIUM) */}
+                <div className="bg-white p-2 rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/40 flex gap-2">
+                    <button
+                        onClick={() => setTabPrincipal('emitidos')}
+                        className={`flex-1 py-4.5 px-6 text-[11px] font-black uppercase tracking-[0.2em] rounded-[1.8rem] transition-all duration-500 flex items-center justify-center gap-3 ${tabPrincipal === 'emitidos' ? 'bg-[#0f172a] text-white shadow-xl shadow-slate-900/20 active:scale-95' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+                    >
+                        <span className={tabPrincipal === 'emitidos' ? 'opacity-100' : 'opacity-40'}>📤</span>
+                        EMITIDOS (VENTAS)
+                    </button>
+                    <button
+                        onClick={() => setTabPrincipal('recibidos')}
+                        className={`flex-1 py-4.5 px-6 text-[11px] font-black uppercase tracking-[0.2em] rounded-[1.8rem] transition-all duration-500 flex items-center justify-center gap-3 ${tabPrincipal === 'recibidos' ? 'bg-[#0f172a] text-white shadow-xl shadow-slate-900/20 active:scale-95' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+                    >
+                        <span className={tabPrincipal === 'recibidos' ? 'opacity-100' : 'opacity-40'}>📥</span>
+                        RECIBIDOS (GASTOS)
+                    </button>
+                    <button
+                        onClick={() => setTabPrincipal('pagos')}
+                        className={`flex-1 py-4.5 px-6 text-[11px] font-black uppercase tracking-[0.2em] rounded-[1.8rem] transition-all duration-500 flex items-center justify-center gap-3 ${tabPrincipal === 'pagos' ? 'bg-[#0f172a] text-white shadow-xl shadow-slate-900/20 active:scale-95' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+                    >
+                        <span className={tabPrincipal === 'pagos' ? 'opacity-100' : 'opacity-40'}>💳</span>
+                        PAGOS Y REPS
+                    </button>
                 </div>
 
                 {/* ACCIONES CRÍTICAS */}
-                <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 flex items-center">
+                        <ImportarXML
+                            empresaId={empresaId}
+                            empresaNombre={empresaData?.razonSocial}
+                            periodo={`${periodo.anio}-${periodo.mes}`}
+                            onImportComplete={refresh}
+                        />
+                    </div>
+
+                    <button
+                        onClick={fetchHistorial}
+                        disabled={!empresaId}
+                        className="bg-slate-100 p-4 rounded-[2rem] border border-slate-200 text-[#0f172a] font-black text-[10px] tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center gap-3 active:scale-95"
+                    >
+                        📜 BITÁCORA DE CAMBIOS SAT
+                    </button>
                     <button
                         onClick={() => setShowReporteModal(true)}
-                        className="bg-gray-800 hover:bg-gray-700 text-white px-6 py-3 rounded-xl border border-gray-700 text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                        className="btn-primary py-5 px-10 rounded-[2rem] shadow-2xl shadow-slate-900/20 text-xs tracking-[0.3em]"
                     >
-                        <span>🛡️</span> Informe de Defensa Fiscal
+                        ⚖️ INFORME DE DEFENSA FISCAL
                     </button>
-
-                    <ImportarXML
-                        empresaId={empresaId}
-                        empresaNombre={empresaData?.razonSocial}
-                        periodo={`${periodo.anio}-${periodo.mes}`}
-                        onImportComplete={refresh}
-                    />
                 </div>
 
                 {/* TABLA PRINCIPAL REACTIVA */}
                 {tabPrincipal === 'pagos' ? (
-                    empresaId && <ComplementosPagoTable empresaId={empresaId} periodo={`${periodo.anio}-${periodo.mes}`} />
+                    <div className="animate-in slide-in-from-bottom-6 duration-700">
+                        {empresaId && <ComplementosPagoTable empresaId={empresaId} periodo={`${periodo.anio}-${periodo.mes}`} />}
+                    </div>
                 ) : (
-                    <div className="fiscal-card">
-                        <div className="px-6 py-4 border-b border-gray-800 bg-[#1A1F29]/50 flex flex-col md:flex-row justify-between items-center gap-4">
-                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Desglose Mensual Analítico</h3>
-                            <div className="flex gap-1.5 p-1 bg-[#0B0E14] rounded-lg border border-gray-800">
+                    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl shadow-slate-200/40 overflow-hidden animate-in slide-in-from-bottom-10 duration-1000">
+                        <div className="px-10 py-10 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-center gap-10">
+                            <div>
+                                <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.3em] flex items-center gap-4">
+                                    <div className="w-1.5 h-6 bg-[#0f172a] rounded-full"></div>
+                                    Desglose Mensual Analítico
+                                </h3>
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1.5 ml-5">Exploración detallada de folios fiscales</p>
+                            </div>
+                            <div className="flex gap-2 p-2 bg-slate-50 rounded-[1.8rem] border border-slate-100 shadow-inner">
                                 {(tabPrincipal === 'emitidos' ? ['ingresos', 'nomina', 'pagos', 'notas_credito'] : ['gastos', 'pagos', 'notas_credito']).map(st => (
                                     <button
                                         key={st}
                                         onClick={() => setSubTab(st)}
-                                        className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-tighter rounded-md transition-all ${subTab === st ? 'bg-indigo-500 text-white' : 'text-gray-600 hover:text-gray-400'}`}
+                                        className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-[1.2rem] transition-all duration-500 ${subTab === st ? 'bg-[#0f172a] text-white shadow-lg active:scale-95' : 'text-slate-400 hover:text-slate-800'}`}
                                     >
                                         {st.replace('_', ' ')}
                                     </button>
                                 ))}
                             </div>
                         </div>
-                        <TablaControlMensualDominio
-                            resumen={resumen}
-                            dominio={tabPrincipal.toUpperCase()}
-                            loading={loading}
-                            periodoLabel={`${periodo.mes}/${periodo.anio}`}
-                            totalHistorico={metricas?.total_general || 0}
-                            empresaId={empresaId}
-                            rol={tabPrincipal === 'emitidos' ? 'EMISOR' : 'RECEPTOR'}
-                            tipo={subTab === 'ingresos' ? 'I' : subTab === 'nomina' ? 'N' : subTab === 'pagos' ? 'P' : 'E'}
-                        />
+                        <div className="p-2">
+                            <TablaControlMensualDominio
+                                resumen={resumen}
+                                dominio={tabPrincipal.toUpperCase()}
+                                loading={loading}
+                                periodoLabel={`${periodo.mes}/${periodo.anio}`}
+                                totalHistorico={metricas?.total_general || 0}
+                                empresaId={empresaId}
+                                rol={tabPrincipal === 'emitidos' ? 'EMISOR' : 'RECEPTOR'}
+                                tipo={subTab === 'ingresos' ? 'I' : subTab === 'nomina' ? 'N' : subTab === 'pagos' ? 'P' : 'E'}
+                                onSyncComplete={() => {
+                                    if (refresh) refresh();
+                                    fetchHistorial();
+                                }}
+                            />
+                        </div>
                     </div>
                 )}
             </div>
@@ -174,6 +231,63 @@ const AuditoriaDetalladaPage: React.FC = () => {
                     empresaId={empresaId}
                     mes={`${periodo.anio}-${periodo.mes}`}
                 />
+            )}
+            {/* MODAL HISTORIAL DE CAMBIOS SAT */}
+            {showHistorialModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-4xl rounded-[3rem] shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[85vh]">
+                        <div className="p-8 bg-[#0f172a] text-white flex justify-between items-center">
+                            <div>
+                                <h3 className="text-xl font-black uppercase tracking-tighter">Historial de Sincronización SAT</h3>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Bitácora de cambios de estatus detectados</p>
+                            </div>
+                            <button onClick={() => setShowHistorialModal(false)} className="bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition-all">✕</button>
+                        </div>
+                        <div className="flex-1 overflow-auto p-8">
+                            {historialCambios.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                                    <span className="text-5xl mb-4">📂</span>
+                                    <p className="font-black text-xs uppercase tracking-widest">No se han detectado cambios de estatus recientemente</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {historialCambios.map((log: any) => {
+                                        const detalles = JSON.parse(log.detalles);
+                                        return (
+                                            <div key={log.id} className="bg-slate-50 border border-slate-100 p-6 rounded-3xl flex items-center justify-between group hover:bg-white hover:shadow-xl transition-all duration-300">
+                                                <div className="flex items-center gap-5">
+                                                    <div className={`p-4 rounded-2xl ${detalles.nuevo === 'CANCELADO' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                        {detalles.nuevo === 'CANCELADO' ? '🚫' : '✅'}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">
+                                                            {new Date(log.fecha).toLocaleString()} • Folio: {detalles.folio || 'S/F'}
+                                                        </p>
+                                                        <div className="font-black text-slate-900 text-sm tracking-tight truncate max-w-md">
+                                                            UUID: {log.entidadId}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right flex flex-col items-end gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[9px] font-black text-slate-300 uppercase italic">{detalles.previo || 'DESCONOCIDO'}</span>
+                                                        <span className="text-slate-300">➔</span>
+                                                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${detalles.nuevo === 'CANCELADO' ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/20' : 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'}`}>
+                                                            {detalles.nuevo}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-8 border-t border-slate-100 bg-slate-50 flex justify-end">
+                            <button onClick={() => setShowHistorialModal(false)} className="btn-primary py-4 px-10">ENTENDIDO</button>
+                        </div>
+                    </div>
+                </div>
             )}
         </MissionControlLayout>
     );

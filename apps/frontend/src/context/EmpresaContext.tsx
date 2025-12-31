@@ -5,6 +5,7 @@ interface Empresa {
     id: string;
     razonSocial: string;
     rfc: string;
+    satStatus?: string;
 }
 
 interface EmpresaContextType {
@@ -32,6 +33,15 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
             setLoading(true);
             const res = await axios.get('/api/empresas');
             setListaEmpresas(res.data);
+
+            // Si ya hay una empresa seleccionada, actualizar su data con lo nuevo del servidor
+            if (empresa) {
+                const updated = res.data.find((e: Empresa) => e.id === empresa.id);
+                if (updated) {
+                    setEmpresa(updated);
+                    localStorage.setItem('sentinel_empresa_activa', JSON.stringify(updated));
+                }
+            }
 
             // Si no hay empresa seleccionada pero hay empresas disponibles, seleccionar la primera
             if (!empresa && res.data.length > 0) {

@@ -14,4 +14,4 @@ import { ExpedientesModule } from '../expedientes/expedientes.module';
   controllers: [SeedController],
   providers: [SeedService, DatabaseService, ExpedientesService],
 })
-export class SeedModule {}
+export class SeedModule { }

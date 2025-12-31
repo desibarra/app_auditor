@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import axios from 'axios';
 import { ResumenMes } from '../hooks/useMetricasDominio';
 // import { DetalleCFDI } from '../hooks/useMetricasDominio'; // Assuming interface might be needed or local
 import ModalAuditoria1x1 from './auditoria/ModalAuditoria1x1';
@@ -12,11 +13,11 @@ interface TablaControlMensualDominioProps {
     loading: boolean;
     periodoLabel?: string;
     totalHistorico?: number;
-    onLimpiarFiltros?: () => void;
     // Props de contexto para auditoría
     empresaId: string | null;
     rol: 'EMISOR' | 'RECEPTOR' | null;
     tipo: string | null;
+    onSyncComplete?: () => void;
 }
 
 export const TablaControlMensualDominio: React.FC<TablaControlMensualDominioProps> = ({
@@ -25,16 +26,17 @@ export const TablaControlMensualDominio: React.FC<TablaControlMensualDominioProp
     loading,
     periodoLabel,
     totalHistorico = 0,
-    onLimpiarFiltros,
     empresaId,
     rol,
-    tipo
+    tipo,
+    onSyncComplete
 }) => {
     // --- ESTADO LOCAL MODAL AUDITORÍA 1x1 (NUEVO) ---
     const [showModalAuditoria, setShowModalAuditoria] = useState(false);
     const [mesAuditoria, setMesAuditoria] = useState<string | null>(null);
     const [dominioAuditoria, setDominioAuditoria] = useState<'emitidos' | 'recibidos'>('recibidos');
     const [tipoAuditoria, setTipoAuditoria] = useState<'ingresos' | 'egresos' | 'nomina' | 'pagos'>('ingresos');
+    const [syncingMes, setSyncingMes] = useState<string | null>(null);
 
     // --- HANDLERS ---
     const handleAuditar = (mes: string) => {
@@ -56,6 +58,37 @@ export const TablaControlMensualDominio: React.FC<TablaControlMensualDominioProp
         setDominioAuditoria(dominio);
         setTipoAuditoria(tipoCategoria);
         setShowModalAuditoria(true);
+    };
+
+    const handleSyncMes = async (mesLabel: string) => {
+        if (!empresaId) return;
+
+        // El mesLabel viene como "MM/YYYY" o "YYYY-MM"
+        // Intentar normalizar a YYYY-MM para el SAT
+        let periodoSync = mesLabel;
+        if (mesLabel.includes('/')) {
+            const [m, a] = mesLabel.split('/');
+            periodoSync = `${a}-${m.padStart(2, '0')}`;
+        }
+
+        try {
+            setSyncingMes(mesLabel);
+            const res = await axios.post('/api/cfdi/sincronizar-sat', {
+                empresaId,
+                periodo: periodoSync
+            });
+
+            const { resumen } = res.data;
+            alert(`✅ Mes ${mesLabel} sincronizado.\n\nProcesados: ${resumen.procesados}\nCambios detectados: ${resumen.totalCambios}`);
+
+            // Disparar actualización y abrir bitácora
+            if (onSyncComplete) onSyncComplete();
+        } catch (e: any) {
+            console.error('Error Sync Mes:', e);
+            alert('Error al sincronizar el mes seleccionado.');
+        } finally {
+            setSyncingMes(null);
+        }
     };
 
     // --- UTILS ---
@@ -88,48 +121,50 @@ export const TablaControlMensualDominio: React.FC<TablaControlMensualDominioProp
     return (
         <>
             {/* --- TABLA PRINCIPAL (DASHBOARD) --- */}
-            <div className="fiscal-card overflow-hidden relative">
+            <div className="overflow-hidden">
                 {/* Header de Auditoría SAT-Grade */}
-                <div className="px-6 py-4 border-b border-gray-800 bg-[#0B0E14]/50 flex justify-between items-center">
+                <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div>
-                        <div className="flex items-center gap-3">
-                            <h3 className="text-lg font-bold text-gray-100 flex items-center gap-2">
-                                📅 Control Mensual: <span className="text-indigo-400 font-mono tracking-tight">
+                        <div className="flex items-center gap-4">
+                            <h3 className="text-sm font-black text-slate-800 flex items-center gap-3 uppercase tracking-tight">
+                                <span className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg">📊</span>
+                                Control Mensual: <span className="text-indigo-600 font-mono">
                                     {rol === 'EMISOR'
                                         ? 'INGRESOS (IVA Trasladado)'
                                         : 'GASTOS (IVA Acreditable)'}
                                 </span>
                             </h3>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.2)]">
-                                {rol === 'EMISOR' ? 'VENTAS' : 'DEDUCCIONES'}
+                            <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.15em] bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                {rol === 'EMISOR' ? 'Ventas' : 'Deducciones'}
                             </span>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1 font-mono">
+                        <p className="text-[10px] text-slate-400 mt-2 font-mono uppercase tracking-widest font-black">
                             {totalHistorico > 0
-                                ? `Mostrando registros del periodo activo.`
-                                : 'Repositorio vacío.'}
+                                ? `Mostrando registros del periodo activo fiscal`
+                                : 'Repositorio en espera de documentos'}
                         </p>
                     </div>
-                    <div className="text-right">
-                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">Acumulado Visible</div>
-                        <div className="text-xl font-bold text-emerald-400 font-mono tracking-tight text-shadow-sm">{formatCurrency(totalImporteVisible)}</div>
+                    <div className="text-right bg-white p-4 rounded-2xl border border-slate-100 shadow-sm min-w-[200px]">
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Acumulado Visible</div>
+                        <div className="text-2xl font-black text-emerald-600 font-mono tracking-tighter">{formatCurrency(totalImporteVisible)}</div>
                     </div>
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left text-gray-400">
-                        <thead className="text-[10px] text-gray-500 uppercase bg-[#0B0E14] border-b border-gray-800">
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-[10px] text-slate-400 uppercase bg-slate-50/50 border-b border-slate-100">
                             <tr>
-                                <th className="px-6 py-3 font-bold tracking-wider text-gray-400">Mes</th>
-                                <th className="px-6 py-3 text-center font-bold tracking-wider text-gray-400">Total CFDI</th>
-                                <th className="px-6 py-3 text-right font-bold tracking-wider text-gray-400">Importe</th>
-                                <th className="px-6 py-3 text-center font-bold tracking-wider text-gray-400">
+                                <th className="px-8 py-4 font-black tracking-widest">Periodo Mes</th>
+                                <th className="px-8 py-4 text-center font-black tracking-widest">Volumen CFDI</th>
+                                <th className="px-8 py-4 text-right font-black tracking-widest">Importe Fiscal</th>
+                                <th className="px-8 py-4 text-center font-black tracking-widest">
                                     {dominio === 'NOMINA' ? 'Empleados' : 'Entidades'}
                                 </th>
-                                <th className="px-6 py-3 text-center font-bold tracking-wider text-gray-400">Acciones</th>
+                                <th className="px-8 py-4 text-center font-black tracking-widest">Estatus Gestión</th>
+                                <th className="px-8 py-4 text-center font-black tracking-widest">Acciones Auditoría</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-800 bg-transparent">
+                        <tbody className="divide-y divide-slate-100">
                             {resumen && resumen.length > 0 ? (
                                 resumen.map((row) => {
                                     const tieneDatos = row.total > 0;
@@ -138,80 +173,105 @@ export const TablaControlMensualDominio: React.FC<TablaControlMensualDominioProp
                                     return (
                                         <tr
                                             key={row.mes}
-                                            className={`transition-colors ${esMesActivo ? 'bg-indigo-500/5' : 'bg-transparent'
-                                                } ${tieneDatos ? 'hover:bg-gray-800/30' : 'opacity-40 hover:opacity-100'}`}
+                                            className={`transition-all duration-200 ${esMesActivo ? 'bg-indigo-50/30' : 'bg-transparent'
+                                                } ${tieneDatos ? 'hover:bg-slate-50/80 cursor-default' : 'opacity-50'}`}
                                         >
-                                            <td className="px-6 py-4 font-bold text-gray-200 whitespace-nowrap font-mono text-xs">
-                                                <div className="flex items-center gap-2">
-                                                    {esMesActivo && <span className="w-1 h-1 bg-indigo-500 rounded-full"></span>}
+                                            <td className="px-8 py-5 font-black text-slate-700 whitespace-nowrap font-mono text-xs">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${esMesActivo ? 'bg-indigo-500 animate-pulse' : 'bg-slate-200'}`}></div>
                                                     {row.mes}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${tieneDatos
-                                                        ? 'bg-gray-800 text-gray-300 border-gray-700'
-                                                        : 'bg-transparent text-gray-600 border-gray-800'
+                                            <td className="px-8 py-5 text-center">
+                                                <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-black border ${tieneDatos
+                                                    ? 'bg-slate-100 text-slate-600 border-slate-200'
+                                                    : 'bg-transparent text-slate-300 border-slate-100'
                                                     }`}>
-                                                    {row.total}
+                                                    {row.total} XML
                                                 </span>
                                             </td>
-                                            <td className={`px-6 py-4 text-right font-bold font-mono text-xs ${tieneDatos ? 'text-emerald-400' : 'text-gray-600'
+                                            <td className={`px-8 py-5 text-right font-black font-mono text-sm ${tieneDatos ? 'text-emerald-600' : 'text-slate-300'
                                                 }`}>
                                                 {formatCurrency(row.importe_total)}
                                             </td>
-                                            <td className={`px-6 py-4 text-center text-xs ${tieneDatos ? 'text-gray-500' : 'text-gray-700'
+                                            <td className={`px-8 py-5 text-center text-[11px] font-bold ${tieneDatos ? 'text-slate-500' : 'text-slate-300'
                                                 }`}>
-                                                {tieneDatos ? `${row.clientes} Únicos` : '0 Entidades'}
+                                                {tieneDatos ? `${row.clientes} Únicos` : '---'}
                                             </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <button
-                                                    onClick={() => tieneDatos && handleAuditar(row.mes)}
-                                                    disabled={!tieneDatos}
-                                                    title={!tieneDatos ? "Sin XML registrados en este mes" : undefined}
-                                                    className={`text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 mx-auto border rounded px-3 py-1.5 transition-all ${tieneDatos
-                                                            ? 'text-indigo-400 border-indigo-500/30 hover:bg-indigo-600 hover:text-white hover:border-indigo-500 shadow-lg hover:shadow-indigo-500/20'
-                                                            : 'text-gray-600 border-gray-800 cursor-not-allowed opacity-50'
-                                                        }`}
-                                                >
-                                                    <span>🔍</span> AUDITAR 1x1
-                                                </button>
+                                            <td className="px-8 py-5 text-center">
+                                                {tieneDatos ? (
+                                                    <div className="flex items-center justify-center gap-1.5">
+                                                        <span title="Vigentes" className="bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md text-[9px] font-black border border-emerald-100">V: {row.count_vigentes}</span>
+                                                        <span title="Cancelados" className={`px-2 py-1 rounded-md text-[9px] font-black border ${row.count_cancelados > 0 ? 'bg-rose-50 text-rose-600 border-rose-100 animate-pulse' : 'bg-slate-50 text-slate-300 border-transparent'}`}>C: {row.count_cancelados}</span>
+                                                        <span title="Pendientes" className={`px-2 py-1 rounded-md text-[9px] font-black border ${row.count_pendientes > 0 ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-slate-50 text-slate-300 border-transparent'}`}>P: {row.count_pendientes}</span>
+                                                    </div>
+                                                ) : '---'}
+                                            </td>
+                                            <td className="px-8 py-5 text-center">
+                                                <div className="flex flex-col gap-2">
+                                                    <button
+                                                        onClick={() => tieneDatos && handleAuditar(row.mes)}
+                                                        disabled={!tieneDatos}
+                                                        className={`text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 mx-auto border rounded-xl px-5 py-2 transition-all ${tieneDatos
+                                                            ? 'text-indigo-600 border-indigo-200 bg-white hover:bg-indigo-600 hover:text-white hover:border-indigo-600 shadow-sm hover:shadow-indigo-500/20'
+                                                            : 'text-slate-300 border-slate-100 cursor-not-allowed'
+                                                            }`}
+                                                    >
+                                                        <span>🔍</span> Auditar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => tieneDatos && handleSyncMes(row.mes)}
+                                                        disabled={!tieneDatos || syncingMes === row.mes}
+                                                        className={`text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 mx-auto border rounded-xl px-5 py-2 transition-all ${tieneDatos
+                                                            ? 'text-emerald-600 border-emerald-200 bg-white hover:bg-emerald-600 hover:text-white hover:border-emerald-600'
+                                                            : 'text-slate-300 border-slate-100 cursor-not-allowed'
+                                                            }`}
+                                                    >
+                                                        {syncingMes === row.mes ? (
+                                                            <span className="animate-spin">⏳</span>
+                                                        ) : (
+                                                            <span>📡</span>
+                                                        )}
+                                                        Validar SAT
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan={5} className="py-20 text-center bg-gray-900/20">
+                                    <td colSpan={5} className="py-24 text-center bg-slate-50/20">
                                         <div className="max-w-md mx-auto">
-                                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-800/50 mb-4 border border-gray-700">
-                                                <span className="text-xl opacity-50">📂</span>
+                                            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-3xl bg-white shadow-xl shadow-slate-200/50 mb-6 border border-slate-100">
+                                                <span className="text-2xl">📂</span>
                                             </div>
-                                            <h3 className="text-sm font-bold text-gray-400">Sin historial registrado</h3>
-                                            <p className="text-xs text-gray-600 mt-1">
-                                                No existen CFDI registrados para este dominio.
+                                            <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Sin registros detectados</h3>
+                                            <p className="text-xs text-slate-400 mt-2 font-medium leading-relaxed">
+                                                No se encontraron documentos CFDI procesados para esta combinación de parámetros en la bóveda.
                                             </p>
                                         </div>
                                     </td>
                                 </tr>
                             )}
                         </tbody>
-                        <tfoot className="bg-[#0B0E14] font-bold text-gray-300 border-t border-gray-800">
+                        <tfoot className="bg-slate-50/50 font-bold text-slate-600 border-t border-slate-100">
                             <tr>
-                                <td className="px-6 py-4 uppercase text-[10px] tracking-widest text-gray-500">Total Visible</td>
-                                <td className="px-6 py-4 text-center font-mono text-xs">{totalCantidadVisible}</td>
-                                <td className="px-6 py-4 text-right font-mono text-sm text-emerald-400">{formatCurrency(totalImporteVisible)}</td>
-                                <td colSpan={2}></td>
+                                <td className="px-8 py-5 uppercase text-[10px] font-black tracking-[0.2em] text-slate-400">Total Analizado</td>
+                                <td className="px-8 py-5 text-center font-mono text-sm font-black">{totalCantidadVisible}</td>
+                                <td className="px-8 py-5 text-right font-mono text-lg font-black text-emerald-600">{formatCurrency(totalImporteVisible)}</td>
+                                <td colSpan={3}></td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
 
-                <div className="bg-[#0B0E14] px-6 py-3 border-t border-gray-800 flex items-start gap-2">
-                    <span className="text-gray-600 mt-0.5 text-xs">ℹ️</span>
-                    <p className="text-[10px] text-gray-500 leading-relaxed font-mono">
+                <div className="bg-indigo-50/30 px-8 py-4 border-t border-slate-100 flex items-center gap-3">
+                    <span className="text-indigo-400 text-sm">🛡️</span>
+                    <p className="text-[10px] text-slate-500 leading-relaxed font-mono uppercase tracking-tight font-black">
                         {totalHistorico > 0
-                            ? `VISTA FILTRADA. EL SISTEMA CUSTODIA ${totalHistorico} REGISTROS HISTÓRICOS EN BÓVEDA.`
-                            : 'MODO DE ESPERA. CARGUE ARCHIVOS PARA ACTIVAR LA AUDITORÍA.'}
+                            ? `Protocolo de seguridad activo: El sistema custodia ${totalHistorico} registros históricos bajo encriptación forense.`
+                            : 'Protocolo en espera: Cargue archivos XML para iniciar el análisis automático de riesgos.'}
                     </p>
                 </div>
             </div>

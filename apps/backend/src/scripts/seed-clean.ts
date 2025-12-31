@@ -16,31 +16,41 @@ async function seed() {
             rolGlobal: 'admin'
         }).onConflictDoNothing();
 
-        // 2. Restaurar Empresas Legítimas
+        // 2. Restaurar Empresas Legítimas (STRICT MODE SAT_ACTIVE)
         const demoEmpresas = [
             {
                 id: '1767074265037',
                 rfc: 'TVA060209QL6',
                 razonSocial: 'TRASLADOS DE VANGUARDIA SA DE CV',
-                activa: true
+                activa: true,
+                satStatus: 'ACTIVE',
+                satAuthMode: 'FIEL',
+                fielKeyEncrypted: 'V4_ENCRYPTED_DUMMY_KEY',
+                fielCerEncrypted: 'V4_ENCRYPTED_DUMMY_CER'
             },
             {
                 id: 'empresa-pnk140311qm2',
                 rfc: 'PNK140311QM2',
                 razonSocial: 'PRODUCTOS NATURALES KOPPARA DEL BAJIO SA DE CV',
-                activa: true
-            },
-            {
-                id: 'empresa-tva060209ql6',
-                rfc: 'TVA060209QL6',
-                razonSocial: 'TRASLADOS DE VANGUARDIA SA DE CV',
-                activa: true
+                activa: true,
+                satStatus: 'DISCONNECTED',
+                satAuthMode: 'NONE'
             }
         ];
 
         for (const e of demoEmpresas) {
-            await db.insert(empresas).values(e).onConflictDoNothing();
-            console.log(`Empresa registrada: ${e.razonSocial}`);
+            await db.insert(empresas).values(e).onConflictDoUpdate({
+                target: empresas.rfc,
+                set: {
+                    id: e.id,
+                    satStatus: e.satStatus,
+                    satAuthMode: e.satAuthMode,
+                    activa: e.activa,
+                    fielKeyEncrypted: (e as any).fielKeyEncrypted,
+                    fielCerEncrypted: (e as any).fielCerEncrypted
+                }
+            });
+            console.log(`Empresa registrada/actualizada: ${e.razonSocial} (${e.satStatus})`);
         }
 
         console.log('✅ Base de datos saneada y preparada.');

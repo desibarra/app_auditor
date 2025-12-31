@@ -2,45 +2,39 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { db } from '../../database/db';
 import { expedientesDevolucionIva } from '../../database/schema/expedientes_devolucion_iva';
 import { eq } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class DevolucionesIvaService {
   private readonly logger = new Logger(DevolucionesIvaService.name);
 
   async createExpediente(createExpedienteDto: any) {
-    const { rfcEmpresa, periodo, empresaId } = createExpedienteDto;
-
-    // Generar Folio y Datos mínimos para cumplir Schema
-    // Asumimos periodo como string "YYYY-MM" o similar, o lo forzamos
-    const ejercicio = new Date().getFullYear();
-    const mes = new Date().getMonth() + 1;
-    const folio = `DEV-${rfcEmpresa}-${Date.now()}`;
+    const { rfcEmpresa, periodo, tipo, ejercicio } = createExpedienteDto;
 
     // Create expediente
+    const values: any = {
+      empresaId: uuidv4(),
+      rfcEmpresa,
+      periodo: periodo || 1,
+      ejercicio: ejercicio || 2025,
+      folioControl: `EXP-${Date.now()}`,
+      estatusTramite: 'BORRADOR',
+    };
+
     const expediente = await db
       .insert(expedientesDevolucionIva)
-      .values({
-        empresaId: empresaId || 'UNKNOWN',
-        rfcEmpresa: rfcEmpresa || 'UNKNOWN',
-        folioControl: folio,
-        ejercicio,
-        periodo: mes,
-        estatusTramite: 'BORRADOR',
-        observaciones: 'Creado automáticamente'
-      })
+      .values(values)
       .returning();
 
-    this.logger.log(`Expediente created: ID ${expediente[0].id}, Folio ${folio}`);
+    this.logger.log(`Expediente created: ID ${expediente[0].id}, Empresa ${rfcEmpresa}`);
     return expediente[0];
   }
 
   async listExpedientes(empresaId: string) {
-    // Fix: usar empresaId en lugar de rfcEmpresa si es lo que se pasa
     return db
       .select()
       .from(expedientesDevolucionIva)
-      // Ajustar filtro según lo que se tenga. Si empresaId es UUID, usar empresaId.
-      .where(eq(expedientesDevolucionIva.empresaId, empresaId));
+      .where(eq(expedientesDevolucionIva.rfcEmpresa, empresaId));
   }
 
   async getExpedienteDetail(id: number) {
@@ -59,6 +53,5 @@ export class DevolucionesIvaService {
 
   async generateCedulaIvaAcreditable(expedienteId: number) {
     this.logger.log(`Generating Cedula IVA Acreditable for expediente ID: ${expedienteId}`);
-    // Implementation logic here
   }
 }

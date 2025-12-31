@@ -84,17 +84,17 @@ export const TablaControlMensual: React.FC<TablaControlMensualProps> = ({
 
     if (loading && resumen.length === 0) {
         return (
-            <div className="tabla-control-loading">
-                <div className="spinner"></div>
-                <p>Cargando resumen {modo === 'EMITIDO' ? 'emitidos' : 'recibidos'}...</p>
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <div className="w-10 h-10 border-x-4 border-slate-100 border-t-4 border-t-[#0f172a] rounded-xl animate-spin"></div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Analizando registros {modo.toLowerCase()}...</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="tabla-control-error">
-                <p>⚠️ {error}</p>
+            <div className="p-8 text-center bg-rose-50 border border-rose-100 rounded-[2rem] animate-in shake duration-500">
+                <p className="text-[11px] text-rose-600 font-bold uppercase tracking-widest">⚠️ {error}</p>
             </div>
         );
     }
@@ -106,37 +106,38 @@ export const TablaControlMensual: React.FC<TablaControlMensualProps> = ({
     };
 
     return (
-
-        <div className="fiscal-card overflow-hidden">
-            <div className="p-4 border-b border-gray-800 bg-[#0B0E14]/50 backdrop-blur-sm flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-slate-200/40">
+            <div className="p-8 border-b border-slate-100 bg-white flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
-                    <h3 className="text-xl font-bold text-gray-100 flex items-center gap-2">
+                    <h3 className="text-xl font-black text-slate-900 tracking-tighter uppercase flex items-center gap-3">
+                        <span className="text-2xl">📊</span>
                         {modo === 'EMITIDO'
-                            ? '📊 Control Mensual: INGRESOS (IVA Trasladado)'
-                            : '📊 Control Mensual: GASTOS (IVA Acreditable)'}
+                            ? 'Control Mensual: Ingresos'
+                            : 'Control Mensual: Deducciones'}
                     </h3>
-                    <p className="text-xs text-gray-500 mt-1 font-mono">
+                    <p className="text-[10px] text-slate-400 mt-2 font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                         {modo === 'EMITIDO'
-                            ? 'Auditoría de Facturas Emitidas (Ventas)'
-                            : 'Auditoría de Facturas Recibidas (Deducciones)'}
+                            ? 'Auditoría de Facturación Emitida (IVA Trasladado)'
+                            : 'Auditoría de Gastos Recibidos (IVA Acreditable)'}
                     </p>
                 </div>
 
-                {/* 🆕 SELECTOR DE MODO */}
-                <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700">
+                {/* SELECTOR DE MODO */}
+                <div className="flex bg-slate-50 rounded-[1.8rem] p-1.5 border border-slate-100 shadow-inner">
                     <button
                         onClick={() => setModo('EMITIDO')}
-                        className={`px-3 py-1 text-[10px] font-bold uppercase rounded transition-all ${modo === 'EMITIDO'
-                            ? 'bg-indigo-600 text-white shadow-sm'
-                            : 'text-gray-400 hover:text-gray-200'}`}
+                        className={`px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-[1.2rem] transition-all duration-500 ${modo === 'EMITIDO'
+                            ? 'bg-[#0f172a] text-white shadow-lg shadow-slate-900/20 active:scale-95'
+                            : 'text-slate-400 hover:text-slate-900'}`}
                     >
                         📤 Emitidos
                     </button>
                     <button
                         onClick={() => setModo('RECIBIDO')}
-                        className={`px-3 py-1 text-[10px] font-bold uppercase rounded transition-all ${modo === 'RECIBIDO'
-                            ? 'bg-purple-600 text-white shadow-sm'
-                            : 'text-gray-400 hover:text-gray-200'}`}
+                        className={`px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-[1.2rem] transition-all duration-500 ${modo === 'RECIBIDO'
+                            ? 'bg-[#0f172a] text-white shadow-lg shadow-slate-900/20 active:scale-95'
+                            : 'text-slate-400 hover:text-slate-900'}`}
                     >
                         📥 Recibidos
                     </button>
@@ -144,61 +145,48 @@ export const TablaControlMensual: React.FC<TablaControlMensualProps> = ({
             </div>
 
             <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
+                <table className="min-w-full text-left">
                     <thead>
-                        <tr className="bg-[#0B0E14] border-b border-gray-800">
-                            <th className="px-6 py-4 text-left font-bold text-gray-400 uppercase tracking-wider text-xs">Mes</th>
-                            <th className="px-4 py-4 text-center font-bold text-emerald-500 uppercase tracking-wider text-xs" title="Ingreso">
+                        <tr className="bg-slate-50/50 border-b border-slate-100">
+                            <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Mes de Auditoría</th>
+                            <th className="px-6 py-6 text-center text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em]">
                                 {modo === 'EMITIDO' ? 'Venta (I)' : 'Gasto (I)'}
                             </th>
-                            <th className="px-4 py-4 text-center font-bold text-rose-500 uppercase tracking-wider text-xs" title="Egreso">
-                                {modo === 'EMITIDO' ? 'Nota C. (E)' : 'Devol. (E)'}
+                            <th className="px-6 py-6 text-center text-[10px] font-black text-rose-600 uppercase tracking-[0.3em]">
+                                {modo === 'EMITIDO' ? 'Notas (E)' : 'Devol. (E)'}
                             </th>
-                            <th className="px-4 py-4 text-center font-bold text-blue-500 uppercase tracking-wider text-xs" title="Pago">
+                            <th className="px-6 py-6 text-center text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">
                                 {modo === 'EMITIDO' ? 'Cobro (P)' : 'Pago (P)'}
                             </th>
-                            <th className="px-4 py-4 text-center font-bold text-purple-500 uppercase tracking-wider text-xs" title="Nómina">N</th>
-                            <th className="px-4 py-4 text-center font-bold text-orange-500 uppercase tracking-wider text-xs" title="Traslado">T</th>
-                            <th className="px-6 py-4 text-center font-bold text-indigo-400 uppercase tracking-wider text-xs bg-gray-900/50">Total</th>
+                            <th className="px-6 py-6 text-center text-[10px] font-black text-purple-600 uppercase tracking-[0.3em]">Nómina (N)</th>
+                            <th className="px-6 py-6 text-center text-[10px] font-black text-orange-600 uppercase tracking-[0.3em]">Traslado (T)</th>
+                            <th className="px-10 py-6 text-center text-[10px] font-black text-[#0f172a] uppercase tracking-[0.3em] bg-[#0f172a]/5">Total</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-800">
+                    <tbody className="divide-y divide-slate-50">
                         {resumen.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="text-center py-8 text-gray-500 font-mono text-xs">
-                                    No hay registros {modo === 'EMITIDO' ? 'emitidos' : 'recibidos'}
+                                <td colSpan={7} className="text-center py-20 text-slate-300 font-black uppercase tracking-widest text-[10px]">
+                                    No se identificaron registros en el repositorio fiscal
                                 </td>
                             </tr>
                         ) : resumen.map((row) => {
-                            let alertClass = 'hover:bg-gray-800/30 transition-colors';
-                            let alertTooltip = '';
+                            let trClass = 'hover:bg-slate-50/80 transition-all group';
                             let badge = null;
 
                             if (row.mesIncompleto) {
-                                alertClass = row.nivelAlerta === 'high'
-                                    ? 'bg-red-900/10 hover:bg-red-900/20 transition-colors'
-                                    : 'bg-yellow-900/10 hover:bg-yellow-900/20 transition-colors';
-
-                                const tiposNombres = {
-                                    'I': modo === 'EMITIDO' ? 'Ingreso' : 'Gasto',
-                                    'E': 'Egreso',
-                                    'P': 'Pago',
-                                    'N': 'Nómina',
-                                    'T': 'Traslado'
-                                };
-                                const faltantesText = row.faltantes.map(t => tiposNombres[t as keyof typeof tiposNombres]).join(', ');
-                                alertTooltip = `⚠️ Falta CFDI tipo: ${faltantesText}`;
+                                trClass = 'bg-amber-50/40 hover:bg-amber-50/60 transition-all group border-l-4 border-l-amber-400';
                                 badge = (
-                                    <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
-                                        ⚠️
-                                    </span>
+                                    <div className="ml-3 px-2 py-0.5 bg-amber-400 text-white rounded-lg text-[8px] font-black shadow-sm animate-pulse">
+                                        ANOMALÍA
+                                    </div>
                                 );
                             }
 
                             return (
-                                <tr key={row.mes} className={alertClass} title={alertTooltip}>
+                                <tr key={row.mes} className={trClass}>
                                     <td
-                                        className="px-6 py-4 text-sm font-medium text-gray-300 font-mono cursor-pointer hover:text-indigo-400 transition-colors"
+                                        className="px-10 py-6 text-[11px] font-black text-slate-900 uppercase tracking-tighter cursor-pointer group-hover:text-[#0f172a] transition-colors"
                                         onClick={() => handleCeldaClick(row.mes)}
                                     >
                                         <div className="flex items-center">
@@ -207,36 +195,36 @@ export const TablaControlMensual: React.FC<TablaControlMensualProps> = ({
                                         </div>
                                     </td>
                                     <td
-                                        className={`px-4 py-4 text-center font-mono ${row.I > 0 ? 'text-emerald-400 font-bold cursor-pointer hover:bg-emerald-900/20 hover:scale-105 transition-all' : 'text-gray-700'}`}
+                                        className={`px-6 py-6 text-center font-mono text-[12px] ${row.I > 0 ? 'text-emerald-600 font-black cursor-pointer hover:bg-emerald-50 hover:scale-110 rounded-xl transition-all' : 'text-slate-200'}`}
                                         onClick={() => row.I > 0 && handleCeldaClick(row.mes, 'I')}
                                     >
                                         {row.I || '—'}
                                     </td>
                                     <td
-                                        className={`px-4 py-4 text-center font-mono ${row.E > 0 ? 'text-rose-400 font-bold cursor-pointer hover:bg-rose-900/20 hover:scale-105 transition-all' : 'text-gray-700'}`}
+                                        className={`px-6 py-6 text-center font-mono text-[12px] ${row.E > 0 ? 'text-rose-600 font-black cursor-pointer hover:bg-rose-50 hover:scale-110 rounded-xl transition-all' : 'text-slate-200'}`}
                                         onClick={() => row.E > 0 && handleCeldaClick(row.mes, 'E')}
                                     >
                                         {row.E || '—'}
                                     </td>
                                     <td
-                                        className={`px-4 py-4 text-center font-mono ${row.P > 0 ? 'text-blue-400 font-bold cursor-pointer hover:bg-blue-900/20 hover:scale-105 transition-all' : 'text-gray-700'}`}
+                                        className={`px-6 py-6 text-center font-mono text-[12px] ${row.P > 0 ? 'text-blue-600 font-black cursor-pointer hover:bg-blue-50 hover:scale-110 rounded-xl transition-all' : 'text-slate-200'}`}
                                         onClick={() => row.P > 0 && handleCeldaClick(row.mes, 'P')}
                                     >
                                         {row.P || '—'}
                                     </td>
                                     <td
-                                        className={`px-4 py-4 text-center font-mono ${row.N > 0 ? 'text-purple-400 font-bold cursor-pointer hover:bg-purple-900/20 hover:scale-105 transition-all' : 'text-gray-700'}`}
+                                        className={`px-6 py-6 text-center font-mono text-[12px] ${row.N > 0 ? 'text-purple-600 font-black cursor-pointer hover:bg-purple-50 hover:scale-110 rounded-xl transition-all' : 'text-slate-200'}`}
                                         onClick={() => row.N > 0 && handleCeldaClick(row.mes, 'N')}
                                     >
                                         {row.N || '—'}
                                     </td>
                                     <td
-                                        className={`px-4 py-4 text-center font-mono ${row.T > 0 ? 'text-orange-400 font-bold cursor-pointer hover:bg-orange-900/20 hover:scale-105 transition-all' : 'text-gray-700'}`}
+                                        className={`px-6 py-6 text-center font-mono text-[12px] ${row.T > 0 ? 'text-orange-600 font-black cursor-pointer hover:bg-orange-50 hover:scale-110 rounded-xl transition-all' : 'text-slate-200'}`}
                                         onClick={() => row.T > 0 && handleCeldaClick(row.mes, 'T')}
                                     >
                                         {row.T || '—'}
                                     </td>
-                                    <td className="px-6 py-4 text-center font-bold text-indigo-400 font-mono bg-gray-900/30">
+                                    <td className="px-10 py-6 text-center font-black text-[#0f172a] font-mono text-[13px] bg-[#0f172a]/5 group-hover:bg-[#0f172a]/10 transition-colors">
                                         {row.total}
                                     </td>
                                 </tr>
@@ -244,14 +232,14 @@ export const TablaControlMensual: React.FC<TablaControlMensualProps> = ({
                         })}
                     </tbody>
                     <tfoot>
-                        <tr className="bg-[#0B0E14] border-t border-gray-800">
-                            <td className="px-6 py-4 font-bold text-gray-400 uppercase tracking-wider text-xs">TOTAL</td>
-                            <td className="px-4 py-4 text-center font-bold text-emerald-500 font-mono">{resumen.reduce((sum, r) => sum + r.I, 0)}</td>
-                            <td className="px-4 py-4 text-center font-bold text-rose-500 font-mono">{resumen.reduce((sum, r) => sum + r.E, 0)}</td>
-                            <td className="px-4 py-4 text-center font-bold text-blue-500 font-mono">{resumen.reduce((sum, r) => sum + r.P, 0)}</td>
-                            <td className="px-4 py-4 text-center font-bold text-purple-500 font-mono">{resumen.reduce((sum, r) => sum + r.N, 0)}</td>
-                            <td className="px-4 py-4 text-center font-bold text-orange-500 font-mono">{resumen.reduce((sum, r) => sum + r.T, 0)}</td>
-                            <td className="px-6 py-4 text-center font-bold text-indigo-400 font-mono bg-gray-900/50 shadow-inner">
+                        <tr className="bg-slate-50/80 border-t border-slate-100">
+                            <td className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Consolidado Anual</td>
+                            <td className="px-6 py-6 text-center font-black text-emerald-600 font-mono text-[14px]">{resumen.reduce((sum, r) => sum + r.I, 0)}</td>
+                            <td className="px-6 py-6 text-center font-black text-rose-600 font-mono text-[14px]">{resumen.reduce((sum, r) => sum + r.E, 0)}</td>
+                            <td className="px-6 py-6 text-center font-black text-blue-600 font-mono text-[14px]">{resumen.reduce((sum, r) => sum + r.P, 0)}</td>
+                            <td className="px-6 py-6 text-center font-black text-purple-600 font-mono text-[14px]">{resumen.reduce((sum, r) => sum + r.N, 0)}</td>
+                            <td className="px-6 py-6 text-center font-black text-orange-600 font-mono text-[14px]">{resumen.reduce((sum, r) => sum + r.T, 0)}</td>
+                            <td className="px-10 py-6 text-center font-black text-[#0f172a] font-mono text-[16px] bg-[#0f172a]/10 shadow-inner">
                                 {resumen.reduce((sum, r) => sum + r.total, 0)}
                             </td>
                         </tr>

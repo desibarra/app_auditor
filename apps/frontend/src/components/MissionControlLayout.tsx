@@ -2,6 +2,7 @@ import React, { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useEmpresa } from '../context/EmpresaContext';
 import axios from 'axios';
+import { useEffect } from 'react';
 
 interface LayoutProps {
     children: ReactNode;
@@ -17,7 +18,7 @@ const NAV_ITEMS = [
     { label: 'Devoluciones', path: '/devoluciones' },
 ];
 
-const MissionControlLayout: React.FC<LayoutProps> = ({ children, title, lastUpdate }) => {
+const MissionControlLayout: React.FC<LayoutProps> = ({ children, title }) => {
     const location = useLocation();
     const { empresa, listaEmpresas, seleccionarEmpresa, loading, refreshEmpresas } = useEmpresa();
 
@@ -26,6 +27,17 @@ const MissionControlLayout: React.FC<LayoutProps> = ({ children, title, lastUpda
     const [formData, setFormData] = useState({ rfc: '', razonSocial: '' });
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null); // Nuevo estado de error visual
+    const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
+
+    useEffect(() => {
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        }
+    }, [darkMode]);
 
     const handleEmpresaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const value = e.target.value;
@@ -83,117 +95,128 @@ const MissionControlLayout: React.FC<LayoutProps> = ({ children, title, lastUpda
     };
 
     return (
-        <div className="min-h-screen bg-zinc-100 text-zinc-900 font-sans text-sm selection:bg-zinc-200">
-            {/* Header Utilitario tipo SAP/Oracle - CONSISTENTE CON DASHBOARD */}
-            <div className="bg-white border-b border-zinc-300 px-6 py-2 sticky top-0 z-20 shadow-sm">
-                <div className="max-w-[1600px] mx-auto flex justify-between items-center h-10">
-                    <div className="flex items-center gap-6">
-                        <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                            <span className="font-bold tracking-tight text-zinc-800">SENTINEL</span>
-                            <span className="px-1.5 py-0.5 bg-zinc-100 border border-zinc-200 text-[10px] font-mono text-zinc-500 rounded-sm">
-                                AUDIT MODE
-                            </span>
+        <div className="min-h-screen bg-[var(--color-bg-app)] text-[var(--color-text-main)] font-sans text-[13px] transition-colors duration-500">
+            {/* Header Utilitario tipo Modern SaaS */}
+            <div className="bg-[var(--color-bg-card)]/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-[var(--color-border)] px-8 py-3 sticky top-0 z-20 shadow-sm transition-all">
+                <div className="max-w-[1600px] mx-auto flex justify-between items-center h-12">
+                    <div className="flex items-center gap-10">
+                        <Link to="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                            <div className="w-9 h-9 bg-[#0f172a] dark:bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-lg shadow-slate-900/10">S</div>
+                            <span className="font-black tracking-tighter text-[#0f172a] dark:text-white text-lg uppercase">Sentinel</span>
                         </Link>
-                        <div className="h-4 w-px bg-zinc-300 mx-2"></div>
-                        <nav className="flex gap-6 text-xs font-medium text-zinc-600">
+                        <nav className="flex gap-10 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">
                             {NAV_ITEMS.map((item) => {
                                 const isActive = location.pathname.startsWith(item.path);
                                 return (
                                     <Link
                                         key={item.path}
                                         to={item.path}
-                                        className={`transition-colors ${isActive
-                                            ? 'text-zinc-900 border-b-2 border-zinc-900 pb-[13px]'
-                                            : 'hover:text-zinc-900'
+                                        className={`transition-all relative py-2 ${isActive
+                                            ? 'text-[#0f172a] dark:text-blue-400'
+                                            : 'hover:text-slate-900 dark:hover:text-white'
                                             }`}
                                     >
                                         {item.label}
+                                        {isActive && (
+                                            <span className="absolute -bottom-1 left-0 right-0 h-1 bg-[#0f172a] dark:bg-blue-500 rounded-full shadow-[0_-1px_8px_rgba(15,23,42,0.4)] animate-in slide-in-from-bottom-1 transition-colors"></span>
+                                        )}
                                     </Link>
                                 );
                             })}
                         </nav>
                     </div>
-                    <div className="flex items-center gap-4 text-xs">
+                    <div className="flex items-center gap-8">
                         {title && title !== 'AUDITORÍA DETALLADA' && title !== 'DASHBOARD' && (
-                            <span className="hidden lg:inline-block bg-zinc-100 px-2 py-0.5 rounded text-[10px] font-bold text-zinc-500 uppercase tracking-wider border border-zinc-200">
+                            <span className="hidden lg:inline-block bg-[var(--color-bg-app)] text-[var(--color-text-main)] px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-[var(--color-border)] italic shadow-sm transition-all">
                                 {title}
                             </span>
                         )}
 
                         {/* SELECTOR DE EMPRESA GLOBAL */}
-                        <div className="flex flex-col items-end relative group">
-                            {loading ? (
-                                <span className="text-zinc-400 text-[10px]">Cargando...</span>
-                            ) : (
-                                <>
-                                    <div className="relative">
-                                        <select
-                                            value={empresa?.id || ''}
-                                            onChange={handleEmpresaChange}
-                                            className="appearance-none bg-transparent font-semibold text-zinc-700 text-right pr-6 focus:outline-none cursor-pointer hover:text-blue-600 transition-colors py-0 m-0"
-                                            style={{ direction: 'rtl' }}
-                                        >
-                                            {listaEmpresas.map(emp => (
-                                                <option key={emp.id} value={emp.id} className="text-left text-zinc-700">
-                                                    {emp.razonSocial}
-                                                </option>
-                                            ))}
-                                            <option value="" disabled>──────────────────</option>
-                                            <option value="NEW" className="text-blue-600 font-bold">+ Registrar Nueva Empresa</option>
-                                        </select>
-                                        {/* Flecha custom */}
-                                        <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        <div className="flex items-center gap-4 bg-[var(--color-bg-card)] px-4 py-2 rounded-xl border border-[var(--color-border)] shadow-sm group hover:border-slate-400 dark:hover:border-blue-500 transition-all">
+                            <div className="flex flex-col items-end">
+                                {loading ? (
+                                    <span className="text-slate-300 text-[10px] animate-pulse font-black uppercase tracking-widest">Protocolo de Carga...</span>
+                                ) : (
+                                    <>
+                                        <div className="relative">
+                                            <select
+                                                value={empresa?.id || ''}
+                                                onChange={handleEmpresaChange}
+                                                className="appearance-none bg-transparent font-black text-[var(--color-text-main)] text-right pr-6 focus:outline-none cursor-pointer transition-colors py-0 m-0 text-[11px] uppercase tracking-tighter"
+                                                style={{ direction: 'rtl' }}
+                                            >
+                                                {listaEmpresas.map(emp => (
+                                                    <option key={emp.id} value={emp.id} className="text-left text-slate-800 font-bold">
+                                                        {emp.razonSocial.toUpperCase()}
+                                                    </option>
+                                                ))}
+                                                <option value="" disabled>──────────────────</option>
+                                                <option value="NEW" className="text-emerald-600 font-black">+ REGISTRAR ENTIDAD</option>
+                                            </select>
+                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300 group-hover:text-[#0f172a]">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <span className="text-zinc-400 text-[10px] font-mono mt-0 leading-none">
-                                        RFC: {empresa?.rfc || '---'}
-                                    </span>
-                                </>
-                            )}
+                                        <span className="text-slate-400 text-[9px] font-black font-mono leading-none tracking-tight">
+                                            RFC: {empresa?.rfc || '---'}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
                         </div>
 
-                        <Link to="/config" className="text-zinc-400 hover:text-zinc-600 border-l border-zinc-200 pl-4 ml-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <button
+                            onClick={() => setDarkMode(!darkMode)}
+                            className="text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] transition-all p-2 bg-[var(--color-bg-app)] rounded-lg border border-[var(--color-border)] shadow-inner"
+                        >
+                            {darkMode ? '☀️' : '🌙'}
+                        </button>
+
+                        <Link to="/config" className="text-[var(--color-text-dim)] hover:text-[var(--color-primary)] border-l border-[var(--color-border)] pl-8 h-8 flex items-center transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                         </Link>
                     </div>
                 </div>
             </div>
 
-            <main className="max-w-[1600px] mx-auto px-6 py-6">
+            <main className="max-w-[1600px] mx-auto px-8 py-8 animate-in fade-in duration-700">
                 {children}
             </main>
 
-            {/* MODAL DE REGISTRO RÁPIDO (Estilo Enterprise) */}
+            {/* MODAL DE REGISTRO RÁPIDO */}
             {showModal && (
-                <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-white rounded-sm shadow-2xl border border-zinc-200 w-full max-w-md p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-zinc-800 font-bold text-lg">Nueva Entidad Fiscal</h3>
-                            <button onClick={() => setShowModal(false)} className="text-zinc-400 hover:text-zinc-600">
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                <div className="fixed inset-0 bg-[#0f172a]/40 backdrop-blur-md flex items-center justify-center z-[100] p-6 animate-in fade-in duration-500">
+                    <div className="bg-white rounded-[3rem] shadow-[0_32px_128px_-16px_rgba(15,23,42,0.3)] border border-slate-100 w-full max-w-xl p-14 animate-in zoom-in-95 duration-300">
+                        <div className="flex justify-between items-start mb-12">
+                            <div>
+                                <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Nueva Entidad</h3>
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mt-2">Protocolo de Registro en Bóveda</p>
+                            </div>
+                            <button onClick={() => setShowModal(false)} className="bg-slate-50 hover:bg-slate-100 text-slate-400 p-3 rounded-2xl transition-all active:scale-90">
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                         </div>
 
                         {/* ÁREA DE ERROR VISUAL */}
                         {errorMsg && (
-                            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-sm flex items-start gap-3">
-                                <span className="text-red-500 mt-0.5">⚠️</span>
+                            <div className="mb-10 p-6 bg-rose-50 border border-rose-100 rounded-[2rem] flex items-start gap-5 animate-in slide-in-from-top-4 duration-500 shadow-sm">
+                                <span className="text-2xl mt-0.5">⚠️</span>
                                 <div>
-                                    <p className="text-xs font-bold text-red-800">No se pudo registrar</p>
-                                    <p className="text-xs text-red-600 mt-0.5">{errorMsg}</p>
+                                    <p className="text-[11px] font-black text-rose-800 uppercase tracking-widest">Protocolo Interrumpido</p>
+                                    <p className="text-[11px] text-rose-600 font-bold mt-1.5 leading-relaxed">{errorMsg}</p>
                                 </div>
                             </div>
                         )}
 
                         <form onSubmit={handleCrearEmpresa}>
-                            <div className="space-y-4">
+                            <div className="space-y-8">
                                 <div>
-                                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">RFC de la Organización</label>
+                                    <label className="block text-[11px] font-black text-slate-900 uppercase tracking-widest mb-3 ml-1">RFC de la Organización</label>
                                     <input
                                         type="text"
                                         placeholder="XAXX010101000"
-                                        className={`w-full border px-3 py-2 rounded-sm focus:outline-none font-mono text-sm uppercase ${errorMsg ? 'border-red-300 focus:border-red-500' : 'border-zinc-300 focus:border-blue-500'
+                                        className={`w-full px-6 py-5 bg-slate-50 border rounded-2xl focus:outline-none focus:ring-4 focus:ring-slate-500/5 font-mono text-sm font-black uppercase transition-all shadow-inner ${errorMsg ? 'border-rose-300' : 'border-slate-100 focus:border-[#0f172a]'
                                             }`}
                                         maxLength={13}
                                         value={formData.rfc}
@@ -203,14 +226,17 @@ const MissionControlLayout: React.FC<LayoutProps> = ({ children, title, lastUpda
                                         }}
                                         required
                                     />
-                                    <p className="text-[10px] text-zinc-400 mt-1">Debe cumplir formato oficial (3-4 letras, 6 números, homoclave).</p>
+                                    <div className="flex justify-between items-center mt-3 ml-1">
+                                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest italic">Validación SAT Activa</p>
+                                        <p className="text-[9px] text-slate-300 font-mono">{formData.rfc.length}/13</p>
+                                    </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Razón Social</label>
+                                    <label className="block text-[11px] font-black text-slate-900 uppercase tracking-widest mb-3 ml-1">Denominación o Razón Social</label>
                                     <input
                                         type="text"
-                                        placeholder="Ej. Consultoría Integral S.A. de C.V."
-                                        className="w-full border border-zinc-300 px-3 py-2 rounded-sm focus:border-blue-500 focus:outline-none text-sm"
+                                        placeholder="EJ. CONSULTORÍA INTEGRAL S.A. DE C.V."
+                                        className="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-2xl focus:border-[#0f172a] focus:ring-4 focus:ring-slate-500/5 focus:outline-none text-sm font-black uppercase transition-all shadow-inner"
                                         value={formData.razonSocial}
                                         onChange={e => setFormData({ ...formData, razonSocial: e.target.value })}
                                         required
@@ -218,27 +244,28 @@ const MissionControlLayout: React.FC<LayoutProps> = ({ children, title, lastUpda
                                 </div>
                             </div>
 
-                            <div className="mt-6 flex justify-end gap-3">
+                            <div className="mt-12 flex gap-5">
                                 <button
                                     type="button"
                                     onClick={() => setShowModal(false)}
-                                    className="px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 rounded-sm"
+                                    className="flex-1 btn-secondary py-5 text-[11px] rounded-[1.8rem]"
                                 >
-                                    Cancelar
+                                    ABORTAR
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="px-4 py-2 text-sm bg-zinc-900 text-white hover:bg-zinc-800 rounded-sm font-medium disabled:opacity-50 flex items-center gap-2"
+                                    className="flex-[1.5] btn-primary py-5 text-[11px] rounded-[1.8rem] shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
                                 >
-                                    {submitting && <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
-                                    {submitting ? 'Registrando...' : 'Dar de Alta'}
+                                    {submitting && <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>}
+                                    {submitting ? 'VALIDANDO...' : 'ESTABLECER ENTIDAD'}
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
+
         </div>
     );
 };

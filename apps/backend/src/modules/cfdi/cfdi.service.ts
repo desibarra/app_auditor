@@ -1,7 +1,7 @@
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { CfdiParserService, CfdiData } from './services/cfdi-parser.service';
 import { RiskEngineService } from '../risk/risk.service';
-import { cfdiRecibidos, cfdiImpuestos, cfdiRelaciones, empresas } from '../../database/schema';
+import { cfdiRecibidos, cfdiImpuestos, cfdiRelaciones, empresas, auditLogs } from '../../database/schema';
 import { eq, sql, and } from 'drizzle-orm';
 
 @Injectable()
@@ -154,6 +154,7 @@ export class CfdiService {
                 if (cfdiData.impuestos && cfdiData.impuestos.length > 0) {
                     const impuestosValues = cfdiData.impuestos.map((imp) => ({
                         cfdiUuid: cfdiData.uuid,
+                        empresaId: empresaId,
                         nivel: imp.nivel,
                         tipo: imp.tipo,
                         impuesto: imp.impuesto,
@@ -517,11 +518,16 @@ export class CfdiService {
      * Consulta el estado en tiempo real del CFDI en el SAT (SOAP)
      */
     async consultarEstadoSat(uuid: string, re: string, rr: string, tt: number): Promise<string> {
-        // Formatear total a string como lo requiere el SAT (ej: 123.45)
-        // A veces requiere total exacto con decimales.
-        const totalStr = tt.toFixed(6).replace(/0+$/, '').replace(/\.$/, '.0'); // Ajuste básico, idealmente exacto del XML
+        try {
+            if (!uuid || !re || !rr || tt === undefined) {
+                return 'DatosIncompletos';
+            }
 
-        const soapBody = `
+            // El SAT requiere tt con hasta 6 decimales, sin ceros innecesarios al final
+            // pero siempre con al menos un decimal. Ej: 123.0 o 123.45
+            const totalStr = Number(tt).toFixed(6).replace(/0+$/, '').replace(/\.$/, '.0');
+
+            const soapBody = `
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/">
    <soapenv:Header/>
    <soapenv:Body>
@@ -531,60 +537,69 @@ export class CfdiService {
    </soapenv:Body>
 </soapenv:Envelope>`;
 
-        try {
-            // Usamos fetch nativo de Node.js
+            // Usamos fetch nativo de Node.js (Node 18+)
             const response = await fetch('https://consultaqr.facturaelectronica.sat.gob.mx/ConsultaCFDIService.svc', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'text/xml;charset=UTF-8',
                     'SOAPAction': 'http://tempuri.org/IConsultaCFDIService/Consulta'
                 },
-                body: soapBody.trim()
+                body: soapBody.trim(),
+                signal: AbortSignal.timeout(10000) // Timeout de 10s por factura
             });
 
             if (!response.ok) {
-                console.warn(`SAT SOAP Error ${response.status}: ${response.statusText}`);
-                return 'Error';
+                console.warn(`[SAT SOAP] Error ${response.status} para UUID ${uuid}`);
+                return 'ErrorServicio';
             }
 
             const text = await response.text();
-
-            // Regex para extraer Estado sin parseador XML pesado
-            // Namespace suele ser 'a' o sin namespace
             const match = text.match(/<.*?:?Estado>(.*?)<\/.*?:?Estado>/);
 
             if (match && match[1]) {
-                return match[1]; // Generalmente "Vigente" o "Cancelado"
+                const estado = match[1];
+                return estado; // Vigente, Cancelado, No Encontrado
             }
+
             return 'NoEncontrado';
-        } catch (e) {
-            console.error(`Error consultando SAT para UUID ${uuid}:`, e);
+        } catch (e: any) {
+            console.error(`[SAT SOAP] Exception para UUID ${uuid}:`, e.message);
             return 'ErrorRed';
         }
     }
 
     /**
-     * Sincroniza el estatus de todos los CFDIs 'Vigentes' de la empresa con el SAT
+     * Sincroniza el estatus de los CFDIs de la empresa con el SAT
+     * @param empresaId ID de la empresa
+     * @param periodo Opcional: filtro por mes (YYYY-MM)
      */
-    async sincronizarEmpresa(empresaId: string) {
-        // Obtener CFDIs que asumimos vigentes para re-validar
-        // Limitamos a los últimos 50 para no timeout, o por fecha.
-        // MVP: Últimos 50 importados.
+    async sincronizarEmpresa(empresaId: string, periodo?: string) {
+        console.log(`[SAT Sync] Iniciando sincronización para empresa ${empresaId}${periodo ? ` periodo ${periodo}` : ''}`);
+
+        // Obtener CFDIs para validación masiva (Priorizando PENDING y VIGENTES recientes)
+        const filters = [eq(cfdiRecibidos.empresaId, empresaId)];
+        if (periodo) {
+            // Usar LIKE o SUBSTR para filtrar por mes en el string ISO de fecha
+            filters.push(sql`fecha LIKE ${periodo + '%'}`);
+        }
+
         const cfdis = await this.db
             .select()
             .from(cfdiRecibidos)
-            .where(eq(cfdiRecibidos.empresaId, empresaId))
-            .limit(50); // Límite de seguridad
+            .where(and(...filters))
+            .orderBy(
+                // Priorizar PENDING y MANUAL
+                sql`CASE WHEN estatus_fiscal = 'PENDING' THEN 0 WHEN estatus_fuente = 'MANUAL' THEN 1 ELSE 2 END ASC`,
+                sql`fecha DESC`
+            )
+            .limit(200); // Límite aumentado a 200 ahora que tenemos 5 min de proxy timeout
 
         let actualizados = 0;
         let canceladosDetectados = 0;
+        const cambios: any[] = [];
 
         // Ejecutar en serie o paralelo limitado para no saturar SAT
         for (const cfdi of cfdis) {
-            // Solo verificar si vale la pena (no verificar cancelados antiguos, aunque el usuario pide re-checar)
-            // Validaremos TODOS los de la lista para asegurar.
-
-            // Ajuste Total: El SAT es quisquilloso con el total. Usar total exacto del CFDI.
             const estadoReal = await this.consultarEstadoSat(
                 cfdi.uuid,
                 cfdi.emisorRfc,
@@ -592,32 +607,74 @@ export class CfdiService {
                 cfdi.total
             );
 
-            if (estadoReal === 'Vigente' || estadoReal === 'Cancelado') {
-                // Actualizar DB
-                await this.db
-                    .update(cfdiRecibidos)
-                    .set({
-                        estatusFiscal: estadoReal.toUpperCase(), // Asegurar VIGENTE/CANCELADO
-                        estatusFuente: 'SAT_REAL',
-                        lastCheckedAt: new Date()
-                    })
-                    .where(eq(cfdiRecibidos.uuid, cfdi.uuid));
+            const estadoLimpio = (estadoReal || '').toUpperCase();
 
-                actualizados++;
-                if (estadoReal === 'Cancelado' && cfdi.estatusFiscal !== 'CANCELADO') {
-                    canceladosDetectados++;
+            if (estadoLimpio === 'VIGENTE' || estadoLimpio === 'CANCELADO') {
+                const previoEstado = (cfdi.estatusFiscal || '').toUpperCase();
+
+                // Solo actualizar si hay cambio real o no tenía estatus validado
+                if (estadoLimpio !== previoEstado || cfdi.estatusFuente !== 'SAT_REAL') {
+                    await this.db
+                        .update(cfdiRecibidos)
+                        .set({
+                            estatusFiscal: estadoLimpio,
+                            estatusFuente: 'SAT_REAL',
+                            lastCheckedAt: new Date()
+                        })
+                        .where(eq(cfdiRecibidos.uuid, cfdi.uuid));
+
+                    actualizados++;
+
+                    // LOG DE AUDITORÍA SI CAMBIÓ EL ESTATUS (Especialmente a CANCELADO)
+                    if (estadoLimpio !== previoEstado) {
+                        cambios.push({
+                            uuid: cfdi.uuid,
+                            folio: cfdi.folio,
+                            emisor: cfdi.emisorNombre,
+                            anterior: previoEstado,
+                            nuevo: estadoLimpio,
+                            fecha: cfdi.fecha
+                        });
+
+                        // Registrar en bitácora oficial de la empresa
+                        await this.db.insert(auditLogs).values({
+                            empresaId,
+                            accion: 'CAMBIO_ESTATUS_SAT',
+                            entidad: 'cfdi_recibidos',
+                            entidadId: cfdi.uuid,
+                            detalles: JSON.stringify({
+                                motivo: 'Sincronización Automática SAT',
+                                previo: previoEstado,
+                                nuevo: estadoLimpio,
+                                folio: cfdi.folio
+                            })
+                        });
+
+                        if (estadoLimpio === 'CANCELADO') {
+                            canceladosDetectados++;
+                        }
+                    }
                 }
             }
 
+            // Log cada 10 facturas para ver progreso en consola
+            if (cfdis.indexOf(cfdi) % 10 === 0) {
+                console.log(`[SAT Sync] Progreso: ${cfdis.indexOf(cfdi)}/${cfdis.length} analizados...`);
+            }
 
-            // Pequeña pausa para no ser bloqueado
-            await new Promise(r => setTimeout(r, 200));
+            // Pausa reducida para mayor velocidad manteniéndose seguro
+            await new Promise(r => setTimeout(r, 50));
         }
 
         return {
-            procesados: cfdis.length,
-            actualizados,
-            canceladosDetectados,
+            success: true,
+            resumen: {
+                procesados: cfdis.length,
+                actualizados,
+                canceladosDetectados,
+                totalCambios: cambios.length
+            },
+            detalles: cambios,
             fecha: new Date()
         };
     }
@@ -656,6 +713,21 @@ export class CfdiService {
                 T: number;
                 total: number;
             }>();
+
+            // 🆕 Inicializar 12 meses del año actual para asegurar vista completa
+            const currentYear = new Date().getFullYear();
+            for (let i = 1; i <= 12; i++) {
+                const mesKey = `${currentYear}-${String(i).padStart(2, '0')}`;
+                mesesMap.set(mesKey, {
+                    mes: mesKey,
+                    I: 0,
+                    E: 0,
+                    P: 0,
+                    N: 0,
+                    T: 0,
+                    total: 0,
+                });
+            }
 
             for (const row of resultados) {
                 const mes = row.mes as string;
@@ -764,6 +836,7 @@ export class CfdiService {
                 FROM cfdi_recibidos
                 WHERE empresa_id = ${empresaId}
                   AND strftime('%Y-%m', fecha) = ${mes}
+                  AND UPPER(estatus_fiscal) = 'VIGENTE'
             `);
 
             const s = stats[0] || { total_mes: 0, alertas_activas: 0, emitidos_count: 0, recibidos_count: 0, pagos_count: 0, nomina_count: 0 };
@@ -894,6 +967,23 @@ export class CfdiService {
                 clientes: number;
             }>();
 
+            // 🆕 Inicializar 12 meses del año actual
+            const currentYear = new Date().getFullYear();
+            for (let i = 1; i <= 12; i++) {
+                const mesKey = `${currentYear}-${String(i).padStart(2, '0')}`;
+                mesesMap.set(mesKey, {
+                    mes: mesKey,
+                    I: 0,
+                    E: 0,
+                    P: 0,
+                    N: 0,
+                    T: 0,
+                    total: 0,
+                    importe_total: 0,
+                    clientes: 0,
+                });
+            }
+
             for (const row of resultados) {
                 const mes = row.mes as string;
                 const tipo = row.tipo_comprobante as string;
@@ -969,6 +1059,7 @@ export class CfdiService {
                 FROM cfdi_recibidos
                 WHERE emisor_rfc = ${empresa.rfc}
                   AND strftime('%Y-%m', fecha) = ${mesActual}
+                  AND UPPER(estatus_fiscal) = 'VIGENTE'
             `);
 
             // 4. KPI: Importe Total Emitido del Mes
@@ -977,6 +1068,7 @@ export class CfdiService {
                 FROM cfdi_recibidos
                 WHERE emisor_rfc = ${empresa.rfc}
                   AND strftime('%Y-%m', fecha) = ${mesActual}
+                  AND UPPER(estatus_fiscal) = 'VIGENTE'
             `);
 
             // 5. KPI: Clientes Activos (receptores únicos del mes)
@@ -985,6 +1077,7 @@ export class CfdiService {
                 FROM cfdi_recibidos
                 WHERE emisor_rfc = ${empresa.rfc}
                   AND strftime('%Y-%m', fecha) = ${mesActual}
+                  AND UPPER(estatus_fiscal) = 'VIGENTE'
             `);
 
             // 6. KPI: CFDIs Cargados Hoy
@@ -1000,6 +1093,7 @@ export class CfdiService {
                 SELECT COUNT(*) as total
                 FROM cfdi_recibidos
                 WHERE emisor_rfc = ${empresa.rfc}
+                  AND UPPER(estatus_fiscal) = 'VIGENTE'
             `);
 
             return {
@@ -1063,8 +1157,11 @@ export class CfdiService {
                 SELECT
                     strftime('%Y-%m', fecha) AS mes,
                     COUNT(*) AS total,
-                    SUM(total) AS importe_total,
-                    COUNT(DISTINCT receptor_rfc) AS clientes
+                    SUM(CASE WHEN UPPER(estatus_fiscal) = 'VIGENTE' THEN total ELSE 0 END) AS importe_total,
+                    COUNT(DISTINCT receptor_rfc) AS clientes,
+                    COUNT(CASE WHEN UPPER(estatus_fiscal) = 'VIGENTE' THEN 1 END) as count_vigentes,
+                    COUNT(CASE WHEN UPPER(estatus_fiscal) = 'CANCELADO' THEN 1 END) as count_cancelados,
+                    COUNT(CASE WHEN UPPER(estatus_fiscal) = 'PENDING' OR estatus_fiscal IS NULL OR estatus_fiscal = '' THEN 1 END) as count_pendientes
                 FROM cfdi_recibidos
                 WHERE ${sql.raw(campoRfc)} = ${empresa.rfc}
                   AND tipo_comprobante = ${tipo}
@@ -1084,7 +1181,10 @@ export class CfdiService {
                     mes: mesStr,
                     total: 0,
                     importe_total: 0,
-                    clientes: 0
+                    clientes: 0,
+                    count_vigentes: 0,
+                    count_cancelados: 0,
+                    count_pendientes: 0
                 });
             }
 
@@ -1110,6 +1210,7 @@ export class CfdiService {
                 FROM cfdi_recibidos
                 WHERE ${sql.raw(campoRfc)} = ${empresa.rfc}
                   AND tipo_comprobante = ${tipo}
+                  AND UPPER(estatus_fiscal) = 'VIGENTE'
                   ${condicionFecha}
             `);
 
@@ -1122,6 +1223,7 @@ export class CfdiService {
                 FROM cfdi_recibidos
                 WHERE ${sql.raw(campoRfc)} = ${empresa.rfc}
                   AND tipo_comprobante = ${tipo}
+                  AND UPPER(estatus_fiscal) = 'VIGENTE'
                   ${condicionFecha}
                 GROUP BY receptor_rfc
                 ORDER BY total DESC
@@ -1143,6 +1245,7 @@ export class CfdiService {
                 FROM cfdi_recibidos
                 WHERE ${sql.raw(campoRfc)} = ${empresa.rfc}
                   AND tipo_comprobante = ${tipo}
+                  AND UPPER(estatus_fiscal) = 'VIGENTE'
             `);
 
             return {
@@ -1239,7 +1342,9 @@ export class CfdiService {
                     receptor_nombre AS nombreReceptor, 
                     tipo_comprobante AS tipoCfdi,
                     moneda,
-                    UPPER(estado_sat) AS status,
+                    UPPER(estatus_fiscal) AS status,
+                    estatus_fuente AS estatusFuente,
+                    last_checked_at AS lastCheckedAt,
                     metodo_pago, 
                     forma_pago, 
                     version_cfdi
@@ -1313,7 +1418,7 @@ export class CfdiService {
                 AND strftime('%Y-%m', fecha) = ${mes}
                 AND emisor_rfc = ${rfcEmpresa}
                 AND tipo_comprobante = 'I'
-                AND estado_sat != 'Cancelado'
+                AND estatus_fiscal != 'CANCELADO'
             `);
 
             const emitidosStats = emitidosStatsResult[0] || { count: 0, total: 0 };
@@ -1328,7 +1433,7 @@ export class CfdiService {
                 AND strftime('%Y-%m', fecha) = ${mes}
                 AND receptor_rfc = ${rfcEmpresa}
                 AND tipo_comprobante = 'I'
-                AND estado_sat != 'Cancelado'
+                AND estatus_fiscal != 'CANCELADO'
             `);
 
             const recibidosStats = recibidosStatsResult[0] || { count: 0, total: 0 };
@@ -1343,7 +1448,7 @@ export class CfdiService {
                     AND strftime('%Y-%m', fecha) = ${mes}
                     AND emisor_rfc = ${rfcEmpresa}
                     AND tipo_comprobante = 'I'
-                    AND estado_sat != 'Cancelado'
+                    AND estatus_fiscal != 'CANCELADO'
                 )
                 AND tipo = 'Traslado'
                 AND impuesto = '002'
@@ -1359,7 +1464,7 @@ export class CfdiService {
                     AND strftime('%Y-%m', fecha) = ${mes}
                     AND receptor_rfc = ${rfcEmpresa}
                     AND tipo_comprobante = 'I'
-                    AND estado_sat != 'Cancelado'
+                    AND estatus_fiscal != 'CANCELADO'
                 )
                 AND tipo = 'Traslado'
                 AND impuesto = '002'
@@ -1487,11 +1592,11 @@ export class CfdiService {
                 LEFT JOIN cfdi_recibidos cp
                     ON cp.uuid = r.cfdi_padre_uuid
                     AND cp.tipo_comprobante = 'P'
-                    AND cp.estado_sat != 'Cancelado'
+                    AND cp.estatus_fiscal != 'CANCELADO'
                 WHERE c.empresa_id = ${empresaId}
                 AND strftime('%Y-%m', c.fecha) = ${periodo}
                 AND c.tipo_comprobante = 'I'
-                AND c.estado_sat != 'Cancelado'
+                AND c.estatus_fiscal != 'CANCELADO'
                 AND ${origen === 'RECIBIDOS' ? sql`c.receptor_rfc = ${rfcEmpresa}` : sql`c.emisor_rfc = ${rfcEmpresa}`}
                 ORDER BY c.fecha DESC
             `);
@@ -1568,5 +1673,20 @@ export class CfdiService {
             meta: result.meta,
             data: filteredData
         };
+    }
+
+    /**
+     * Obtiene el historial de cambios de estatus detectados por el SAT
+     */
+    async getHistorialCambiosEstatus(empresaId: string) {
+        return await this.db
+            .select()
+            .from(auditLogs)
+            .where(and(
+                eq(auditLogs.empresaId, empresaId),
+                eq(auditLogs.accion, 'CAMBIO_ESTATUS_SAT')
+            ))
+            .orderBy(sql`fecha DESC`)
+            .limit(100);
     }
 }

@@ -10,6 +10,7 @@ interface ContextBarProps {
     perfilRiesgo?: string;
     sector?: string;
     regimenFiscal?: string;
+    satStatus?: string;
     // Multi-Ejercicio
     ejercicioFiscal?: number;
     versionCfdi?: string;
@@ -27,28 +28,6 @@ const SECTORES_SAT: Record<string, string> = {
     '811': 'SERVICIOS DE REPARACIÓN',
 };
 
-const REGIMENES_SAT: Record<string, string> = {
-    '601': 'GENERAL DE LEY',
-    '603': 'PERSONAS MORALES CON FINES NO LUCRATIVOS',
-    '605': 'SUELDOS Y SALARIOS',
-    '606': 'ARRENDAMIENTO',
-    '607': 'RÉGIMEN DE ENAJENACIÓN',
-    '608': 'DEMÁS INGRESOS',
-    '610': 'RESIDENTES EN EL EXTRANJERO',
-    '611': 'INGRESOS POR DIVIDENDOS',
-    '612': 'PERSONAS FÍSICAS CON ACTIVIDADES EMPRESARIALES',
-    '614': 'INGRESOS POR INTERESES',
-    '615': 'RÉGIMEN DE LOS INGRESOS POR OBTENCIÓN DE PREMIOS',
-    '616': 'SIN OBLIGACIONES FISCALES',
-    '620': 'SOCIEDADES COOPERATIVAS DE PRODUCCIÓN',
-    '621': 'INCORPORACIÓN FISCAL',
-    '622': 'ACTIVIDADES AGRÍCOLAS, GANADERAS, SILVÍCOLAS Y PESQUERAS',
-    '623': 'OPCIONAL PARA GRUPOS DE SOCIEDADES',
-    '624': 'COORDINADOS',
-    '625': 'RÉGIMEN DE LAS ACTIVIDADES EMPRESARIALES CON INGRESOS A TRAVÉS DE PLATAFORMAS TECNOLÓGICAS',
-    '626': 'RÉGIMEN SIMPLIFICADO DE CONFIANZA',
-};
-
 const ContextBar: React.FC<ContextBarProps> = ({
     empresaNombre,
     empresaRfc,
@@ -56,7 +35,7 @@ const ContextBar: React.FC<ContextBarProps> = ({
     modo,
     sector,
     perfilRiesgo,
-    regimenFiscal,
+    satStatus,
     ejercicioFiscal,
     versionCfdi
 }) => {
@@ -75,93 +54,114 @@ const ContextBar: React.FC<ContextBarProps> = ({
         };
     };
 
-    const getRegimenDisplay = () => {
-        if (!regimenFiscal) return { code: '---', name: 'NO DEFINIDO', color: 'text-gray-500' };
-
-        const regimenName = REGIMENES_SAT[regimenFiscal] || regimenFiscal.toUpperCase();
-
-        return {
-            code: regimenFiscal,
-            name: regimenName,
-            color: 'text-gray-400'
-        };
-    };
-
     const sectorInfo = getSectorDisplay();
-    const regimenInfo = getRegimenDisplay();
+    // const regimenInfo = getRegimenDisplay(); // Removed as it was unused and causing lint warning
+
+    const getStatusDisplay = () => {
+        const labels: Record<string, string> = {
+            'ACTIVE': 'CONEXIÓN ACTIVA',
+            'ERROR': 'ERROR DE VÍNCULO',
+            'CONFIGURED': 'CONFIGURADO',
+            'DISCONNECTED': 'DESCONECTADO'
+        };
+
+        const label = labels[satStatus || ''] || 'DESCONNECTED';
+
+        if (satStatus === 'ACTIVE') {
+            return (
+                <div className="badge-success">
+                    <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
+                    {label}
+                </div>
+            );
+        }
+
+        if (satStatus === 'ERROR') {
+            return (
+                <div className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-rose-50 text-rose-700 border border-rose-100 flex items-center gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-rose-500"></span>
+                    {label}
+                </div>
+            );
+        }
+
+        return (
+            <div className="badge-primary">
+                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                {label}
+            </div>
+        );
+    };
 
     // Determinar badge de ejercicio fiscal
     const getEjercicioBadge = () => {
         if (!ejercicioFiscal || !versionCfdi) return null;
 
         const isOld = ejercicioFiscal < 2022;
-        const color = isOld ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-blue-500/10 border-blue-500/30 text-blue-400';
+        const color = isOld ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-slate-50 border-[#0f172a]/10 text-[#0f172a]';
 
         return (
-            <div className={`px-2 py-1 rounded border text-[10px] font-mono ${color}`}>
-                Ejercicio {ejercicioFiscal} – CFDI {versionCfdi}
+            <div className={`px-2.5 py-1 rounded-lg border text-[10px] font-black font-mono shadow-sm ${color}`}>
+                EJERCICIO {ejercicioFiscal} – CFDI {versionCfdi}
             </div>
         );
     };
 
     return (
-        <div className="bg-[#0B0E14]/90 border-b border-gray-800 px-6 py-3 flex flex-col md:flex-row md:items-center justify-between sticky top-16 z-10 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-[#0B0E14]/80 transition-all">
+        <div className="bg-white/90 backdrop-blur-xl border-b border-slate-200 px-8 py-5 flex flex-col md:flex-row md:items-center justify-between sticky top-16 z-10 shadow-sm">
             {/* BLOQUE IDENTIDAD */}
-            <div className="flex items-center gap-4 min-w-0 flex-1">
-                <div className="bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20 hidden md:block">
-                    <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+            <div className="flex items-center gap-5 min-w-0 flex-1">
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 hidden md:block">
+                    <svg className="w-5 h-5 text-[#0f172a]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                 </div>
                 <div className="min-w-0">
-                    <h2 className="text-gray-100 font-bold text-sm tracking-tight truncate flex items-center gap-2" title={empresaNombre}>
+                    <h2 className="text-slate-900 font-black text-sm tracking-tight truncate flex items-center gap-2 uppercase" title={empresaNombre}>
                         {empresaNombre || 'SELECCIONE EMPRESA'}
                     </h2>
-                    <p className="text-gray-500 text-[10px] font-mono tracking-wider flex items-center gap-2 mt-0.5">
-                        {empresaRfc || '---'}
-                        {empresaRfc && (
-                            <>
-                                <span className="w-1 h-1 rounded-full bg-emerald-500"></span>
-                                <span className="text-emerald-500 font-bold">ACTIVO</span>
-                            </>
-                        )}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-[#0f172a] text-[10px] font-black font-mono bg-slate-50 px-2 py-0.5 rounded border border-slate-200 tracking-tighter">
+                            {empresaRfc || '---'}
+                        </span>
+                        {getStatusDisplay()}
+                    </div>
                 </div>
             </div>
 
             {/* SEPARADOR VISUAL */}
-            <div className="hidden md:block w-px h-8 bg-gray-800/50 mx-6"></div>
+            <div className="hidden md:block w-px h-10 bg-slate-100 mx-8"></div>
 
             {/* BLOQUE PERFIL FISCAL (SENTINEL) - DINÁMICO */}
-            <div className="hidden lg:flex flex-col min-w-[200px]">
-                <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-widest mb-0.5">PERFIL DE RIESGO</span>
-                <div className="flex flex-col leading-tight">
-                    <div className="flex items-center gap-2 mb-1">
-                        <div className={`w-2 h-2 rounded-full ${perfilRiesgo === 'CRÍTICO' ? 'bg-rose-500 animate-pulse' : perfilRiesgo === 'MEDIO' ? 'bg-yellow-500' : 'bg-emerald-500'}`}></div>
-                        <span className={`text-xs font-black tracking-tight ${perfilRiesgo === 'CRÍTICO' ? 'text-rose-500' : perfilRiesgo === 'MEDIO' ? 'text-yellow-500' : 'text-emerald-500'}`}>
-                            {perfilRiesgo || 'ANALIZANDO...'}
+            <div className="hidden lg:flex flex-col min-w-[220px]">
+                <span className="block text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-2">Análisis Forense</span>
+                <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${perfilRiesgo === 'CRÍTICO' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' : perfilRiesgo === 'MEDIO' ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
+                        <span className={`text-[11px] font-black uppercase tracking-widest ${perfilRiesgo === 'CRÍTICO' ? 'text-rose-600' : perfilRiesgo === 'MEDIO' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                            RIESGO: {perfilRiesgo || 'ANALIZANDO...'}
                         </span>
                     </div>
                     <span
-                        className={`${sectorInfo.color} text-[10px] font-bold font-mono truncate opacity-80`}
+                        className="text-slate-500 text-[10px] font-black truncate uppercase tracking-tight flex items-center gap-1.5"
                         title={`${sectorInfo.code} - ${sectorInfo.name}`}
                     >
-                        {sectorInfo.icon} {sectorInfo.name}
+                        <span className="p-1 bg-slate-50 rounded-md border border-slate-100">{sectorInfo.icon}</span> {sectorInfo.name}
                     </span>
                 </div>
             </div>
 
             {/* SEPARADOR VISUAL */}
-            <div className="hidden md:block w-px h-8 bg-gray-800/50 mx-6"></div>
+            <div className="hidden md:block w-px h-10 bg-slate-100 mx-8"></div>
 
             {/* BLOQUE CONTEXTO OPERATIVO */}
-            <div className="flex items-center gap-6 mt-2 md:mt-0">
-                <div>
-                    <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-widest mb-0.5">PERIODO</span>
-                    <span className="text-gray-200 font-mono text-xs font-bold block bg-gray-800/50 px-2 py-0.5 rounded border border-gray-700">
+            <div className="flex items-center gap-8 mt-2 md:mt-0">
+                <div className="text-right sm:text-left">
+                    <span className="block text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-2">Periodo Auditoría</span>
+                    <span className="text-slate-900 font-bold text-xs block bg-white px-4 py-1.5 rounded-lg border border-slate-200 shadow-sm uppercase">
                         {(() => {
                             if (!periodoLabel || periodoLabel === 'HISTÓRICO GLOBAL') return 'HISTÓRICO GLOBAL';
                             const [year, month] = periodoLabel.split('-');
                             if (year && month) {
-                                const months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+                                const months = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
                                 return `${months[parseInt(month) - 1]} ${year}`;
                             }
                             return periodoLabel;
@@ -172,11 +172,11 @@ const ContextBar: React.FC<ContextBarProps> = ({
                 {/* BADGE EJERCICIO FISCAL */}
                 {getEjercicioBadge()}
 
-                <div>
-                    <span className="block text-[9px] text-gray-500 uppercase font-bold tracking-widest mb-0.5">VISTA ACTIVA</span>
-                    <div className="flex items-center gap-2">
-                        <span className={`w-1.5 h-1.5 rounded-full ${modo === 'emitidos' ? 'bg-indigo-500 shadow-[0_0_5px_rgba(99,102,241,0.5)]' : 'bg-purple-500 shadow-[0_0_5px_rgba(168,85,247,0.5)]'}`}></span>
-                        <span className="text-gray-300 text-xs font-bold uppercase tracking-tight">
+                <div className="text-right">
+                    <span className="block text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-2 text-right">Flujo Operativo</span>
+                    <div className="flex items-center justify-end gap-3">
+                        <span className={`w-2 h-2 rounded-full ${modo === 'EMITIDOS' || modo === 'VENTAS' ? 'bg-[#0f172a]' : 'bg-slate-400'}`}></span>
+                        <span className={`text-[11px] font-black uppercase tracking-[0.15em] ${modo === 'EMITIDOS' || modo === 'VENTAS' ? 'text-[#0f172a]' : 'text-slate-600'}`}>
                             {modo}
                         </span>
                     </div>
