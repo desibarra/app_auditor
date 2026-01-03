@@ -39,7 +39,7 @@ async function bootstrap() {
 }
 
 bootstrap();
-// Force restart for BancosModule loading - Cycle v3
+// Force restart for StatsModule loading - Cycle v4 (Diagnostic Attempt)
 import { Controller, Get } from '@nestjs/common';
 
 @Controller('')

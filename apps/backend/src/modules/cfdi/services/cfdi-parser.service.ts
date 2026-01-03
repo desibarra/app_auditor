@@ -89,6 +89,7 @@ export interface PagoData {
     monedaP: string;
     monto: number;
     doctoRelacionado: DoctoRelacionadoData[];
+    impuestosP?: ImpuestoData[]; // 🟢 New field for Payment Taxes
 }
 
 export interface DoctoRelacionadoData {
@@ -105,7 +106,7 @@ export interface DoctoRelacionadoData {
 }
 
 export interface ImpuestoData {
-    nivel: 'comprobante' | 'concepto';
+    nivel: 'comprobante' | 'concepto' | 'pago'; // 🟢 Added 'pago'
     tipo: 'Traslado' | 'Retencion';
     impuesto: string; // '002' = IVA, '001' = ISR, '003' = IEPS
     impuestoNombre: string;
@@ -160,6 +161,16 @@ export class CfdiParserService {
             const complementoCartaPorte = this.extractCartaPorte(comprobante);
             const complementoNomina = this.extractNomina(comprobante);
             const complementoPago = this.extractPagos(comprobante);
+
+            // 🟢 MERGE DE IMPUESTOS (Comprobante + Pagos)
+            // Si hay impuestos en los pagos (REP 2.0), los agregamos al array principal con nivel 'pago'
+            if (complementoPago && complementoPago.length > 0) {
+                complementoPago.forEach(pago => {
+                    if (pago.impuestosP && pago.impuestosP.length > 0) {
+                        impuestos.push(...pago.impuestosP);
+                    }
+                });
+            }
 
             // Extraer versión y ejercicio fiscal
             const versionCfdi = comprobante['@_Version'] || '4.0';
@@ -484,12 +495,58 @@ export class CfdiParserService {
                     }));
                 }
 
+                // 🟢 EXTRAER IMPUESTOS DEL PAGO (REP 2.0)
+                const impuestosP: ImpuestoData[] = [];
+                const impPNode = pago['pago20:ImpuestosP']; // Solo en REP 2.0
+
+                if (impPNode) {
+                    // TrasladosP
+                    const trasladosP = impPNode['pago20:TrasladosP'];
+                    if (trasladosP) {
+                        const tList = Array.isArray(trasladosP['pago20:TrasladoP']) ? trasladosP['pago20:TrasladoP'] : [trasladosP['pago20:TrasladoP']];
+                        tList.forEach((t: any) => {
+                            if (t) {
+                                impuestosP.push({
+                                    nivel: 'pago',
+                                    tipo: 'Traslado',
+                                    impuesto: t['@_ImpuestoP'],
+                                    impuestoNombre: this.getImpuestoNombre(t['@_ImpuestoP']),
+                                    tipoFactor: t['@_TipoFactorP'],
+                                    tasaOCuota: t['@_TasaOCuotaP'] ? parseFloat(t['@_TasaOCuotaP']) : undefined,
+                                    base: parseFloat(t['@_BaseP'] || '0'),
+                                    importe: parseFloat(t['@_ImporteP'] || '0')
+                                });
+                            }
+                        });
+                    }
+
+                    // RetencionesP
+                    const retencionesP = impPNode['pago20:RetencionesP'];
+                    if (retencionesP) {
+                        const rList = Array.isArray(retencionesP['pago20:RetencionP']) ? retencionesP['pago20:RetencionP'] : [retencionesP['pago20:RetencionP']];
+                        rList.forEach((r: any) => {
+                            if (r) {
+                                impuestosP.push({
+                                    nivel: 'pago',
+                                    tipo: 'Retencion',
+                                    impuesto: r['@_ImpuestoP'],
+                                    impuestoNombre: this.getImpuestoNombre(r['@_ImpuestoP']),
+                                    tipoFactor: 'Tasa', // Retenciones suelen ser Tasa
+                                    base: 0, // No siempre explícito en nodo RetencionP 2.0
+                                    importe: parseFloat(r['@_ImporteP'] || '0')
+                                });
+                            }
+                        });
+                    }
+                }
+
                 return {
                     fechaPago: pago['@_FechaPago'],
                     formaDePagoP: pago['@_FormaDePagoP'],
                     monedaP: pago['@_MonedaP'],
                     monto: parseFloat(pago['@_Monto'] || '0'),
-                    doctoRelacionado: doctosRelacionados
+                    doctoRelacionado: doctosRelacionados,
+                    impuestosP // 🟢 Attach extracted taxes
                 };
             });
         } catch (e) {

@@ -2,22 +2,21 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmpresasModule } from './modules/empresas/empresas.module';
-import { AppController } from './app.controller';
 import { CfdiModule } from './modules/cfdi/cfdi.module';
-import { SentinelModule } from './modules/dashboard/dashboard.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { AuditoriaModule } from './modules/auditoria/auditoria.module';
 import { DatabaseModule } from './database/database.module';
 import { ExpedientesModule } from './modules/expedientes/expedientes.module';
-import { EvidenciasModule } from './modules/evidencias/evidencias.module';
-import { StatsModule } from './modules/stats/stats.module';
 import { S3Module } from './s3/s3.module';
 import { SeedModule } from './modules/seed/seed.module';
-import { LegajoModule } from './modules/legajo/legajo.module';
-import { BancosModule } from './modules/bancos/bancos.module';
-import { RiskModule } from './modules/risk/risk.module';
-import { DevolucionesModule } from './modules/devoluciones/devoluciones.module';
+import { ReportesModule } from './modules/reportes/reportes.module';
+import { EvidenciasModule } from './modules/evidencias/evidencias.module';
+import { StatsModule } from './modules/stats/stats.module';
 
+// Incluye módulo de auditoría para endpoint periodos-disponibles
 @Module({
     imports: [
+        StatsModule, // Movido al inicio para forzar carga
         ConfigModule.forRoot({
             isGlobal: true,
             envFilePath: '.env',
@@ -26,18 +25,16 @@ import { DevolucionesModule } from './modules/devoluciones/devoluciones.module';
         AuthModule,
         EmpresasModule,
         CfdiModule,
-        SentinelModule,
+        DashboardModule,
+        AuditoriaModule,
         ExpedientesModule,
-        EvidenciasModule,
-        StatsModule,
         S3Module,
         SeedModule,
-        LegajoModule,
-        BancosModule,
-        RiskModule,
-        DevolucionesModule,
+        ReportesModule,
+        EvidenciasModule,
+        StatsModule,
     ],
-    controllers: [AppController],
+    controllers: [],
     providers: [],
 })
 export class AppModule { }

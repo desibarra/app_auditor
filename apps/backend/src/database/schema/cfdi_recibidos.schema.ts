@@ -56,7 +56,11 @@ export const cfdiRecibidos = sqliteTable("cfdi_recibidos", {
     estatusFiscal: text("estatus_fiscal").notNull().default("PENDING"), // 'PENDING' | 'VIGENTE' | 'CANCELADO'
 
     // Fuente de la Verdad (Quién validó este estatus)
+    // Fuente de la Verdad (Quién validó este estatus)
     estatusFuente: text("estatus_fuente").notNull().default("MANUAL"), // 'MANUAL' | 'RFC_ONLY' | 'SAT_REAL'
+
+    // CLASIFICACIÓN FISCAL ESTRICTA (Hard-Assignment at Import)
+    rol: text("rol"), // 'EMITIDO' | 'RECIBIDO'
 
     // Momento de la última verificación técnica
     lastCheckedAt: integer("last_checked_at", { mode: 'timestamp_ms' }),
@@ -71,6 +75,13 @@ export const cfdiRecibidos = sqliteTable("cfdi_recibidos", {
     procesado: integer("procesado", { mode: 'boolean' }).default(false),
     tieneErrores: integer("tiene_errores", { mode: 'boolean' }).default(false),
     mensajeError: text("mensaje_error"),
+
+    // Nuevos campos
+    objetoImp: text("objeto_imp"),
+    tieneRepAsociado: integer("tiene_rep_asociado", { mode: 'boolean' }).default(false),
+    repUuid: text("rep_uuid"),
+    hallazgosDetectados: integer("hallazgos_detectados").default(0),
+    requiereRevalidacion: integer("requiere_revalidacion", { mode: 'boolean' }).default(false),
 }, (table) => ({
     pk: primaryKey({ columns: [table.uuid, table.empresaId] })
 }));

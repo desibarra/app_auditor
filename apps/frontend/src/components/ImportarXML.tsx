@@ -86,7 +86,7 @@ const ImportarXML: React.FC<ImportarXMLProps> = ({
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
 
-                if (response.data.status === 'DUPLICATED' || response.data.duplicado === true) {
+                if (response.data.status === 'DUPLICATED' || response.data.status === 'DUPLICADO' || response.data.duplicado === true) {
                     duplicatedCount++;
                     tempDuplicated.push({
                         name: file.name,

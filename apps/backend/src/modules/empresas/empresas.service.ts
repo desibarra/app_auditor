@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, ConflictException, Logger } from '@nes
 import Database from 'better-sqlite3';
 import path from 'path';
 import * as fs from 'fs';
+import { CryptoService } from '../../common/crypto.service';
 
 export interface CrearEmpresaDto {
     rfc: string;
@@ -17,7 +18,9 @@ export class EmpresasService {
     private readonly logger = new Logger(EmpresasService.name);
     private readonly db: Database.Database;
 
-    constructor() {
+    constructor(
+        private readonly cryptoService: CryptoService
+    ) {
         // Conexión dinámica a SQLite (Fallback a dev_clean.db)
         const dbPath = process.env.DATABASE_PATH
             ? path.join(process.cwd(), process.env.DATABASE_PATH)
@@ -29,6 +32,7 @@ export class EmpresasService {
 
         this.db = new Database(dbPath);
         this.logger.log(`✅ Conectado a DB: ${dbPath}`);
+        this.logger.log('🔐 CryptoService inyectado correctamente');
     }
 
     private mapEmpresa(e: any) {
@@ -226,7 +230,7 @@ export class EmpresasService {
             const empresa = await this.findOne(id);
             if (!empresa) throw new BadRequestException('Empresa no encontrada');
 
-            // 1. Simular persistencia de archivos
+            // 1. Simular persistencia de archivos (Backup local)
             const uploadDir = path.join(process.cwd(), 'uploads', 'fiel', id);
             if (!fs.existsSync(uploadDir)) {
                 fs.mkdirSync(uploadDir, { recursive: true });
@@ -239,7 +243,31 @@ export class EmpresasService {
                 fs.writeFileSync(path.join(uploadDir, 'fiel.key'), data.key.buffer);
             }
 
-            // 2. Actualizar base de datos con status ACTIVE
+            // 2. Encriptar credenciales con AES-256 (CryptoService)
+            const encryptedCer = data.cer
+                ? await this.cryptoService.encrypt(data.cer.buffer.toString('base64'), id)
+                : null;
+
+            const encryptedKey = data.key
+                ? await this.cryptoService.encrypt(data.key.buffer.toString('base64'), id)
+                : null;
+
+            const encryptedPass = await this.cryptoService.encrypt(data.passwordFiel, id);
+
+            const encryptedCiec = data.passwordCiec
+                ? await this.cryptoService.encrypt(data.passwordCiec, id)
+                : null;
+
+            // 3. Actualizar base de datos con status ACTIVE y credenciales reales encriptadas
+            // Nota: Usamos COALESCE (o lógica JS) para no borrar datos si envío parcial (aunque este endpoint suele ser full)
+            // Aquí asumimos que si no se envían archivos, podrían ser nulos, pero el update anterior 'fiel_cer_encrypted = ?' los borraría.
+            // Para ser seguros, recuperamos lo anterior si es nulo.
+
+            const currentCreds = this.db.prepare('SELECT fiel_cer_encrypted, fiel_key_encrypted FROM empresas WHERE id = ?').get(id) as any;
+
+            const finalCer = encryptedCer || currentCreds?.fiel_cer_encrypted;
+            const finalKey = encryptedKey || currentCreds?.fiel_key_encrypted;
+
             const stmt = this.db.prepare(`
                 UPDATE empresas 
                 SET 
@@ -253,18 +281,18 @@ export class EmpresasService {
             `);
 
             stmt.run(
-                'V4_ENCRYPTED_CER_CONTENT',
-                'V4_ENCRYPTED_KEY_CONTENT',
-                'V4_ENCRYPTED_PASS',
-                data.passwordCiec || null,
+                finalCer,
+                finalKey,
+                encryptedPass,
+                encryptedCiec,
                 id
             );
 
-            this.logger.log(`✅ Empresa ${id} vinculada exitosamente con FIEL`);
+            this.logger.log(`✅ Empresa ${id} vinculada exitosamente con FIEL (AES-256 Encrypted)`);
 
             return {
                 success: true,
-                message: 'Certificados vinculados y validados correctamente.',
+                message: 'Certificados vinculados y encriptados correctamente.',
                 status: 'ACTIVE'
             };
 

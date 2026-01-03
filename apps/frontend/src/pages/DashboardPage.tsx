@@ -8,6 +8,8 @@ interface DashboardData {
     totalCfdiMes: {
         ingresos: number;
         egresos: number;
+        cobrada: number; // NEW
+        pagada: number;  // NEW
     };
     alertasActivas: {
         alta: number;
@@ -37,14 +39,33 @@ const DashboardPage = () => {
             if (!empresa?.id) return;
             try {
                 setLoading(true);
-                const now = new Date();
-                const mesDefault = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-                // Llamada unificada al SentinelEngine real
+                // 1. Obtener último periodo activo para no mostrar dashboard vacío (FASE 3 - FIXED)
+                let mesActivo = new Date().toISOString().slice(0, 7); // Default: Hoy
+
+                try {
+                    // Endpoint optimizado creado en FASE 3
+                    const checkRes = await axios.get('/api/cfdi/ultimo-periodo', {
+                        params: { empresaId: empresa.id }
+                    });
+
+                    if (checkRes.data && checkRes.data.hasData) {
+                        mesActivo = checkRes.data.mesIso; // YYYY-MM
+                    } else {
+                        // Si no hay datos históricos (Bóveda Vacía real)
+                        console.warn('Dashboard: Sin datos históricos - Bóveda Vacía');
+                        setLoading(false);
+                        return; // Dejamos data en null para mostrar componente EmptyState
+                    }
+                } catch (e) {
+                    console.warn('No se pudo determinar último periodo, usando actual', e);
+                }
+
+                // 2. Llamada unificada al SentinelEngine real con el mes correcto
                 const res = await axios.get('/api/stats/sentinel-summary', {
                     params: {
                         empresaId: empresa.id,
-                        periodo: mesDefault,
+                        periodo: mesActivo,
                         flujo: 'RECIBIDOS' // Vista default recibidos para ver gastos
                     }
                 });
@@ -57,7 +78,9 @@ const DashboardPage = () => {
                 setData({
                     totalCfdiMes: {
                         ingresos: unified.kpis.ingresos || 0,
-                        egresos: unified.kpis.egresos || 0
+                        egresos: unified.kpis.egresos || 0,
+                        cobrada: unified.kpis.cobrada || 0, // Mapped
+                        pagada: unified.kpis.pagada || 0    // Mapped
                     },
                     alertasActivas: {
                         alta: (unified.alertas || []).filter((a: any) => a.tipo === 'ROJA').length,
@@ -109,7 +132,7 @@ const DashboardPage = () => {
                     <div className="text-right">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado del Sistema</p>
                         <p className={`text-[11px] font-mono font-black mt-1 italic uppercase ${empresa?.satStatus === 'ACTIVE' ? 'text-emerald-600' :
-                                empresa?.satStatus === 'ERROR' ? 'text-rose-600' : 'text-slate-400'
+                            empresa?.satStatus === 'ERROR' ? 'text-rose-600' : 'text-slate-400'
                             }`}>
                             {empresa?.satStatus === 'ACTIVE' ? 'VÍNCULO ACTIVO' :
                                 empresa?.satStatus === 'ERROR' ? 'ERROR DE CONEXIÓN' : 'VÍNCULO DESCONECTADO'} - {new Date().toLocaleTimeString()}
@@ -128,21 +151,40 @@ const DashboardPage = () => {
                         {/* KPI GRID */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
-                            {/* CFDI MES */}
+                            {/* CFDI MES - DEVENGADO (FACTURADO) */}
                             <div
                                 onClick={() => navigate('/auditoria')}
                                 className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl transition-all group overflow-hidden relative cursor-pointer"
                             >
                                 <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-bl-[4rem] -mr-8 -mt-8 transition-all group-hover:scale-110"></div>
-                                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 relative">Flujo Mensual</p>
+                                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 relative" title="Contabilidad Devengada">Facturado (CFDI)</p>
                                 <div className="space-y-4 relative">
                                     <div>
-                                        <p className="text-[10px] font-black text-emerald-600 uppercase mb-1">Ingresos</p>
+                                        <p className="text-[10px] font-black text-emerald-600 uppercase mb-1 cursor-help" title="Suma de CFDI Tipo 'I' Emitidos. NO REPRESENTA FLUJO DE EFECTIVO.">Facturado (I)</p>
                                         <p className="text-2xl font-black text-[#0f172a] tabular-nums tracking-tighter">{formatCurrency(data.totalCfdiMes.ingresos)}</p>
                                     </div>
                                     <div className="pt-4 border-t border-slate-50">
-                                        <p className="text-[10px] font-black text-rose-500 uppercase mb-1">Egresos</p>
+                                        <p className="text-[10px] font-black text-rose-500 uppercase mb-1">Facturado (E)</p>
                                         <p className="text-xl font-black text-slate-400 tabular-nums tracking-tighter">{formatCurrency(data.totalCfdiMes.egresos)}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* CFDI MES - COBRADO (REP) - NEW */}
+                            <div
+                                onClick={() => navigate('/bancos')}
+                                className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl transition-all group overflow-hidden relative cursor-pointer"
+                            >
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-[4rem] -mr-8 -mt-8 transition-all group-hover:scale-110"></div>
+                                <p className="text-[11px] font-black text-emerald-600/60 uppercase tracking-widest mb-6 relative">Flujo Efectivo (REP)</p>
+                                <div className="space-y-4 relative">
+                                    <div>
+                                        <p className="text-[10px] font-black text-emerald-600 uppercase mb-1 cursor-help" title="Suma real de cobros vía Complementos de Pago (REP)">Cobrado (Real)</p>
+                                        <p className="text-2xl font-black text-[#0f172a] tabular-nums tracking-tighter">{formatCurrency(data.totalCfdiMes.cobrada)}</p>
+                                    </div>
+                                    <div className="pt-4 border-t border-slate-200/50">
+                                        <p className="text-[10px] font-black text-rose-500 uppercase mb-1">Pagado (Real)</p>
+                                        <p className="text-xl font-black text-slate-500 tabular-nums tracking-tighter">{formatCurrency(data.totalCfdiMes.pagada)}</p>
                                     </div>
                                 </div>
                             </div>

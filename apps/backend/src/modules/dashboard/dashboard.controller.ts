@@ -49,7 +49,8 @@ export class SentinelController {
         if (!empresaId) {
             throw new BadRequestException('empresaId es requerido');
         }
-        return await this.statsService.getTendenciaAnual(empresaId);
+        const year = new Date().getFullYear().toString();
+        return await this.statsService.getTendenciaAnual(empresaId, year);
     }
 }
 

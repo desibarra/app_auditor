@@ -67,7 +67,7 @@ const ModalAuditoria1x1: React.FC<ModalAuditoria1x1Props> = ({
                 `/api/cfdi/detalle-mes/${empresaId}/${mes}/${dominio}/${tipo}`
             );
 
-            setCfdis(response.data.cfdis || []);
+            setCfdis(response.data.cfdi || []);
         } catch (err: any) {
             console.error('Error fetching CFDIs:', err);
             setError(err.response?.data?.message || 'Error al cargar los CFDIs');

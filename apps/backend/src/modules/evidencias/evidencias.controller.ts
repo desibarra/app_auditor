@@ -63,12 +63,15 @@ export class EvidenciasController {
     }
 
     /**
-     * GET /api/evidencias/:cfdiUuid
-     * Obtiene todas las evidencias de un CFDI
+     * GET /api/evidencias/categorias/:tipoComprobante
+     * Obtiene las categorías disponibles para un tipo de CFDI
+     * IMPORTANTE: Esta ruta debe ir ANTES de :cfdiUuid para evitar conflictos
      */
-    @Get(':cfdiUuid')
-    async getEvidenciasByCfdi(@Param('cfdiUuid') cfdiUuid: string) {
-        return await this.evidenciasService.getEvidenciasByCfdi(cfdiUuid);
+    @Get('categorias/:tipoComprobante')
+    async getCategorias(@Param('tipoComprobante') tipoComprobante: string) {
+        const categorias =
+            this.evidenciasService.getCategoriasPorTipo(tipoComprobante);
+        return { categorias };
     }
 
     /**
@@ -79,6 +82,15 @@ export class EvidenciasController {
     async contarEvidencias(@Param('cfdiUuid') cfdiUuid: string) {
         const count = await this.evidenciasService.contarEvidencias(cfdiUuid);
         return { count };
+    }
+
+    /**
+     * GET /api/evidencias/:cfdiUuid
+     * Obtiene todas las evidencias de un CFDI
+     */
+    @Get(':cfdiUuid')
+    async getEvidenciasByCfdi(@Param('cfdiUuid') cfdiUuid: string) {
+        return await this.evidenciasService.getEvidenciasByCfdi(cfdiUuid);
     }
 
     /**
@@ -109,21 +121,10 @@ export class EvidenciasController {
 
         res.set({
             'Content-Type': metadata.contentType,
-            'Content-Disposition': `attachment; filename="${metadata.fileName}"`,
+            'Content-Disposition': `attachment; filename=\"${metadata.fileName}\"`,
             'Content-Length': metadata.contentLength,
         });
 
         return new StreamableFile(stream);
-    }
-
-    /**
-     * GET /api/evidencias/categorias/:tipoComprobante
-     * Obtiene las categorías disponibles para un tipo de CFDI
-     */
-    @Get('categorias/:tipoComprobante')
-    async getCategorias(@Param('tipoComprobante') tipoComprobante: string) {
-        const categorias =
-            this.evidenciasService.getCategoriasPorTipo(tipoComprobante);
-        return { categorias };
     }
 }

@@ -16,6 +16,7 @@ const NAV_ITEMS = [
     { label: 'Expedientes & Riesgos', path: '/expedientes' },
     { label: 'Conciliación Bancaria', path: '/bancos' },
     { label: 'Devoluciones', path: '/devoluciones' },
+    { label: 'Reporte SAT (REP)', path: '/reportes/sat-rep' },
 ];
 
 const MissionControlLayout: React.FC<LayoutProps> = ({ children, title }) => {

@@ -11,69 +11,109 @@ export class StatsService {
 
     /**
      * 📊 DASHBOARD EJECUTIVO - SQL PURO
-     * Consolida métricas reales de Ingresos, Egresos y Alertas.
+     * Consolida métricas reales de Ingresos, Egresos y Alertas usando ROL PERSISTENTE.
      */
-    async getDashboard(empresaId: string, periodo?: string, rol: 'emitidos' | 'recibidos' = 'recibidos') {
+    async getDashboard(empresaId: string, periodo?: string, rolReq: 'emitidos' | 'recibidos' = 'recibidos') {
         try {
             const now = new Date();
             const mesActivo = periodo || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-            // 1. Obtener RFC de la empresa
+            // 1. Obtener Datos Empresa
             const empresaResult = await this.db.all(sql`
                 SELECT rfc, razon_social, sector, regimen_fiscal FROM empresas WHERE id = ${empresaId}
             `);
             if (!empresaResult.length) throw new BadRequestException('Empresa no encontrada');
             const { rfc: rfcEmpresa, razon_social, sector, regimen_fiscal } = empresaResult[0];
 
-            // 2. Resumen Consolidado (Ingresos Emitidos vs Gastos Recibidos)
+            // 2. Resumen Consolidado USANDO COLUMNA 'rol'
+            // Nota: rol = 'EMITIDO' son Ingresos, rol = 'RECIBIDO' son Gastos
             const kpis = await this.db.all(sql`
                 SELECT 
                     COUNT(*) as total_general,
-                    SUM(CASE WHEN emisor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN total ELSE 0 END) as ingresos_totales,
-                    SUM(CASE WHEN receptor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN total ELSE 0 END) as egresos_totales,
-                    COUNT(CASE WHEN emisor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN 1 END) as count_ingresos,
-                    COUNT(CASE WHEN receptor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN 1 END) as count_egresos
+                    
+                    /* Ingresos Netos: (EMITIDO+I) - (EMITIDO+E) Normalizado a MXN */
+                    SUM(CASE 
+                        WHEN rol = 'EMITIDO' AND tipo_comprobante = 'I' 
+                        THEN (CASE WHEN moneda = 'MXN' THEN total ELSE total * COALESCE(tipo_cambio, 1) END) 
+                        ELSE 0 
+                    END) 
+                    - SUM(CASE 
+                        WHEN rol = 'EMITIDO' AND tipo_comprobante = 'E' 
+                        THEN (CASE WHEN moneda = 'MXN' THEN total ELSE total * COALESCE(tipo_cambio, 1) END) 
+                        ELSE 0 
+                    END) 
+                    as ingresos_totales,
+                    
+                    /* Egresos Netos: (RECIBIDO+I) - (RECIBIDO+E) Normalizado a MXN */
+                    SUM(CASE 
+                        WHEN rol = 'RECIBIDO' AND tipo_comprobante = 'I' 
+                        THEN (CASE WHEN moneda = 'MXN' THEN total ELSE total * COALESCE(tipo_cambio, 1) END) 
+                        ELSE 0 
+                    END) 
+                    - SUM(CASE 
+                        WHEN rol = 'RECIBIDO' AND tipo_comprobante = 'E' 
+                        THEN (CASE WHEN moneda = 'MXN' THEN total ELSE total * COALESCE(tipo_cambio, 1) END) 
+                        ELSE 0 
+                    END) 
+                    as egresos_totales,
+
+                    COUNT(CASE WHEN rol = 'EMITIDO' AND tipo_comprobante = 'I' THEN 1 END) as count_ingresos,
+                    COUNT(CASE WHEN rol = 'RECIBIDO' AND tipo_comprobante = 'I' THEN 1 END) as count_egresos
+
                 FROM cfdi_recibidos
                 WHERE empresa_id = ${empresaId}
                 AND strftime('%Y-%m', fecha) = ${mesActivo}
-                AND UPPER(estatus_fiscal) = 'VIGENTE'
+                AND (UPPER(estatus_fiscal) = 'VIGENTE' OR estatus_fiscal IS NULL OR estatus_fiscal = 'PENDING')
             `);
 
             const counts = kpis[0] || { total_general: 0, ingresos_totales: 0, egresos_totales: 0, count_ingresos: 0, count_egresos: 0 };
 
-            // 2.1 Filtro específico para Alertas y Concentración (basado en rol)
-            const filterClause = rol === 'emitidos'
-                ? sql`emisor_rfc = ${rfcEmpresa}`
-                : sql`receptor_rfc = ${rfcEmpresa}`;
+            // 2.2 Cobrado Real (Flujo de Efectivo) - Validado con IMP_PAGADO de REP
+            // ESTA ES LA ÚNICA VERDAD DEL DINERO
+            const flujoEfectivo = await this.db.all(sql`
+                SELECT
+                    SUM(CASE WHEN p.rol = 'EMITIDO' THEN r.imp_pagado ELSE 0 END) as cobrado_real,
+                    SUM(CASE WHEN p.rol = 'RECIBIDO' THEN r.imp_pagado ELSE 0 END) as pagado_real
+                FROM cfdi_relaciones r
+                JOIN cfdi_recibidos p ON p.uuid = r.cfdi_padre_uuid
+                WHERE r.empresa_id = ${empresaId}
+                AND strftime('%Y-%m', p.fecha) = ${mesActivo}
+                AND (UPPER(p.estatus_fiscal) = 'VIGENTE' OR p.estatus_fiscal IS NULL OR p.estatus_fiscal = 'PENDING')
+            `);
+            const flujo = flujoEfectivo[0] || { cobrado_real: 0, pagado_real: 0 };
 
-            // 3. Alertas rápidas (Simplificadas para evitar errores de esquema)
+            // 2.3 Filtro por Rol activo para alertas y concentración
+            // 'emitidos' en UI = 'EMITIDO' en DB
+            const dbRol = rolReq === 'emitidos' ? 'EMITIDO' : 'RECIBIDO';
+
+            // 3. Alertas rápidas (Usando ROL)
             const riesgos = await this.db.all(sql`
                 SELECT 
                     COUNT(CASE WHEN metodo_pago = 'PPD' THEN 1 END) as ppd_detectados,
                     COUNT(CASE WHEN version_cfdi = '3.3' AND strftime('%Y', fecha) >= '2024' THEN 1 END) as cfdi_33_extemporaneo
                 FROM cfdi_recibidos
                 WHERE empresa_id = ${empresaId}
-                AND ${filterClause}
+                AND rol = ${dbRol} 
                 AND strftime('%Y-%m', fecha) = ${mesActivo}
-                AND UPPER(estatus_fiscal) = 'VIGENTE'
+                AND (UPPER(estatus_fiscal) = 'VIGENTE' OR estatus_fiscal IS NULL OR estatus_fiscal = 'PENDING')
             `);
 
             const r = riesgos[0] || { ppd_detectados: 0, cfdi_33_extemporaneo: 0 };
             const alertasDashboard = [];
-            if (Number(r.ppd_detectados) > 0 && rol === 'recibidos') alertasDashboard.push({ nivel: 'medio', titulo: 'Facturas PPD' });
+            if (Number(r.ppd_detectados) > 0 && rolReq === 'recibidos') alertasDashboard.push({ nivel: 'medio', titulo: 'Facturas PPD' });
             if (Number(r.cfdi_33_extemporaneo) > 0) alertasDashboard.push({ nivel: 'medio', titulo: 'CFDI 3.3 Detectado' });
 
             // 4. Top Concentración
             const topConcentracion = await this.db.all(sql`
                 SELECT 
-                    ${rol === 'emitidos' ? sql.raw('receptor_rfc') : sql.raw('emisor_rfc')} as rfc,
-                    ${rol === 'emitidos' ? sql.raw('receptor_nombre') : sql.raw('emisor_nombre')} as nombre,
-                    SUM(total) as total
+                    ${rolReq === 'emitidos' ? sql.raw('receptor_rfc') : sql.raw('emisor_rfc')} as rfc,
+                    ${rolReq === 'emitidos' ? sql.raw('receptor_nombre') : sql.raw('emisor_nombre')} as nombre,
+                    SUM(CASE WHEN moneda = 'MXN' THEN total ELSE total * COALESCE(tipo_cambio, 1) END) as total
                 FROM cfdi_recibidos
                 WHERE empresa_id = ${empresaId}
-                AND ${filterClause}
+                AND rol = ${dbRol}
                 AND strftime('%Y-%m', fecha) = ${mesActivo}
-                AND UPPER(estatus_fiscal) = 'VIGENTE'
+                AND (UPPER(estatus_fiscal) = 'VIGENTE' OR estatus_fiscal IS NULL OR estatus_fiscal = 'PENDING')
                 AND tipo_comprobante = 'I'
                 GROUP BY rfc, nombre
                 ORDER BY total DESC
@@ -90,8 +130,10 @@ export class StatsService {
                 kpis: {
                     cfdiDelMes: {
                         total: Number(counts.total_general || 0),
-                        ingresos: Number(counts.ingresos_totales || 0),
-                        egresos: Number(counts.egresos_totales || 0),
+                        ingresos: Number(counts.ingresos_totales || 0), // Facturado
+                        egresos: Number(counts.egresos_totales || 0),   // Facturado
+                        cobrada: Number(flujo.cobrado_real || 0),       // CASH
+                        pagada: Number(flujo.pagado_real || 0),         // CASH
                         countIngresos: Number(counts.count_ingresos || 0),
                         countEgresos: Number(counts.count_egresos || 0)
                     },
@@ -122,11 +164,12 @@ export class StatsService {
         try {
             const vista = (flujoReq === 'EMITIDOS') ? 'emitidos' : 'recibidos';
             const subFlujo = (flujoReq === 'PAGOS') ? 'pagos' : (flujoReq === 'EMITIDOS' ? 'ingresos' : 'gastos');
+            const year = periodo.split('-')[0];
 
             const [dashboardData, alerteData, tendenciaData] = await Promise.all([
                 this.getDashboard(empresaId, periodo, vista) as Promise<any>,
                 this.getAlerts(empresaId, periodo, vista, subFlujo),
-                this.getTendenciaAnual(empresaId)
+                this.getTendenciaAnual(empresaId, year)
             ]);
 
             return {
@@ -153,13 +196,7 @@ export class StatsService {
      */
     async getAlerts(empresaId: string, mes: string, vista: 'emitidos' | 'recibidos', flujo: string) {
         try {
-            const empresaResult = await this.db.all(sql`SELECT rfc FROM empresas WHERE id = ${empresaId}`);
-            if (!empresaResult.length) throw new BadRequestException('Empresa no encontrada');
-            const rfcEmpresa = empresaResult[0].rfc;
-
-            const filterClause = vista === 'emitidos'
-                ? sql`emisor_rfc = ${rfcEmpresa}`
-                : sql`receptor_rfc = ${rfcEmpresa}`;
+            const dbRol = vista === 'emitidos' ? 'EMITIDO' : 'RECIBIDO';
 
             const riesgos = await this.db.all(sql`
                 SELECT 
@@ -167,9 +204,9 @@ export class StatsService {
                     COUNT(CASE WHEN version_cfdi = '3.3' AND strftime('%Y', fecha) >= '2024' THEN 1 END) as cfdi_33_extemporaneo
                 FROM cfdi_recibidos
                 WHERE empresa_id = ${empresaId}
-                AND ${filterClause}
+                AND rol = ${dbRol}
                 AND strftime('%Y-%m', fecha) = ${mes}
-                AND UPPER(estatus_fiscal) = 'VIGENTE'
+                AND (UPPER(estatus_fiscal) = 'VIGENTE' OR estatus_fiscal IS NULL OR estatus_fiscal = 'PENDING')
                 AND tipo_comprobante = 'I'
             `);
 
@@ -209,29 +246,34 @@ export class StatsService {
     /**
      * 📈 TENDENCIA ANUAL - COMPARATIVA
      */
-    async getTendenciaAnual(empresaId: string) {
+    async getTendenciaAnual(empresaId: string, year: string) {
         try {
-            const empresaResult = await this.db.all(sql`SELECT rfc FROM empresas WHERE id = ${empresaId}`);
-            if (!empresaResult.length) throw new BadRequestException('Empresa no encontrada');
-            const rfcEmpresa = empresaResult[0].rfc;
+            const targetYear = year || new Date().getFullYear().toString();
 
             const historico = await this.db.all(sql`
                 SELECT 
                     strftime('%Y-%m', fecha) as mes_key,
-                    SUM(CASE WHEN emisor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN total ELSE 0 END) as ingresos,
-                    SUM(CASE WHEN receptor_rfc = ${rfcEmpresa} AND tipo_comprobante = 'I' THEN total ELSE 0 END) as egresos
+                    SUM(CASE 
+                        WHEN rol = 'EMITIDO' AND tipo_comprobante = 'I' 
+                        THEN (CASE WHEN moneda = 'MXN' THEN total ELSE total * COALESCE(tipo_cambio, 1) END) 
+                        ELSE 0 
+                    END) as ingresos,
+                    SUM(CASE 
+                        WHEN rol = 'RECIBIDO' AND tipo_comprobante = 'I' 
+                        THEN (CASE WHEN moneda = 'MXN' THEN total ELSE total * COALESCE(tipo_cambio, 1) END) 
+                        ELSE 0 
+                    END) as egresos
                 FROM cfdi_recibidos
                 WHERE empresa_id = ${empresaId}
-                AND UPPER(estatus_fiscal) = 'VIGENTE'
+                AND (UPPER(estatus_fiscal) = 'VIGENTE' OR estatus_fiscal IS NULL OR estatus_fiscal = 'PENDING')
+                AND strftime('%Y', fecha) = ${targetYear}
                 GROUP BY mes_key
                 ORDER BY mes_key ASC
             `);
 
-            // 🆕 Garantizar 12 meses para el año actual
-            const currentYear = new Date().getFullYear();
             const mesesDelAnio = Array.from({ length: 12 }, (_, i) => {
                 const mes = String(i + 1).padStart(2, '0');
-                return `${currentYear}-${mes}`;
+                return `${targetYear}-${mes}`;
             });
 
             const dataMap = new Map(historico.map((h: any) => [h.mes_key, h]));
@@ -254,3 +296,4 @@ export class StatsService {
         }
     }
 }
+

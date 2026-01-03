@@ -14,8 +14,8 @@ import { DatabaseService } from './database.service';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const databasePath =
-          configService.get<string>('DATABASE_PATH') ??
-          path.join(process.cwd(), 'data/dev_clean.db');
+          configService.get<string>('DATABASE_URL') ??
+          path.join(process.cwd(), 'data/dev.db');
 
         console.log('[Database] CWD:', process.cwd());
         console.log('[Database] Intentando abrir:', databasePath);

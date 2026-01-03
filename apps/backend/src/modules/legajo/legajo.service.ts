@@ -124,162 +124,166 @@ export class LegajoService {
     }
 
     private async generarReportePDF(nombreEmpresa: string, rfc: string, anio: number, mes: number, data: ReporteFinanciero[]): Promise<Buffer> {
-        try {
-            const timeoutMs = 30000; // 30 seconds timeout
-            return await Promise.race([
-                new Promise<Buffer>((resolve, reject) => {
-                    // Diseño profesional: Letter, márgenes limpios
-                    const doc = new PDFDocument({ margin: 40, size: 'LETTER' });
-                    const buffers: Buffer[] = [];
+        return new Promise((resolve, reject) => {
+            try {
+                const doc = new PDFDocument({ margin: 40, size: 'LETTER' });
+                const buffers: Buffer[] = [];
 
-                    doc.on('data', buffers.push.bind(buffers));
-                    doc.on('end', () => resolve(Buffer.concat(buffers)));
-                    doc.on('error', reject);
+                doc.on('data', buffers.push.bind(buffers));
+                doc.on('end', () => {
+                    try {
+                        resolve(Buffer.concat(buffers));
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+                doc.on('error', reject);
 
-                    // --- HEADER ---
-                    doc.fontSize(14).font('Helvetica-Bold').text('DICTAMEN DE MATERIALIDAD Y CUMPLIMIENTO FISCAL', { align: 'center' });
-                    doc.moveDown(0.5);
-                    doc.fontSize(9).font('Helvetica').fillColor('#666666').text('REPORTE AUDITORÍA INTERNA v2.1', { align: 'center' });
-                    doc.fillColor('black');
-                    doc.moveDown(1.5);
+                // --- HEADER ---
+                doc.fontSize(14).font('Helvetica-Bold').text('DICTAMEN DE MATERIALIDAD Y CUMPLIMIENTO FISCAL', { align: 'center' });
+                doc.moveDown(0.5);
+                doc.fontSize(9).font('Helvetica').fillColor('#666666').text('REPORTE AUDITORÍA INTERNA v2.1', { align: 'center' });
+                doc.fillColor('black');
+                doc.moveDown(1.5);
 
-                    // Bloque Info Cliente
-                    doc.fontSize(10).font('Helvetica-Bold').text(`CONTRIBUYENTE: ${nombreEmpresa.toUpperCase()} (${rfc})`);
-                    doc.text(`PERIODO AUDITADO: NOVIEMBRE ${anio}`); // Ajustar mes dinámico
-                    doc.moveDown();
+                // Bloque Info Cliente
+                doc.fontSize(10).font('Helvetica-Bold').text(`CONTRIBUYENTE: ${nombreEmpresa.toUpperCase()} (${rfc})`);
+                doc.text(`PERIODO AUDITADO: NOVIEMBRE ${anio}`); // Ajustar mes dinámico
+                doc.moveDown();
 
-                    // --- RESUMEN FINANCIERO (Caja Gris) ---
-                    const startY = doc.y;
-                    const boxHeight = 75;
-                    doc.rect(40, startY, 532, boxHeight).fill('#F3F4F6'); // Fondo gris suave
-                    doc.fillColor('black');
+                // --- RESUMEN FINANCIERO (Caja Gris) ---
+                const startY = doc.y;
+                const boxHeight = 75;
+                doc.rect(40, startY, 532, boxHeight).fill('#F3F4F6'); // Fondo gris suave
+                doc.fillColor('black');
 
-                    // Título Caja
-                    doc.fontSize(11).font('Helvetica-Bold').text('RESUMEN FINANCIERO DEL PERIODO', 55, startY + 10);
+                // Título Caja
+                doc.fontSize(11).font('Helvetica-Bold').text('RESUMEN FINANCIERO DEL PERIODO', 55, startY + 10);
 
-                    // Fila de Totales
-                    const ingresos = data.filter(d => d.rol === 'INGRESOS');
-                    const gastos = data.filter(d => d.rol === 'GASTOS');
+                // Fila de Totales
+                const ingresos = data.filter(d => d.rol === 'INGRESOS');
+                const gastos = data.filter(d => d.rol === 'GASTOS');
 
-                    const sumIngresos = ingresos.reduce((s, i) => s + i.total, 0);
-                    const sumEgresos = gastos.reduce((s, i) => s + i.total, 0);
-                    const sumIvaAcred = gastos.reduce((s, i) => s + i.impuesto, 0);
+                const sumIngresos = ingresos.reduce((s, i) => s + i.total, 0);
+                const sumEgresos = gastos.reduce((s, i) => s + i.total, 0);
+                const sumIvaAcred = gastos.reduce((s, i) => s + i.impuesto, 0);
 
-                    const fmt = (n: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n);
+                const fmt = (n: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n);
 
-                    doc.fontSize(9).font('Helvetica');
-                    // Columna Izq
-                    doc.text('Total Ingresos Facturados:', 55, startY + 35);
-                    doc.font('Helvetica-Bold').text(fmt(sumIngresos), 200, startY + 35);
+                doc.fontSize(9).font('Helvetica');
+                // Columna Izq
+                doc.text('Total Ingresos Facturados:', 55, startY + 35);
+                doc.font('Helvetica-Bold').text(fmt(sumIngresos), 200, startY + 35);
 
-                    // Columna Der
-                    doc.font('Helvetica').text('Total Egresos Deducibles:', 320, startY + 35);
-                    doc.font('Helvetica-Bold').text(fmt(sumEgresos), 460, startY + 35);
+                // Columna Der
+                doc.font('Helvetica').text('Total Egresos Deducibles:', 320, startY + 35);
+                doc.font('Helvetica-Bold').text(fmt(sumEgresos), 460, startY + 35);
 
-                    doc.font('Helvetica').text('IVA Acreditable Est.:', 320, startY + 50);
-                    doc.font('Helvetica-Bold').text(fmt(sumIvaAcred), 460, startY + 50);
+                doc.font('Helvetica').text('IVA Acreditable Est.:', 320, startY + 50);
+                doc.font('Helvetica-Bold').text(fmt(sumIvaAcred), 460, startY + 50);
 
-                    // Resetear posición (salir de la caja)
-                    doc.y = startY + boxHeight + 20;
+                // Resetear posición (salir de la caja)
+                doc.y = startY + boxHeight + 20;
 
-                    // --- TABLA DETALLADA ---
-                    // Definición de columnas (Grid System)
-                    // X: [#=40, Tipo=65, Fecha=95, ContraP=155, UUID=260, Imp=380, Evid=450, Est=520]
-                    const col = { num: 40, tipo: 65, fecha: 95, contra: 155, uuid: 260, imp: 380, evid: 450, est: 520 };
+                // --- TABLA DETALLADA ---
+                // Definición de columnas (Grid System)
+                // X: [#=40, Tipo=65, Fecha=95, ContraP=155, UUID=260, Imp=380, Evid=450, Est=520]
+                const col = { num: 40, tipo: 65, fecha: 95, contra: 155, uuid: 260, imp: 380, evid: 450, est: 520 };
 
-                    // Header Tabla
-                    const hY = doc.y;
-                    doc.rect(40, hY, 532, 20).fill('#2C3E50');
-                    doc.fillColor('white').fontSize(7).font('Helvetica-Bold');
+                // Header Tabla
+                const hY = doc.y;
+                doc.rect(40, hY, 532, 20).fill('#2C3E50');
+                doc.fillColor('white').fontSize(7).font('Helvetica-Bold');
 
-                    doc.text('#', col.num + 2, hY + 6);
-                    doc.text('TIPO', col.tipo, hY + 6);
-                    doc.text('FECHA', col.fecha, hY + 6);
-                    doc.text('CONTRAPARTE', col.contra, hY + 6);
-                    doc.text('UUID / FISCAL ID', col.uuid, hY + 6);
-                    doc.text('IMPORTE', col.imp, hY + 6);
-                    doc.text('EVIDENCIA', col.evid, hY + 6);
-                    doc.text('ESTATUS', col.est, hY + 6);
+                doc.text('#', col.num + 2, hY + 6);
+                doc.text('TIPO', col.tipo, hY + 6);
+                doc.text('FECHA', col.fecha, hY + 6);
+                doc.text('CONTRAPARTE', col.contra, hY + 6);
+                doc.text('UUID / FISCAL ID', col.uuid, hY + 6);
+                doc.text('IMPORTE', col.imp, hY + 6);
+                doc.text('EVIDENCIA', col.evid, hY + 6);
+                doc.text('ESTATUS', col.est, hY + 6);
 
-                    let rowY = hY + 25;
-                    doc.fillColor('black');
+                let rowY = hY + 25;
+                doc.fillColor('black');
 
-                    data.forEach((item, i) => {
-                        // Nueva página si se acaba el espacio
-                        if (rowY > 720) {
-                            doc.addPage();
-                            rowY = 50;
-                        }
+                data.forEach((item, i) => {
+                    // Nueva página si se acaba el espacio
+                    if (rowY > 720) {
+                        doc.addPage();
+                        rowY = 50;
+                    }
 
-                        // Zebra Striping
-                        if (i % 2 !== 0) {
-                            doc.rect(40, rowY - 4, 532, 14).fill('#F9FAFB');
-                            doc.fillColor('black');
-                        }
-
-                        // Datos
-                        doc.fontSize(7).font('Helvetica');
-                        doc.text((i + 1).toString(), col.num + 2, rowY);
-                        doc.text(item.rol === 'INGRESOS' ? 'ING' : 'EGR', col.tipo, rowY);
-
-                        // Fecha legible
-                        const d = new Date(item.fecha);
-                        const fechaStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
-                        doc.text(fechaStr, col.fecha, rowY);
-
-                        // Nombre Cortado
-                        doc.text(item.rfcoNombre.substring(0, 18), col.contra, rowY, { width: 95, height: 10, lineBreak: false, ellipsis: true });
-
-                        // UUID MONOSPACE PEQUEÑO Y COMPLETO
-                        doc.font('Courier').fontSize(6); // Menor fuente
-                        doc.text(item.uuid.substring(0, 36), col.uuid, rowY, { width: 110 }); // Intentar mostrarlo todo o casi todo (sin puntos suspensivos forzados manuales)
-
-                        // Importe
-                        doc.font('Helvetica-Bold').fontSize(7);
-                        doc.text(fmt(item.total), col.imp, rowY);
-
-                        // Evidencia (Check especial para el Contrato)
-                        doc.font('Helvetica').fontSize(6);
-                        let evText = `${item.evidenciasCount} Docs`;
-                        const tieneContrato = item.tiposEvidencia.some(t => t.toLowerCase().includes('contrato'));
-
-                        if (tieneContrato) {
-                            doc.fillColor('#16803d').font('Helvetica-Bold'); // Verde fuerte
-                            evText += ' + CONTRATO';
-                        }
-                        doc.text(evText, col.evid, rowY);
-                        doc.fillColor('black').font('Helvetica');
-
-                        // Estado
-                        const colorEst = item.cumplimiento === 'OK' ? '#16803d' : '#DC2626';
-                        doc.fillColor(colorEst).font('Helvetica-Bold').fontSize(7);
-                        // Evitar wrap forzado
-                        doc.text(item.cumplimiento, col.est, rowY);
-
+                    // Zebra Striping
+                    if (i % 2 !== 0) {
+                        doc.rect(40, rowY - 4, 532, 14).fill('#F9FAFB');
                         doc.fillColor('black');
-                        rowY += 16;
-                    });
+                    }
 
-                    // Footer Tabla: Totales
-                    const totalLineY = rowY + 5;
-                    doc.moveTo(40, totalLineY).lineTo(572, totalLineY).stroke();
-                    doc.fontSize(8).font('Helvetica-Bold').text('TOTAL MOVIMIENTOS AUDITADOS:', 40, totalLineY + 10);
-                    doc.text(data.length.toString(), 180, totalLineY + 10);
+                    // Datos
+                    doc.fontSize(7).font('Helvetica');
+                    doc.text((i + 1).toString(), col.num + 2, rowY);
+                    doc.text(item.rol === 'INGRESOS' ? 'ING' : 'EGR', col.tipo, rowY);
 
-                    // Generado por
-                    doc.fontSize(7).font('Helvetica').fillColor('grey');
-                    doc.text('Este documento es una representación impresa de un dictamen digital generado por SaaS Fiscal.', 40, 750, { align: 'center', width: 530 });
+                    // Fecha legible
+                    const d = new Date(item.fecha);
+                    const fechaStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+                    doc.text(fechaStr, col.fecha, rowY);
 
-                    doc.end();
-                }),
-                setTimeout(timeoutMs).then(() => {
-                    throw new Error('PDF generation timed out');
-                }),
-            ]);
-        } catch (error) {
-            this.logger.error('Error in generarReportePDF', error.stack);
-            throw new InternalServerErrorException('Failed to generate PDF', error.message);
-        }
+                    // Nombre Cortado
+                    doc.text(item.rfcoNombre.substring(0, 18), col.contra, rowY, { width: 95, height: 10, lineBreak: false, ellipsis: true });
+
+                    // UUID MONOSPACE PEQUEÑO Y COMPLETO
+                    doc.font('Courier').fontSize(6); // Menor fuente
+                    doc.text(item.uuid, col.uuid, rowY);
+
+                    rowY += 15;
+                });
+
+                doc.end();
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    /**
+     * Genera un reporte PDF con hallazgos detectados
+     */
+    private async generarReporteHallazgosPDF(hallazgos: any[]): Promise<Buffer> {
+        return new Promise((resolve, reject) => {
+            try {
+                const doc = new PDFDocument({ margin: 40, size: 'LETTER' });
+                const buffers: Buffer[] = [];
+
+                doc.on('data', buffers.push.bind(buffers));
+                doc.on('end', () => {
+                    try {
+                        resolve(Buffer.concat(buffers));
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+                doc.on('error', reject);
+
+                // --- HEADER ---
+                doc.fontSize(14).font('Helvetica-Bold').text('REPORTE DE HALLAZGOS FISCALES', { align: 'center' });
+                doc.moveDown(0.5);
+                doc.fontSize(9).font('Helvetica').fillColor('#666666').text('AUDITORÍA INTERNA - DETALLES DE DISCREPANCIAS', { align: 'center' });
+                doc.fillColor('black');
+                doc.moveDown(1.5);
+
+                // --- CONTENIDO ---
+                hallazgos.forEach((hallazgo, index) => {
+                    doc.fontSize(10).font('Helvetica').text(`${index + 1}. ${hallazgo.descripcionDiscrepancia}`);
+                    doc.moveDown(0.5);
+                });
+
+                doc.end();
+            } catch (error) {
+                reject(error);
+            }
+        });
     }
 
     async crearSnapshot(

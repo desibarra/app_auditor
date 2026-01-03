@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useMetricasDominio } from '../hooks/useMetricasDominio';
 import { TablaControlMensualDominio } from '../components/TablaControlMensualDominio';
 import MissionControlLayout from '../components/MissionControlLayout';
@@ -17,6 +17,64 @@ const AuditoriaDetalladaPage: React.FC = () => {
         anio: new Date().getFullYear().toString()
     });
 
+    // CONTEXTO TEMPORAL INTELIGENTE
+    const [availableContext, setAvailableContext] = useState<any>(null);
+    const [isLoadingContext, setIsLoadingContext] = useState(false);
+
+    // 1️⃣ Blindar el estado availablePeriods (safeYears)
+    const safeYears = React.useMemo(() => {
+        const currentYear = parseInt(periodo.anio);
+        if (!availableContext) return [currentYear];
+        if (!Array.isArray(availableContext.years)) return [currentYear];
+        if (availableContext.years.length === 0) return [currentYear];
+
+        // Unir años disponibles con el año actual seleccionado para evitar huerfanos
+        const uniqueYears = new Set([...availableContext.years, currentYear]);
+        // Convertir a array y ordenar descendente (años recientes primero)
+        return Array.from(uniqueYears).sort((a, b) => b - a);
+    }, [availableContext, periodo.anio]);
+
+    // FETCH CONTEXT TEMPORAL
+    useEffect(() => {
+        if (!empresaId) return;
+
+        const fetchContext = async () => {
+            setIsLoadingContext(true);
+            try {
+                const res = await axios.get(`/api/cfdi/periodos-disponibles?empresaId=${empresaId}`);
+                const data = res.data;
+                setAvailableContext(data);
+
+                // 4️⃣ Sincronizar cambio de empresa
+                // REGLA DE ORO: SIEMPRE ARRANCAR EN EL ÚLTIMO PERIODO CON DATOS SI EXISTE
+                if (data.status === 'SUCCESS' && data.lastAvailablePeriod) {
+                    const [y, m] = data.lastAvailablePeriod.split('-');
+                    console.log('📅 Contexto Temporal Sincronizado:', y, m);
+                    // Solo actualizar si es diferente para evitar loops
+                    setPeriodo(prev => {
+                        if (prev.anio === y && prev.mes === m) return prev;
+                        return { anio: y, mes: m };
+                    });
+                } else {
+                    // Fallback a fecha actual
+                    const now = new Date();
+                    setPeriodo({
+                        anio: now.getFullYear().toString(),
+                        mes: (now.getMonth() + 1).toString().padStart(2, '0')
+                    });
+                }
+            } catch (err) {
+                console.error('Error fetching period context:', err);
+                // Fallback de emergencia
+                setAvailableContext({ years: [new Date().getFullYear()] });
+            } finally {
+                setIsLoadingContext(false);
+            }
+        };
+
+        fetchContext();
+    }, [empresaId]);
+
     // ESTADO DE UI
     const [tabPrincipal, setTabPrincipal] = useState<'emitidos' | 'recibidos' | 'pagos'>('emitidos');
     const [subTab, setSubTab] = useState<string>('ingresos');
@@ -26,19 +84,12 @@ const AuditoriaDetalladaPage: React.FC = () => {
     const [showHistorialModal, setShowHistorialModal] = useState(false);
     const [historialCambios, setHistorialCambios] = useState<any[]>([]);
 
-    const dateInputRef = useRef<HTMLInputElement>(null);
+
 
     // PERSISTENCIA DE EMPRESA
     const handleSeleccionarEmpresa = (id: string) => {
         setEmpresaId(id);
         localStorage.setItem('empresaSeleccionada', id);
-    };
-
-    // NAVEGACIÓN Y REACTIVIDAD
-    const tryShowPicker = () => {
-        if (dateInputRef.current && 'showPicker' in dateInputRef.current) {
-            try { dateInputRef.current.showPicker(); } catch (e) { console.warn(e); }
-        }
     };
 
     // FETCH DATA EMPRESA
@@ -86,6 +137,22 @@ const AuditoriaDetalladaPage: React.FC = () => {
         { mes: `${periodo.anio}-${periodo.mes}` }
     );
 
+    // 5️⃣ Validación visual obligatoria (Is Period Outside Data Range?)
+    const validationState = React.useMemo(() => {
+        if (!availableContext) return { type: 'LOADING', message: '' };
+        if (availableContext.status === 'NO_DATA') return { type: 'EMPTY', message: 'No hay información fiscal cargada en la bóveda.' };
+
+        const current = `${periodo.anio}-${periodo.mes}`;
+        const { minMonth, maxMonth } = availableContext;
+
+        if (!minMonth || !maxMonth) return { type: 'VALID', message: '' };
+
+        if (current < minMonth) return { type: 'PAST_NO_DATA', message: 'Periodo anterior al inicio de operaciones fiscales registradas.' };
+        if (current > maxMonth) return { type: 'FUTURE_NO_DATA', message: 'Periodo futuro o pendiente de cierre fiscal.' };
+
+        return { type: 'VALID', message: '' };
+    }, [availableContext, periodo.anio, periodo.mes]);
+
     return (
         <MissionControlLayout title="AUDITORÍA FISCAL DETALLADA">
             <ContextBar
@@ -99,28 +166,80 @@ const AuditoriaDetalladaPage: React.FC = () => {
                 satStatus={empresaData?.satStatus}
             />
 
-            <div className="space-y-10 mt-10 animate-in fade-in duration-700">
+            {/* ALERTA DE BLOQUEO (Oculta la tabla si no hay datos válidos) */}
+            {validationState.type !== 'VALID' && validationState.type !== 'LOADING' && (
+                <div className={`p-6 mx-8 mt-6 rounded-2xl shadow-sm border-l-4 flex items-center justify-between animate-in slide-in-from-top-2 ${validationState.type === 'FUTURE_NO_DATA' ? 'bg-amber-50 border-amber-500 text-amber-900' : 'bg-slate-100 border-slate-400 text-slate-600'
+                    }`}>
+                    <div className="flex items-center gap-4">
+                        <span className="text-3xl">{validationState.type === 'FUTURE_NO_DATA' ? '🚧' : '📭'}</span>
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-widest opacity-80">
+                                {validationState.type === 'FUTURE_NO_DATA' ? 'Periodo Fuera de Rango' : 'Sin Datos Históricos'}
+                            </p>
+                            <p className="text-sm font-bold mt-1">{validationState.message}</p>
+                            <p className="text-[10px] mt-1 opacity-70">
+                                Rango disponible: <span className="font-mono">{availableContext?.minMonth}</span> a <span className="font-mono">{availableContext?.maxMonth}</span>
+                            </p>
+                        </div>
+                    </div>
+                    {availableContext?.lastAvailablePeriod && (
+                        <button
+                            onClick={() => {
+                                const [y, m] = availableContext.lastAvailablePeriod.split('-');
+                                setPeriodo({ anio: y, mes: m });
+                            }}
+                            className="px-5 py-2.5 bg-white border border-black/10 shadow-sm rounded-xl text-[10px] font-black hover:bg-black/5 transition-all uppercase tracking-widest"
+                        >
+                            Ir al Último Cierre
+                        </button>
+                    )}
+                </div>
+            )}
+
+            <div className="space-y-10 mt-6 animate-in fade-in duration-700">
                 {/* CONFIGURACIÓN DE VISTA */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="bg-white border border-slate-100 p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/40 lg:col-span-2 group hover:shadow-2xl transition-all duration-500">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-5 block">Bóveda Fiscal: Entidad bajo Auditoría</label>
                         <SelectorEmpresa empresaSeleccionada={empresaId} onSeleccionar={handleSeleccionarEmpresa} />
                     </div>
-                    <div className="bg-white border border-slate-100 p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/40 group hover:shadow-2xl transition-all duration-500 cursor-pointer" onClick={tryShowPicker}>
+                    <div className="bg-white border border-slate-100 p-8 rounded-[2.5rem] shadow-xl shadow-slate-200/40 group hover:shadow-2xl transition-all duration-500">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-5 block">Ejercicio y Mes de Análisis</label>
-                        <div className="flex items-center gap-5 bg-slate-50 border border-slate-100 rounded-[1.5rem] px-6 py-4 hover:border-[#0f172a]/20 transition-all group-hover:bg-white shadow-inner">
-                            <span className="text-2xl grayscale group-hover:grayscale-0 transition-all">📅</span>
-                            <div className="flex-1">
-                                <input
-                                    ref={dateInputRef}
-                                    type="month"
-                                    value={`${periodo.anio}-${periodo.mes}`}
-                                    onChange={(e) => {
-                                        const [y, m] = e.target.value.split('-');
-                                        if (y && m) setPeriodo({ anio: y, mes: m });
-                                    }}
-                                    className="bg-transparent border-none text-[#0f172a] font-black text-sm focus:ring-0 w-full uppercase cursor-pointer"
-                                />
+                        <div className="flex gap-4">
+                            {/* SELECTOR DE AÑO DINÁMICO */}
+                            <div className="flex-1 relative group">
+                                <select
+                                    value={periodo.anio}
+                                    onChange={(e) => setPeriodo({ ...periodo, anio: e.target.value })}
+                                    className={`w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 font-black text-[#0f172a] focus:ring-4 focus:ring-slate-500/5 focus:outline-none appearance-none cursor-pointer uppercase text-center ${isLoadingContext ? 'opacity-50 cursor-wait' : ''} ${validationState.type === 'EMPTY' ? 'opacity-50 cursor-not-allowed bg-slate-100' : ''}`}
+                                    disabled={isLoadingContext || validationState.type === 'EMPTY'}
+                                >
+                                    {isLoadingContext && <option>CARGANDO...</option>}
+
+                                    {!isLoadingContext && safeYears.map((y) => (
+                                        <option key={y} value={y}>{y}</option>
+                                    ))}
+                                </select>
+                                {/* Custom Arrow to ensure visibility */}
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+
+                            {/* SELECTOR DE MES */}
+                            <div className="flex-[1.5]">
+                                <select
+                                    value={periodo.mes}
+                                    onChange={(e) => setPeriodo({ ...periodo, mes: e.target.value })}
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 font-black text-[#0f172a] focus:ring-4 focus:ring-slate-500/5 focus:outline-none appearance-none cursor-pointer uppercase"
+                                >
+                                    {Array.from({ length: 12 }, (_, i) => {
+                                        const m = (i + 1).toString().padStart(2, '0');
+                                        const date = new Date(2000, i, 1);
+                                        const label = date.toLocaleString('es-MX', { month: 'long' });
+                                        return <option key={m} value={m}>{m} - {label.toUpperCase()}</option>;
+                                    })}
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -178,48 +297,56 @@ const AuditoriaDetalladaPage: React.FC = () => {
                 </div>
 
                 {/* TABLA PRINCIPAL REACTIVA */}
-                {tabPrincipal === 'pagos' ? (
-                    <div className="animate-in slide-in-from-bottom-6 duration-700">
-                        {empresaId && <ComplementosPagoTable empresaId={empresaId} periodo={`${periodo.anio}-${periodo.mes}`} />}
-                    </div>
+                {validationState.type === 'VALID' ? (
+                    tabPrincipal === 'pagos' ? (
+                        <div className="animate-in slide-in-from-bottom-6 duration-700">
+                            {empresaId && <ComplementosPagoTable empresaId={empresaId} periodo={`${periodo.anio}-${periodo.mes}`} />}
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl shadow-slate-200/40 overflow-hidden animate-in slide-in-from-bottom-10 duration-1000">
+                            <div className="px-10 py-10 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-center gap-10">
+                                <div>
+                                    <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.3em] flex items-center gap-4">
+                                        <div className="w-1.5 h-6 bg-[#0f172a] rounded-full"></div>
+                                        Desglose Mensual Analítico
+                                    </h3>
+                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1.5 ml-5">Exploración detallada de folios fiscales</p>
+                                </div>
+                                <div className="flex gap-2 p-2 bg-slate-50 rounded-[1.8rem] border border-slate-100 shadow-inner">
+                                    {(tabPrincipal === 'emitidos' ? ['ingresos', 'nomina', 'pagos', 'notas_credito'] : ['gastos', 'pagos', 'notas_credito']).map(st => (
+                                        <button
+                                            key={st}
+                                            onClick={() => setSubTab(st)}
+                                            className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-[1.2rem] transition-all duration-500 ${subTab === st ? 'bg-[#0f172a] text-white shadow-lg active:scale-95' : 'text-slate-400 hover:text-slate-800'}`}
+                                        >
+                                            {st.replace('_', ' ')}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="p-2">
+                                <TablaControlMensualDominio
+                                    resumen={resumen}
+                                    dominio={tabPrincipal.toUpperCase()}
+                                    loading={loading}
+                                    periodoLabel={`${periodo.mes}/${periodo.anio}`}
+                                    totalHistorico={metricas?.total_general || 0}
+                                    empresaId={empresaId}
+                                    rol={tabPrincipal === 'emitidos' ? 'EMISOR' : 'RECEPTOR'}
+                                    tipo={subTab === 'ingresos' ? 'I' : subTab === 'nomina' ? 'N' : subTab === 'pagos' ? 'P' : 'E'}
+                                    onSyncComplete={() => {
+                                        if (refresh) refresh();
+                                        fetchHistorial();
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )
                 ) : (
-                    <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl shadow-slate-200/40 overflow-hidden animate-in slide-in-from-bottom-10 duration-1000">
-                        <div className="px-10 py-10 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-center gap-10">
-                            <div>
-                                <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-[0.3em] flex items-center gap-4">
-                                    <div className="w-1.5 h-6 bg-[#0f172a] rounded-full"></div>
-                                    Desglose Mensual Analítico
-                                </h3>
-                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1.5 ml-5">Exploración detallada de folios fiscales</p>
-                            </div>
-                            <div className="flex gap-2 p-2 bg-slate-50 rounded-[1.8rem] border border-slate-100 shadow-inner">
-                                {(tabPrincipal === 'emitidos' ? ['ingresos', 'nomina', 'pagos', 'notas_credito'] : ['gastos', 'pagos', 'notas_credito']).map(st => (
-                                    <button
-                                        key={st}
-                                        onClick={() => setSubTab(st)}
-                                        className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-[1.2rem] transition-all duration-500 ${subTab === st ? 'bg-[#0f172a] text-white shadow-lg active:scale-95' : 'text-slate-400 hover:text-slate-800'}`}
-                                    >
-                                        {st.replace('_', ' ')}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="p-2">
-                            <TablaControlMensualDominio
-                                resumen={resumen}
-                                dominio={tabPrincipal.toUpperCase()}
-                                loading={loading}
-                                periodoLabel={`${periodo.mes}/${periodo.anio}`}
-                                totalHistorico={metricas?.total_general || 0}
-                                empresaId={empresaId}
-                                rol={tabPrincipal === 'emitidos' ? 'EMISOR' : 'RECEPTOR'}
-                                tipo={subTab === 'ingresos' ? 'I' : subTab === 'nomina' ? 'N' : subTab === 'pagos' ? 'P' : 'E'}
-                                onSyncComplete={() => {
-                                    if (refresh) refresh();
-                                    fetchHistorial();
-                                }}
-                            />
-                        </div>
+                    /* Placeholder Visual para Estado Vacío */
+                    <div className="flex flex-col items-center justify-center py-20 opacity-50">
+                        <div className="text-6xl mb-5 grayscale filter">📂</div>
+                        <p className="font-black text-xs text-slate-400 uppercase tracking-widest">Seleccione un periodo válido para ver la información</p>
                     </div>
                 )}
             </div>

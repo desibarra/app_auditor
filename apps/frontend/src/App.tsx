@@ -8,6 +8,7 @@ import ListaDevolucionesPage from './pages/ListaDevolucionesPage';
 import DetalleDevolucionPage from './pages/DetalleDevolucionPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
 import AuditoriaDetalladaPage from './pages/AuditoriaDetalladaPage';
+import ReporteSatRepPage from './pages/ReporteSatRepPage';
 
 function App() {
     return (
@@ -23,6 +24,7 @@ function App() {
                     <Route path="/devoluciones" element={<ListaDevolucionesPage />} />
                     <Route path="/devoluciones/:id" element={<DetalleDevolucionPage />} />
                     <Route path="/bancos" element={<BancosPage />} />
+                    <Route path="/reportes/sat-rep" element={<ReporteSatRepPage />} />
                 </Routes>
             </BrowserRouter>
         </EmpresaProvider>

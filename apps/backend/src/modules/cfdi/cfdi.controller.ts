@@ -18,6 +18,17 @@ export class CfdiController {
     constructor(private readonly cfdiService: CfdiService) { }
 
     /**
+     * ENDPOINT CRÍTICO: Fuente de verdad para periodos disponibles
+     * Basado en CFDI reales, NO hardcodeado
+     */
+    @Get('periodos-disponibles')
+    async getPeriodosDisponibles(@Query('empresaId') empresaId?: string) {
+        return await this.cfdiService.getPeriodosDisponibles(empresaId);
+    }
+
+
+
+    /**
      * POST /api/cfdi/importar-xml
      * Importa un archivo XML de CFDI
      * empresaId es opcional - se detecta automáticamente por RFC
@@ -48,6 +59,16 @@ export class CfdiController {
             console.error('[CFDI Upload] Stack:', error.stack);
             throw error;
         }
+    }
+
+    /**
+     * POST /api/cfdi/reclasificar
+     * Reclasifica roles masivamente
+     */
+    @Post('reclasificar')
+    async reclasificarRoles(@Body() body: { empresaId: string }) {
+        if (!body.empresaId) throw new BadRequestException('Se requiere empresaId');
+        return await this.cfdiService.reclasificarRoles(body.empresaId);
     }
 
     /**
@@ -412,5 +433,65 @@ export class CfdiController {
     async getHistorialEstatus(@Query('empresaId') empresaId: string) {
         if (!empresaId) throw new BadRequestException('Se requiere empresaId');
         return await this.cfdiService.getHistorialCambiosEstatus(empresaId);
+    }
+
+    /**
+     * GET /api/hallazgos/detectados
+     * Obtiene la lista de hallazgos detectados
+     */
+    @Get('hallazgos/detectados')
+    async getHallazgosDetectados() {
+        return await this.cfdiService.getHallazgosDetectados();
+    }
+
+    /**
+     * GET /api/hallazgos/:id/cfdi-xml
+     * Obtiene el XML RAW del CFDI asociado a un hallazgo
+     */
+    @Get('hallazgos/:id/cfdi-xml')
+    async getCfdiXml(@Param('id') id: string) {
+        return await this.cfdiService.getCfdiXml(id);
+    }
+
+    /**
+     * GET /api/hallazgos/:id/rep-xml
+     * Obtiene el XML RAW del REP asociado a un hallazgo
+     */
+    @Get('hallazgos/:id/rep-xml')
+    async getRepXml(@Param('id') id: string) {
+        return await this.cfdiService.getRepXml(id);
+    }
+
+    /**
+     * GET /api/hallazgos/:id/detalle
+     * Obtiene los detalles de un hallazgo específico
+     */
+    @Get('hallazgos/:id/detalle')
+    async getHallazgoDetalle(@Param('id') id: string) {
+        return await this.cfdiService.getHallazgoDetalle(id);
+    }
+
+    /**
+     * POST /api/hallazgos/:id/revisar
+     * Marca un hallazgo como revisado
+     */
+    @Post('hallazgos/:id/revisar')
+    async revisarHallazgo(
+        @Param('id') id: string,
+        @Body('revisadoPor') revisadoPor: string,
+        @Body('estado') estado: string,
+        @Body('comentarios') comentarios?: string,
+    ) {
+        return await this.cfdiService.revisarHallazgo(id, revisadoPor, estado, comentarios);
+    }
+
+    /**
+     * GET /api/cfdi/ultimo-periodo
+     * Para inicializar dashboard
+     */
+    @Get('ultimo-periodo')
+    async getUltimoPeriodo(@Query('empresaId') empresaId: string) {
+        if (!empresaId) throw new BadRequestException('Falta empresaId');
+        return await this.cfdiService.getUltimoPeriodo(empresaId);
     }
 }

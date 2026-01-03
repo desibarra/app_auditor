@@ -21,3 +21,4 @@ export * from './cfdi_riesgos.schema';
 export * from './bancos.schema';
 export * from './cfdi_relaciones.schema';
 export * from './audit_logs.schema';
+export * from './hallazgos_discrepancias.schema';
